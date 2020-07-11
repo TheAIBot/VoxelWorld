@@ -67,7 +67,7 @@ namespace VoxelWorld
 
             if (!IsHighEnoughResolution(gridCenter, cameraPos))
             {
-                grid.Dispose();   
+                grid.Dispose();
                 return (null, gridCenter);
             }
 
@@ -274,7 +274,7 @@ namespace VoxelWorld
             }
         }
 
-        public bool DrawMesh(Frustum renderCheck)
+        public void DrawMesh(Frustum renderCheck)
         {
             bool renderedSomething = false;
             for (int i = 0; i < Grids.Length; i++)
@@ -285,11 +285,7 @@ namespace VoxelWorld
                     if (hir != null)
                     {
                         hir.DrawMesh(renderCheck);
-                        //if (hir.DrawMesh(renderCheck))
-                        //{
-                        //    renderedSomething = true;
-                            continue;
-                        //}
+                        continue;
                     }
                 }
 
@@ -299,12 +295,9 @@ namespace VoxelWorld
                     if (grid != null)
                     {
                         grid.DrawMesh(renderCheck);
-                        renderedSomething = true;
                     }
                 }
             }
-
-            return renderedSomething;
         }
 
         public void DrawPoints(Frustum renderCheck)
