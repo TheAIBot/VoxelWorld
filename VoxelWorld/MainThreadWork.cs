@@ -8,7 +8,7 @@ namespace VoxelWorld
     internal static class MainThreadWork
     {
         private static ConcurrentQueue<(ManualResetEventSlim isDone, Action action)> WorkToDo = new ConcurrentQueue<(ManualResetEventSlim isDone, Action action)>();
-        private static int MainThreadID = Thread.CurrentThread.ManagedThreadId;
+        private static int MainThreadID = 0;
 
         private static BlockingCollection<int> dwa;
 
@@ -30,22 +30,39 @@ namespace VoxelWorld
 
         public static void QueueWork(Action action)
         {
+            if (MainThreadID == Thread.CurrentThread.ManagedThreadId)
+            {
+                action.Invoke();
+                return;
+            }
+
             WorkToDo.Enqueue((null, action));
         }
 
         public static void ExecuteWork()
         {
-            int workLimit = Math.Min(20, WorkToDo.Count);
+            int workLimit = Math.Min(20000, WorkToDo.Count);
             for (int i = 0; i < workLimit; i++)
             {
                 if (WorkToDo.TryDequeue(out var work))
                 {
-                    work.action.Invoke();
+                    try
+                    {
+                        work.action.Invoke();
+                    }
+                    catch (Exception e)
+                    {
+
+                        throw;
+                    }
                     work.isDone?.Set();
                 }
             }
+        }
 
-
+        public static void SetThisThreadToMainThread()
+        {
+            MainThreadID = Thread.CurrentThread.ManagedThreadId;
         }
     }
 }

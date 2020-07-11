@@ -1,17 +1,19 @@
-﻿using System;
+﻿using OpenGL;
+using OpenGL.Platform;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 
 namespace VoxelWorld
 {
+
     internal class VoxelSystem
     {
-        private readonly Dictionary<Vector3I, VoxelGridInfo> Grids = new Dictionary<Vector3I, VoxelGridInfo>();
+        private readonly Dictionary<Vector3I, VoxelHierarchy> Grids = new Dictionary<Vector3I, VoxelHierarchy>();
         private readonly Vector3 Center;
         private float VoxelSize;
         private readonly int GridSize;
@@ -25,6 +27,7 @@ namespace VoxelWorld
             this.WeightGen = generator;
         }
 
+        /*
         public async void TestFindRelevantGrids()
         {
             Vector3I searchCenter = new Vector3I(0, 0, 0);
@@ -42,7 +45,7 @@ namespace VoxelWorld
 
             toCheck = new TransformBlock<Vector3I, bool>(gridPos =>
             {
-                Vector3 gridCenter = gridPos.AsFloatVector3() * (GridSize - 2) * VoxelSize;
+                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * (GridSize - 2) * VoxelSize;
                 VoxelGridInfo grid = new VoxelGridInfo();
 
                 if (!TryAddGrid(gridPos, grid))
@@ -99,42 +102,40 @@ namespace VoxelWorld
                 await Task.Delay(1000);
             }
         }
+        */
 
         public void TestResizeToFindFirstGrid()
         {
             while (true)
             {
                 Vector3I gridPos = new Vector3I(0, 0, 0);
-                Vector3 gridCenter = gridPos.AsFloatVector3() * (GridSize - 2) * VoxelSize;
+                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * GridSize * VoxelSize;
                 VoxelGridInfo grid = new VoxelGridInfo();
 
-                if (!TryAddGrid(gridPos, grid))
+                grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
+                if (grid.IsgridEmpty() || grid.EdgePointsUsed())
                 {
                     grid.Dispose();
                     VoxelSize *= 2;
                     continue;
                 }
+                grid.Dispose();
 
-                grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
-                if (grid.IsgridEmpty() ||grid.EdgePointsUsed())
+                VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen);
+                hir.Generate(gridCenter - new Vector3(1000, 1000, 10000));
+
+                if (!TryAddGrid(gridPos, hir))
                 {
-                    if (TryRemoveGrid(gridPos))
-                    {
-                        grid.Dispose();
-                    }
-                    VoxelSize *= 2;
-                    continue;
+                    Console.Error.WriteLine("failed to add hirearchy to system.");
                 }
 
-                grid.Interpolate();
-                //grid.SmoothGrid(1);
-                grid.MakeDrawMethods(false);
+
 
                 break;
             }
         }
 
-        private bool TryAddGrid(Vector3I gridPos, VoxelGridInfo grid)
+        private bool TryAddGrid(Vector3I gridPos, VoxelHierarchy grid)
         {
             lock (Grids)
             {
@@ -143,14 +144,14 @@ namespace VoxelWorld
                     return false;
                 }
 
-                foreach (Direction dir in Enum.GetValues(typeof(Direction)))
-                {
-                    if (Grids.TryGetValue(gridPos + dir.AsVector3(), out VoxelGridInfo neighbor))
-                    {
-                        grid.AddNeighbor(neighbor, dir);
-                        neighbor.AddNeighbor(grid, dir.Opposite());
-                    }
-                }
+                //foreach (Direction dir in Enum.GetValues(typeof(Direction)))
+                //{
+                //    if (Grids.TryGetValue(gridPos + dir.AsVector3(), out VoxelHierarchy neighbor))
+                //    {
+                //        grid.AddNeighbor(neighbor, dir);
+                //        neighbor.AddNeighbor(grid, dir.Opposite());
+                //    }
+                //}
             }
 
             return true;
@@ -164,24 +165,35 @@ namespace VoxelWorld
             }
         }
 
-        public void DrawMesh()
+        public void CheckVoxelResolution(PlayerCamera camera)
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.DrawMesh();
+                    grid.CheckAndIncreaseResolution(camera);
                 }
             }
         }
 
-        public void DrawPoints()
+        public void DrawMesh(Frustum renderCheck)
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.DrawPoints();
+                    grid.DrawMesh(renderCheck);
+                }
+            }
+        }
+
+        public void DrawPoints(Frustum renderCheck)
+        {
+            lock (Grids)
+            {
+                foreach (var grid in Grids.Values)
+                {
+                    grid.DrawPoints(renderCheck);
                 }
             }
         }

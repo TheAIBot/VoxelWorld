@@ -12,15 +12,13 @@ namespace VoxelWorld
     internal class VoxelGrid
     {
         private readonly int Size;
-        private readonly Vector3 GridCenter;
+        public readonly Vector3 GridCenter;
         private readonly float VoxelSize;
         private readonly Func<Vector3, float> WeightGen;
         private readonly float[] Grid;
         private readonly sbyte[] GridSign;
         public readonly Vector3[] VoxelPoints;
         private readonly Vector3 TopLeftCorner;
-        public VAO MeshVao = null;
-        public VAO PointVao = null;
 
         public VoxelGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
         {
@@ -385,7 +383,7 @@ namespace VoxelWorld
             return inUse;
         }
 
-        public void Triangulize(bool isBlocking)
+        public void Triangulize(VoxelGridInfo vaoConv, bool isBlocking)
         {
             int GridToVP(int x, int y, int z)
             {
@@ -482,65 +480,80 @@ namespace VoxelWorld
             uint[] indicesArr = indexes.ToArray();
             Vector3[] prunedPoints = vps.ToArray();
 
-            //uint[] indicesArr = indices.ToArray();
-            //Vector3[] prunedPoints = VoxelPoints;
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (int i = 0; i < prunedPoints.Length; i++)
+            {
+                min = Vector3.Min(min, prunedPoints[i]);
+                max = Vector3.Max(max, prunedPoints[i]);
+            }
 
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indicesArr);
             //Console.WriteLine(indicesArr.Length);
 
             var createVao = new Action(() =>
             {
-                VBO<uint> indiceBuffer = new VBO<uint>(indicesArr, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
-                VBO<Vector3> posBuffer = new VBO<Vector3>(prunedPoints);
-                VBO<Vector3> normalBuffer = new VBO<Vector3>(normals);
-
-                var vbos = new IGenericVBO[]
                 {
+                    VBO<uint> indiceBuffer = new VBO<uint>(indicesArr, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
+                    VBO<Vector3> posBuffer = new VBO<Vector3>(prunedPoints);
+                    VBO<Vector3> normalBuffer = new VBO<Vector3>(normals);
+
+                    var vbos = new IGenericVBO[]
+                    {
                     new GenericVBO<Vector3>(posBuffer, "vertex_pos"),
                     new GenericVBO<Vector3>(normalBuffer, "vertex_normal"),
                     new GenericVBO<uint>(indiceBuffer)
-                };
+                    };
 
-                VAO vao = new VAO(SimpleShader.GetShader(), vbos);
-                vao.DisposeChildren = true;
-                vao.DisposeElementArray = true;
-                MeshVao = vao;
-            });
+                    VAO vao = new VAO(SimpleShader.GetShader(), vbos);
+                    vao.DisposeChildren = true;
+                    vao.DisposeElementArray = true;
+                    vaoConv.meshVao = vao;
+                }
 
-            if (isBlocking)
-            {
-                MainThreadWork.QueueWorkAndWait(createVao);
-            }
-            else
-            {
-                MainThreadWork.QueueWork(createVao);
-            }
-        }
-
-        public void Pointizise(bool isBlocking)
-        {
-            uint[] indices = new uint[VoxelPoints.Length];
-            for (int i = 0; i < indices.Length; i++)
-            {
-                indices[i] = (uint)i;
-            }
-
-            var createVao = new Action(() =>
-            {
-                VBO<uint> indiceBuffer = new VBO<uint>(indices, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
-                VBO<Vector3> positions = new VBO<Vector3>(VoxelPoints);
-
-                var vbos = new IGenericVBO[]
                 {
-                new GenericVBO<Vector3>(positions, "vertex_pos"),
-                new GenericVBO<uint>(indiceBuffer)
-                };
+                    Vector3[] vertex = new Vector3[] 
+                    {
+                        new Vector3(min.X, min.Y, max.Z),
+                        new Vector3(max.X, min.Y, max.Z),
+                        new Vector3(min.X, max.Y, max.Z),
+                        new Vector3(max.X, max.Y, max.Z),
+                        new Vector3(max.X, min.Y, min.Z),
+                        new Vector3(max.X, max.Y, min.Z),
+                        new Vector3(min.X, max.Y, min.Z),
+                        new Vector3(min.X, min.Y, min.Z)
+                    };
 
-                VAO vao = new VAO(PointShader.GetShader(), vbos);
-                vao.DrawMode = BeginMode.Points;
-                vao.DisposeChildren = true;
-                vao.DisposeElementArray = true;
-                PointVao = vao;
+                    uint[] element = new uint[] 
+                    {
+                        0, 1, 2, 1, 3, 2,
+                        1, 4, 3, 4, 5, 3,
+                        4, 7, 5, 7, 6, 5,
+                        7, 0, 6, 0, 2, 6,
+                        7, 4, 0, 4, 1, 0,
+                        2, 3, 6, 3, 5, 6
+                    };
+
+                    Vector3[] normal = Geometry.CalculateNormals(vertex, element);
+
+                    VBO<uint> indiceBuffer = new VBO<uint>(element, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
+                    VBO<Vector3> posBuffer = new VBO<Vector3>(vertex);
+                    VBO<Vector3> normalBuffer = new VBO<Vector3>(normal);
+
+                    var vbos = new IGenericVBO[]
+                    {
+                    new GenericVBO<Vector3>(posBuffer, "vertex_pos"),
+                    new GenericVBO<Vector3>(normalBuffer, "vertex_normal"),
+                    new GenericVBO<uint>(indiceBuffer)
+                    };
+
+                    VAO vao = new VAO(SimpleShader.GetShader(), vbos);
+                    vao.DisposeChildren = true;
+                    vao.DisposeElementArray = true;
+                    vaoConv.pointsVao = vao;
+                }
+
+                vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
             });
 
             if (isBlocking)

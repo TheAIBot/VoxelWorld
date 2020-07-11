@@ -10,9 +10,9 @@ namespace VoxelWorld
         private int WindowWidth;
         private int WindowHeight;
 
-        private Vector3 CameraPos;
+        public Vector3 CameraPos;
         private Vector3 LookDirection;
-        private Vector3 UpVector;
+        public Vector3 UpVector;
         private bool PrevLeftMouseDown;
         private Vector2 PrevMousePos;
         private Vector2 CameraAngles;
@@ -24,7 +24,7 @@ namespace VoxelWorld
         {
             get
             {
-                return Matrix4.CreatePerspectiveFieldOfView(FieldOfView, (float)WindowWidth / WindowHeight, 0.1f, 1000f);
+                return Matrix4.CreatePerspectiveFieldOfView(FieldOfView, (float)WindowWidth / WindowHeight, 0.1f, 100f);
             }
         }
 
@@ -54,8 +54,8 @@ namespace VoxelWorld
 
         public void MoveLeft() => CameraPos += new Vector3(-0.01f, 0, 0);
         public void MoveRight() => CameraPos += new Vector3(0.01f, 0, 0);
-        public void MoveForward() => CameraPos += 0.8f * LookDirection;
-        public void MoveBackward() => CameraPos += -0.8f * LookDirection;
+        public void MoveForward() => CameraPos += 0.08f * LookDirection;
+        public void MoveBackward() => CameraPos += -0.08f * LookDirection;
 
         public void UpdateCameraDirection(Click mouse)
         {
@@ -65,6 +65,7 @@ namespace VoxelWorld
                 float dy = 0.3f * MathF.PI * (PrevMousePos.Y - mouse.Y) / WindowHeight;
                 CameraAngles += new Vector2(dx, -dy);
                 LookDirection = new Vector3(MathF.Cos(CameraAngles.X) * MathF.Cos(CameraAngles.Y), MathF.Sin(CameraAngles.Y), MathF.Sin(CameraAngles.X) * MathF.Cos(CameraAngles.Y));
+                //LookDirection = Matrix4.CreateRotationX(dx) * Matrix4.CreateRotationY(-dy) * LookDirection;
 
                 PrevMousePos = new Vector2(mouse.X, mouse.Y);
 

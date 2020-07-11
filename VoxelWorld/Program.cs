@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using VoxelWorld.Shaders;
 
@@ -15,6 +16,8 @@ namespace VoxelWorld
     {
         static void Main(string[] args)
         {
+            MainThreadWork.SetThisThreadToMainThread();
+
             int windowWidth = 1280;
             int windowHeight = 720;
 
@@ -26,7 +29,7 @@ namespace VoxelWorld
             bool renderPoints = false;
 
 
-            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-40, 40, -40));
+            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-30, -30, -30));
             Input.MouseLeftClick = new Event(player.UpdateCameraDirection);
             Input.Subscribe('w', player.MoveForward);
             Input.Subscribe('s', player.MoveBackward);
@@ -35,23 +38,19 @@ namespace VoxelWorld
             Input.Subscribe('1', () => renderMesh = !renderMesh);
             Input.Subscribe('2', () => renderPoints = !renderPoints);
 
-            var planetGen = PlanetGen.GetPlanetGen(3, 24.0f, 3.0f, 3.0f);
-            VoxelSystem system = new VoxelSystem(20, new Vector3(0, 0, 0), 0.3f, planetGen);
+            PlayerCamera dummyCamera = new PlayerCamera(Window.Width, Window.Height, new Vector3(-30, -30, -30));
+            Input.Subscribe('i', dummyCamera.MoveForward);
+            Input.Subscribe('k', dummyCamera.MoveBackward);
+
+            var planetGen = PlanetGen.GetPlanetGen(3, 8.0f, 3.0f, 3.0f);
+            VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
 
             Task.Factory.StartNew(async () =>
             {
-                //system.TestFindRelevantGrids();
-                //await Task.Delay(3000);
-                //system = new VoxelSystem(20, new Vector3(0, 0, 0), 0.3f, planetGen);
-                //system.TestFindRelevantGrids();
-                //await Task.Delay(3000);
-                //system = new VoxelSystem(20, new Vector3(0, 0, 0), 0.3f, planetGen);
-                //system.TestFindRelevantGrids();
-                //await Task.Delay(3000);
-                //system = new VoxelSystem(20, new Vector3(0, 0, 0), 0.3f, planetGen);
-                //system.TestFindRelevantGrids();
                 system.TestResizeToFindFirstGrid();
             }, TaskCreationOptions.LongRunning);
+
+            Frustum renderCheck = new Frustum();
 
 
             //return;
@@ -60,6 +59,8 @@ namespace VoxelWorld
 
             Gl.Enable(EnableCap.DepthTest);
             Gl.Enable(EnableCap.CullFace);
+            //Gl.Enable(EnableCap.Blend);
+            Gl.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
 
             float angle = 0;
 
@@ -79,6 +80,11 @@ namespace VoxelWorld
                 }
 
                 player.UpdateCameraDirection(Input.MousePosition);
+                renderCheck.UpdateFrustum(dummyCamera.Perspective, dummyCamera.View);
+
+                Matrix4 model = Matrix4.CreateRotationY(angle);
+                Matrix4 pvm = player.Perspective * model * player.View;
+                system.CheckVoxelResolution(dummyCamera);
 
 
 
@@ -89,41 +95,39 @@ namespace VoxelWorld
                 //vboPos.BufferSubData(grid.VoxelPoints);
                 //vboNorm.BufferSubData(Geometry.CalculateNormals(grid.VoxelPoints, grid.indicesArr));
 
-                Matrix4 model = Matrix4.CreateRotationY(angle);
+                ShaderProgram meshShader = SimpleShader.GetShader();
+                meshShader.Use();
+                meshShader["P"].SetValue(player.Perspective);
+                meshShader["V"].SetValue(player.View);
+                meshShader["M"].SetValue(model);
+                meshShader["N"].SetValue((model * player.View).Transpose().Inverse());
 
+                meshShader["light_pos"].SetValue(player.View * (model * new Vector4(-3, -3, 0.0f, 0.0f)));
+                meshShader["light_diff"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
+                meshShader["light_spec"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
+                meshShader["light_amb"].SetValue(new Vector4(0.3f, 0.4f, 0.6f, 0.4f));
+
+                meshShader["mat_diff"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
+                meshShader["mat_spec"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
+                meshShader["mat_spec_exp"].SetValue(7.0f);
+
+                VoxelGridInfo.DrawCalls = 0;
                 if (renderMesh)
                 {
-                    ShaderProgram meshShader = SimpleShader.GetShader();
-                    meshShader.Use();
-                    meshShader["P"].SetValue(player.Perspective);
-                    meshShader["V"].SetValue(player.View);
-                    meshShader["M"].SetValue(model);
-                    meshShader["N"].SetValue((model * player.View).Transpose().Inverse());
-
-                    meshShader["light_pos"].SetValue(player.View * (model * new Vector4(-3, -3, 0.0f, 0.0f)));
-                    meshShader["light_diff"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
-                    meshShader["light_spec"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
-                    meshShader["light_amb"].SetValue(new Vector4(0.3f, 0.4f, 0.6f, 0.4f));
-
-                    meshShader["mat_diff"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
-                    meshShader["mat_spec"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
-                    meshShader["mat_spec_exp"].SetValue(7.0f);
-                    system.DrawMesh();
+                    Gl.Disable(EnableCap.Blend);
+                    system.DrawMesh(renderCheck);
                 }
-
                 if (renderPoints)
                 {
-                    ShaderProgram meshShader = PointShader.GetShader();
-                    meshShader.Use();
-                    meshShader["P"].SetValue(player.Perspective);
-                    meshShader["V"].SetValue(player.View);
-                    meshShader["M"].SetValue(model);
-                    system.DrawPoints();
+                    Gl.Enable(EnableCap.Blend);
+                    system.DrawPoints(renderCheck);
                 }
+
+                Console.WriteLine(VoxelGridInfo.DrawCalls);
 
                 watch.Stop();
 
-                Console.WriteLine(watch.ElapsedMilliseconds);
+                //Console.WriteLine(watch.ElapsedMilliseconds);
 
 
 

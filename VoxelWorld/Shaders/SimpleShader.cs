@@ -61,6 +61,7 @@ void main(void)
     vec3 refl_dir = reflect(normalize(position), normalize(normal));
     float r_dot_l = max(dot(refl_dir, light_dir), 0.0);
     gl_FragColor += mat_spec * pow(r_dot_l, max(mat_spec_exp, 1.0)) * light_spec;
+    //gl_FragColor.a = 0.5;
 
     //gl_FragColor = gl_FragColor * 0.00001 + vec4(position, 1.0);
 }

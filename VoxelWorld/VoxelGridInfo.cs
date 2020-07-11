@@ -9,17 +9,20 @@ namespace VoxelWorld
 {
     internal class VoxelGridInfo : IDisposable
     {
-        private VoxelGrid Grid;
-        private readonly VoxelGridInfo[] Neighbors = new VoxelGridInfo[Enum.GetValues(typeof(Direction)).Length];
+        private VoxelGrid Grid = null;
+        public Vector3 Center { get; set; }
+        public VAO meshVao = null;
+        public VAO pointsVao = null;
+        public AxisAlignedBoundingBox BoundingBox = null;
 
-        public VoxelGridInfo()
-        {
-        }
+        public static int DrawCalls = 0;
 
         public void GenerateGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
         {
+            Center = center;
             Grid = new VoxelGrid(size, center, voxelSize, gen);
             Grid.Randomize();
+
         }
 
         public bool IsgridEmpty()
@@ -42,67 +45,58 @@ namespace VoxelWorld
             Grid.Smooth(iterations);
         }
 
-        public void AddNeighbor(VoxelGridInfo grid, Direction dir)
-        {
-            Neighbors[(int)dir] = grid;
-        }
-
-        public void RemoveNeighbor(Direction dir)
-        {
-            Neighbors[(int)dir] = null;
-        }
-
-        public List<Direction> GetDirectionsOfMissingNeighbors()
-        {
-            List<Direction> dirs = new List<Direction>();
-            foreach (Direction dir in Enum.GetValues(typeof(Direction)))
-            {
-                if (Neighbors[(int)dir] == null)
-                {
-                    dirs.Add(dir);
-                }
-            }
-
-            return dirs;
-        }
-
         public void MakeDrawMethods(bool isBlocking)
         {
-            Grid.Triangulize(isBlocking);
-            //Grid.Pointizise(isBlocking);
+            Grid.Triangulize(this, isBlocking);
+            //Grid.Pointizise(this, isBlocking);
+            Grid = null;
         }
 
-        public void DrawMesh()
+        public void DrawMesh(Frustum renderCheck)
         {
-            if (Grid?.MeshVao == null)
+            if (meshVao == null || BoundingBox == null)
             {
                 return;
             }
-            Grid.MeshVao.Program.Use();
-            Grid.MeshVao.Draw();
-        }
-
-        public void DrawPoints()
-        {
-            if (Grid?.PointVao == null)
+            if (!renderCheck.Intersects(BoundingBox))
             {
                 return;
             }
-            Grid.PointVao.Program.Use();
-            Grid.PointVao.Draw();
+            DrawCalls++;
+
+            meshVao.Program.Use();
+            meshVao.Draw();
+        }
+
+        public void DrawPoints(Frustum renderCheck)
+        {
+            if (pointsVao == null || BoundingBox == null)
+            {
+                return;
+            }
+            if (!renderCheck.Intersects(BoundingBox))
+            {
+                return;
+            }
+            DrawCalls++;
+
+            pointsVao.Program.Use();
+            pointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
+            pointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
+            pointsVao.Draw();
         }
 
         public void Dispose()
         {
-            if (Grid?.MeshVao != null || Grid?.PointVao != null)
+            if (meshVao != null || pointsVao != null)
             {
                 MainThreadWork.QueueWorkAndWait(() =>
                 {
-                    Grid.MeshVao?.Dispose();
-                    Grid.PointVao?.Dispose();
+                    meshVao?.Dispose();
+                    pointsVao?.Dispose();
 
-                    Grid.MeshVao = null;
-                    Grid.PointVao = null;
+                    meshVao = null;
+                    pointsVao = null;
                 });
             }
         }
