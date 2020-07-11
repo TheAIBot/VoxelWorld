@@ -80,11 +80,10 @@ namespace VoxelWorld
                 }
 
                 player.UpdateCameraDirection(Input.MousePosition);
-                renderCheck.UpdateFrustum(dummyCamera.Perspective, dummyCamera.View);
+                renderCheck.UpdateFrustum(player.Perspective, player.View);
 
                 Matrix4 model = Matrix4.CreateRotationY(angle);
-                Matrix4 pvm = player.Perspective * model * player.View;
-                system.CheckVoxelResolution(dummyCamera);
+                system.CheckVoxelResolution(player, renderCheck);
 
 
 
