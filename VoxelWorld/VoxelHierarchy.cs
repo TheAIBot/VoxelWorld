@@ -21,15 +21,15 @@ namespace VoxelWorld
             new Vector3I( 1,  1,  1)
         };
 
-        public readonly Vector3 Center;
-        public readonly float VoxelSize;
-        public readonly int GridSize;
-        public readonly Func<Vector3, float> WeightGen;
-        public readonly Vector3?[] GridCenters = new Vector3?[GridLocations.Length];
-        public VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
-        public VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
-        public bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
-        public bool[] IsGeneratingGrids = new bool[GridLocations.Length];
+        private readonly Vector3 Center;
+        private readonly float VoxelSize;
+        private readonly int GridSize;
+        private readonly Func<Vector3, float> WeightGen;
+        private readonly Vector3?[] GridCenters = new Vector3?[GridLocations.Length];
+        private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
+        private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
+        private readonly bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
+        private readonly bool[] IsGeneratingGrids = new bool[GridLocations.Length];
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
@@ -43,17 +43,12 @@ namespace VoxelWorld
 
         public void Generate(Vector3 cameraPos)
         {
-            VoxelGridInfo[] newGrids = new VoxelGridInfo[Grids.Length];
-
-
             for (int i = 0; i < GridLocations.Length; i++)
             {
                 var gridInfo = GenerateGrid(GridLocations[i], cameraPos);
                 GridCenters[i] = gridInfo.center;
-                newGrids[i] = gridInfo.grid;
+                Grids[i] = gridInfo.grid;
             }
-
-            Grids = newGrids;
         }
 
         private (VoxelGridInfo grid, Vector3? center) GenerateGrid(Vector3I gridDir, Vector3 cameraPos)
