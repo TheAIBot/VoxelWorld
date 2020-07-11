@@ -47,9 +47,9 @@ namespace VoxelWorld
             Grid.Smooth(iterations);
         }
 
-        public void MakeDrawMethods(bool isBlocking)
+        public void MakeDrawMethods()
         {
-            Grid.Triangulize(this, isBlocking);
+            Grid.Triangulize(this);
             //Grid.Pointizise(this, isBlocking);
             Grid = null;
         }

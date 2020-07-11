@@ -1,32 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace VoxelWorld
 {
     internal static class MainThreadWork
     {
-        private static ConcurrentQueue<(ManualResetEventSlim isDone, Action action)> WorkToDo = new ConcurrentQueue<(ManualResetEventSlim isDone, Action action)>();
+        private static ConcurrentQueue<Action> WorkToDo = new ConcurrentQueue<Action>();
         private static int MainThreadID = 0;
-
-        private static BlockingCollection<int> dwa;
-
-        public static void QueueWorkAndWait(Action action)
-        {
-            //main thread is not allowed to wait for itself so it will instead do the work immediatly
-            if (MainThreadID == Thread.CurrentThread.ManagedThreadId)
-            {
-                action.Invoke();
-                return;
-            }
-
-            ManualResetEventSlim isDone = new ManualResetEventSlim(false);
-
-            WorkToDo.Enqueue((isDone, action));
-            isDone.Wait();
-            isDone.Dispose();
-        }
 
         public static void QueueWork(Action action)
         {
@@ -36,18 +17,17 @@ namespace VoxelWorld
                 return;
             }
 
-            WorkToDo.Enqueue((null, action));
+            WorkToDo.Enqueue(action);
         }
 
         public static void ExecuteWork()
         {
-            int workLimit = Math.Min(50000, WorkToDo.Count);
+            int workLimit = Math.Min(50, WorkToDo.Count);
             for (int i = 0; i < workLimit; i++)
             {
                 if (WorkToDo.TryDequeue(out var work))
                 {
-                    work.action.Invoke();
-                    work.isDone?.Set();
+                    work.Invoke();
                 }
             }
         }

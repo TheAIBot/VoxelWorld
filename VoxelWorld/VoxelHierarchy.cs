@@ -80,7 +80,7 @@ namespace VoxelWorld
 
             grid.Interpolate();
             //grid.SmoothGrid(1);
-            grid.MakeDrawMethods(false);
+            grid.MakeDrawMethods();
 
             return (grid, gridCenter);
         }

@@ -383,7 +383,7 @@ namespace VoxelWorld
             return inUse;
         }
 
-        public void Triangulize(VoxelGridInfo vaoConv, bool isBlocking)
+        public void Triangulize(VoxelGridInfo vaoConv)
         {
             int GridToVP(int x, int y, int z)
             {
@@ -571,14 +571,7 @@ namespace VoxelWorld
                 }
             });
 
-            if (isBlocking)
-            {
-                MainThreadWork.QueueWorkAndWait(createVao);
-            }
-            else
-            {
-                MainThreadWork.QueueWork(createVao);
-            }
+            MainThreadWork.QueueWork(createVao);
         }
     }
 }
