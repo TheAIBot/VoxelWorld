@@ -41,20 +41,12 @@ namespace VoxelWorld
 
         public static void ExecuteWork()
         {
-            int workLimit = Math.Min(20000, WorkToDo.Count);
+            int workLimit = Math.Min(50000, WorkToDo.Count);
             for (int i = 0; i < workLimit; i++)
             {
                 if (WorkToDo.TryDequeue(out var work))
                 {
-                    try
-                    {
-                        work.action.Invoke();
-                    }
-                    catch (Exception e)
-                    {
-
-                        throw;
-                    }
+                    work.action.Invoke();
                     work.isDone?.Set();
                 }
             }
