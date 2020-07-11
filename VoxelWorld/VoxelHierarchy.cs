@@ -3,20 +3,9 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
-using System.Threading.Tasks.Dataflow;
 
 namespace VoxelWorld
 {
-    internal static class WorkLimiter
-    {
-        private static readonly ExecutionDataflowBlockOptions options = new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 7, MaxMessagesPerTask = 5 };
-        private static readonly ActionBlock<Action> DoWork = new ActionBlock<Action>(x => x.Invoke(), options);
-
-        public static void QueueWork(Action work)
-        {
-            DoWork.Post(work);
-        }
-    }
 
     internal class VoxelHierarchy : IDisposable
     {
