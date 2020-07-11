@@ -165,13 +165,13 @@ namespace VoxelWorld
             }
         }
 
-        public void CheckVoxelResolution(PlayerCamera camera)
+        public void CheckVoxelResolution(PlayerCamera camera, Frustum renderCheck)
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.CheckAndIncreaseResolution(camera);
+                    grid.CheckAndIncreaseResolution(camera, renderCheck);
                 }
             }
         }

@@ -493,6 +493,9 @@ namespace VoxelWorld
 
             var createVao = new Action(() =>
             {
+                VAO meshVao = null;
+                VAO boxVao = null;
+
                 {
                     VBO<uint> indiceBuffer = new VBO<uint>(indicesArr, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
                     VBO<Vector3> posBuffer = new VBO<Vector3>(prunedPoints);
@@ -505,10 +508,9 @@ namespace VoxelWorld
                     new GenericVBO<uint>(indiceBuffer)
                     };
 
-                    VAO vao = new VAO(SimpleShader.GetShader(), vbos);
-                    vao.DisposeChildren = true;
-                    vao.DisposeElementArray = true;
-                    vaoConv.meshVao = vao;
+                    meshVao = new VAO(SimpleShader.GetShader(), vbos);
+                    meshVao.DisposeChildren = true;
+                    meshVao.DisposeElementArray = true;
                 }
 
                 {
@@ -547,13 +549,25 @@ namespace VoxelWorld
                     new GenericVBO<uint>(indiceBuffer)
                     };
 
-                    VAO vao = new VAO(SimpleShader.GetShader(), vbos);
-                    vao.DisposeChildren = true;
-                    vao.DisposeElementArray = true;
-                    vaoConv.pointsVao = vao;
+                    boxVao = new VAO(SimpleShader.GetShader(), vbos);
+                    boxVao.DisposeChildren = true;
+                    boxVao.DisposeElementArray = true;
                 }
 
-                vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
+                lock (vaoConv.DisposeLock)
+                {
+                    if (vaoConv.HasBeenDisposed)
+                    {
+                        meshVao.Dispose();
+                        boxVao.Dispose();
+                    }
+                    else
+                    {
+                        vaoConv.meshVao = meshVao;
+                        vaoConv.pointsVao = boxVao;
+                        vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
+                    }
+                }
             });
 
             if (isBlocking)

@@ -14,6 +14,8 @@ namespace VoxelWorld
         public VAO meshVao = null;
         public VAO pointsVao = null;
         public AxisAlignedBoundingBox BoundingBox = null;
+        public readonly object DisposeLock = new object();
+        public bool HasBeenDisposed = false;
 
         public static int DrawCalls = 0;
 
@@ -88,9 +90,14 @@ namespace VoxelWorld
 
         public void Dispose()
         {
+            lock (DisposeLock)
+            {
+                HasBeenDisposed = true;
+            }
+
             if (meshVao != null || pointsVao != null)
             {
-                MainThreadWork.QueueWorkAndWait(() =>
+                MainThreadWork.QueueWork(() =>
                 {
                     meshVao?.Dispose();
                     pointsVao?.Dispose();
