@@ -21,15 +21,24 @@ namespace VoxelWorld
             new Vector3I( 1,  1,  1)
         };
 
+        //required to make a grid
         private readonly Vector3 Center;
         private readonly float VoxelSize;
         private readonly int GridSize;
         private readonly Func<Vector3, float> WeightGen;
         private readonly Vector3?[] GridCenters = new Vector3?[GridLocations.Length];
+
+        //keeps track of grids
         private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
-        private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
         private readonly bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
+        private AxisAlignedBoundingBox BoundingBox = null;
+
+        //keeps track of sub hierarchies
+        private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
         private readonly bool[] IsGeneratingGrids = new bool[GridLocations.Length];
+
+        //make sure all grids and hierarchies are disposed of
+        //no matter if they are being generated
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
@@ -105,6 +114,11 @@ namespace VoxelWorld
                         newGrid = null;
                     }
 
+                    if (newGrid != null)
+                    {
+                        BoundingBox = null;
+                    }
+
                     Grids[index] = newGrid;
                     IsGeneratingGrids[index] = false;
                 }
@@ -118,6 +132,14 @@ namespace VoxelWorld
             IsGeneratingHierarchy[index] = true;
             WorkLimiter.QueueWork(() =>
             {
+                lock (DisposeLock)
+                {
+                    if (HasBeenDisposed)
+                    {
+                        return;
+                    }
+                }
+
                 VoxelHierarchy subHireachy = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen);
                 subHireachy.Generate(cameraPos);
 
@@ -133,6 +155,13 @@ namespace VoxelWorld
                     {
                         //Console.WriteLine("Done work");
                     }
+
+                    if (subHireachy != null)
+                    {
+                        BoundingBox = null;
+                    }
+
+
                     SubHierarchies[index] = subHireachy;
                     IsGeneratingHierarchy[index] = false;
                 }
@@ -155,7 +184,7 @@ namespace VoxelWorld
             {
                 if (SubHierarchies[i] != null && Grids[i] != null)
                 {
-                    Grids[i]?.Dispose();
+                    Grids[i].Dispose();
                     Grids[i] = null;
                 }
             }
@@ -173,7 +202,8 @@ namespace VoxelWorld
                 //    continue;
                 //}
 
-                if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                Vector3 gridCenter = /*Grids[i]?.BoundingBox?.Center ??*/ GridCenters[i].Value;
+                if (IsHighEnoughResolution(gridCenter, camera.CameraPos))
                 {
                     if (SubHierarchies[i] != null)
                     {
@@ -192,6 +222,54 @@ namespace VoxelWorld
                 else
                 {
                     SubHierarchies[i]?.CheckAndIncreaseResolution(camera, renderCheck);
+                }
+            }
+
+            if (IsGeneratingHierarchy.Any(x => x))
+            {
+                return;
+            }
+
+            if (IsGeneratingGrids.Any(x => x))
+            {
+                return;
+            }
+
+            if (BoundingBox == null)
+            {
+                BoundingBox = new AxisAlignedBoundingBox(new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), new Vector3(float.MinValue, float.MinValue, float.MinValue));
+                bool noBoxes = true;
+                for (int i = 0; i < Grids.Length; i++)
+                {
+                    if (Grids[i] != null)
+                    {
+                        BoundingBox.AddBoundingBox(Grids[i].BoundingBox);
+                        noBoxes = false;
+                    }
+                    else
+                    {
+                        AxisAlignedBoundingBox subHirBox = SubHierarchies[i]?.BoundingBox;
+                        if (subHirBox != null)
+                        {
+                            BoundingBox.AddBoundingBox(subHirBox);
+                            noBoxes = false;
+                        }
+                    }
+                }
+
+                if (noBoxes)
+                {
+                    BoundingBox = null;
+                }
+            }
+
+            for (int i = 0; i < Grids.Length; i++)
+            {
+                AxisAlignedBoundingBox subHirBox = SubHierarchies[i]?.BoundingBox;
+                if (subHirBox != null && !renderCheck.Intersects(subHirBox))
+                {
+                    SubHierarchies[i]?.Dispose();
+                    SubHierarchies[i] = null;
                 }
             }
         }

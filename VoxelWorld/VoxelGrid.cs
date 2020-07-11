@@ -491,6 +491,8 @@ namespace VoxelWorld
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indicesArr);
             //Console.WriteLine(indicesArr.Length);
 
+            vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
+
             var createVao = new Action(() =>
             {
                 VAO meshVao = null;
@@ -565,7 +567,6 @@ namespace VoxelWorld
                     {
                         vaoConv.meshVao = meshVao;
                         vaoConv.pointsVao = boxVao;
-                        vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
                     }
                 }
             });
