@@ -209,84 +209,107 @@ namespace VoxelWorld
                 return;
             }
 
-            for (int i = 0; i < SubHierarchies.Length; i++)
-            {
-                if (Grids[i] != null)
-                {
-                    if (SubHierarchies[i] != null)
-                    {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
-                    }
-                    else if (!GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
-                    {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
-                    }
-                    else if (!renderCheck.Intersects(Grids[i].BoundingBox))
-                    {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
-                    }
-                }
-            }
-
-            for (int i = 0; i < Grids.Length; i++)
+            for (int i = 0; i < GridLocations.Length; i++)
             {
                 if (!GridCenters[i].HasValue)
                 {
                     continue;
                 }
 
-                if (SubHierarchies[i] != null)
+                VoxelGridInfo grid = Grids[i];
+                VoxelHierarchy subHir = SubHierarchies[i];
+
+                if (grid == null && subHir == null)
                 {
-                    if (!SubHierarchies[i].HirNormal.CanSee(Matrix4.Identity, camera.LookDirection))
+                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                    {
+                        if (GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
+                            renderCheck.Intersects(GridBoundBoxes[i]))
+                        {
+                            QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
+                        }
+                    }
+                    else
+                    {
+                        if (!IsEmptyHierarchies[i] &&
+                            (SubHirBoundBoxes[i] == null ||
+                            (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
+                            renderCheck.Intersects(SubHirBoundBoxes[i]))))
+                        {
+                            QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
+                        }
+                    }
+                }
+                else if (grid == null && subHir != null)
+                {
+                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                    {
+                        if (GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
+                            renderCheck.Intersects(GridBoundBoxes[i]))
+                        {
+                            QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
+                            continue;
+                        }
+                    }
+
+                    if (!SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
                     {
                         SubHierarchies[i].Dispose();
                         SubHierarchies[i] = null;
                         continue;
                     }
-                }
 
-                AxisAlignedBoundingBox subHirBox = SubHierarchies[i]?.BoundingBox;
-                if (subHirBox != null && !renderCheck.Intersects(subHirBox))
-                {
-                    SubHierarchies[i]?.Dispose();
-                    SubHierarchies[i] = null;
-                    continue;
-                }
-
-                Vector3 gridCenter = /*Grids[i]?.BoundingBox?.Center ??*/ GridCenters[i].Value;
-                if (IsHighEnoughResolution(gridCenter, camera.CameraPos))
-                {
-                    if (SubHierarchies[i] != null)
+                    if (!renderCheck.Intersects(SubHirBoundBoxes[i]))
                     {
-                        SubHierarchies[i]?.Dispose();
+                        SubHierarchies[i].Dispose();
                         SubHierarchies[i] = null;
+                        continue;
                     }
-                    if (Grids[i] == null && GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) && GridBoundBoxes[i] != null && renderCheck.Intersects(GridBoundBoxes[i]))
-                    {
-                        QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
-                    }
-                    continue;
-                }
 
-                if (SubHierarchies[i] == null)
+                    subHir.CheckAndIncreaseResolution(camera, renderCheck);
+                }
+                else if (grid != null && subHir == null)
                 {
-                    if (!IsEmptyHierarchies[i])
+                    if (!IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
                     {
-                        if (SubHirBoundBoxes[i] == null || renderCheck.Intersects(SubHirBoundBoxes[i]))
+                        if (!IsEmptyHierarchies[i] &&
+                            (SubHirBoundBoxes[i] == null ||
+                            (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
+                            renderCheck.Intersects(SubHirBoundBoxes[i]))))
                         {
-                            if (SubHirBoundBoxes[i] == null || SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
-                            {
-                                QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
-                            }
+                            QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
+                            continue;
                         }
                     }
+
+                    if (!GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
+                    {
+                        Grids[i].Dispose();
+                        Grids[i] = null;
+                        continue;
+                    }
+
+                    if (!renderCheck.Intersects(GridBoundBoxes[i]))
+                    {
+                        Grids[i].Dispose();
+                        Grids[i] = null;
+                        continue;
+                    }
                 }
-                else
+                else if (grid != null && subHir != null)
                 {
-                    SubHierarchies[i]?.CheckAndIncreaseResolution(camera, renderCheck);
+                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                    {
+                        SubHierarchies[i].Dispose();
+                        SubHierarchies[i] = null;
+                    }
+                    else
+                    {
+                        Grids[i].Dispose();
+                        Grids[i] = null;
+
+                        subHir.CheckAndIncreaseResolution(camera, renderCheck);
+                    }
                 }
             }
         }
