@@ -31,6 +31,7 @@ namespace VoxelWorld
         //keeps track of grids
         private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
         private readonly bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
+        private readonly AxisAlignedBoundingBox[] GridBoundBoxes = new AxisAlignedBoundingBox[GridLocations.Length];
         private AxisAlignedBoundingBox BoundingBox = null;
 
         //keeps track of sub hierarchies
@@ -65,6 +66,7 @@ namespace VoxelWorld
 
                 if (gridInfo.box != null)
                 {
+                    GridBoundBoxes[i] = gridInfo.box;
                     BoundingBox.AddBoundingBox(gridInfo.box);
                     addedBox = true;
                 }
@@ -227,7 +229,9 @@ namespace VoxelWorld
                     {
                         SubHierarchies[i]?.Dispose();
                         SubHierarchies[i] = null;
-
+                    }
+                    if (Grids[i] == null && GridBoundBoxes[i] != null && renderCheck.Intersects(GridBoundBoxes[i]))
+                    {
                         QueueGridGen(i, camera.CameraPos);
                     }
                     continue;
