@@ -54,6 +54,12 @@ namespace VoxelWorld
             Grid = null;
         }
 
+        public AxisAlignedBoundingBox GetBoundingBox()
+        {
+            BoundingBox = Grid.GetBoundingBox();
+            return BoundingBox;
+        }
+
         public void DrawMesh(Frustum renderCheck)
         {
             if (meshVao == null || BoundingBox == null)
