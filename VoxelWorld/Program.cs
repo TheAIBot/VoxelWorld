@@ -114,12 +114,12 @@ namespace VoxelWorld
                 if (renderMesh)
                 {
                     Gl.Disable(EnableCap.Blend);
-                    system.DrawMesh(renderCheck);
+                    system.DrawMesh();
                 }
                 if (renderPoints)
                 {
                     Gl.Enable(EnableCap.Blend);
-                    system.DrawPoints(renderCheck);
+                    system.DrawPoints();
                 }
 
                 Console.WriteLine(VoxelGridInfo.DrawCalls);

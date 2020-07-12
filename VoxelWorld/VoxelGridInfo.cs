@@ -60,13 +60,9 @@ namespace VoxelWorld
             return BoundingBox;
         }
 
-        public void DrawMesh(Frustum renderCheck)
+        public void DrawMesh()
         {
             if (meshVao == null || BoundingBox == null)
-            {
-                return;
-            }
-            if (!renderCheck.Intersects(BoundingBox))
             {
                 return;
             }
@@ -76,13 +72,9 @@ namespace VoxelWorld
             meshVao.Draw();
         }
 
-        public void DrawPoints(Frustum renderCheck)
+        public void DrawPoints()
         {
             if (pointsVao == null || BoundingBox == null)
-            {
-                return;
-            }
-            if (!renderCheck.Intersects(BoundingBox))
             {
                 return;
             }

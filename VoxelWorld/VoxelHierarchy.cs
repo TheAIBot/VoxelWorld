@@ -190,10 +190,18 @@ namespace VoxelWorld
 
             for (int i = 0; i < SubHierarchies.Length; i++)
             {
-                if (SubHierarchies[i] != null && Grids[i] != null)
+                if (Grids[i] != null)
                 {
-                    Grids[i].Dispose();
-                    Grids[i] = null;
+                    if (SubHierarchies[i] != null)
+                    {
+                        Grids[i].Dispose();
+                        Grids[i] = null;
+                    }
+                    else if (!renderCheck.Intersects(Grids[i].BoundingBox))
+                    {
+                        Grids[i].Dispose();
+                        Grids[i] = null;
+                    }
                 }
             }
 
@@ -242,7 +250,7 @@ namespace VoxelWorld
             }
         }
 
-        public void DrawMesh(Frustum renderCheck)
+        public void DrawMesh()
         {
             for (int i = 0; i < Grids.Length; i++)
             {
@@ -251,7 +259,7 @@ namespace VoxelWorld
                     VoxelHierarchy hir = SubHierarchies[i];
                     if (hir != null)
                     {
-                        hir.DrawMesh(renderCheck);
+                        hir.DrawMesh();
                         continue;
                     }
                 }
@@ -261,13 +269,13 @@ namespace VoxelWorld
                     VoxelGridInfo grid = Grids[i];
                     if (grid != null)
                     {
-                        grid.DrawMesh(renderCheck);
+                        grid.DrawMesh();
                     }
                 }
             }
         }
 
-        public void DrawPoints(Frustum renderCheck)
+        public void DrawPoints()
         {
             for (int i = 0; i < Grids.Length; i++)
             {
@@ -276,7 +284,7 @@ namespace VoxelWorld
                     VoxelHierarchy hir = SubHierarchies[i];
                     if (hir != null)
                     {
-                        hir.DrawPoints(renderCheck);
+                        hir.DrawPoints();
                         continue;
                     }
                 }
@@ -286,7 +294,7 @@ namespace VoxelWorld
                     VoxelGridInfo grid = Grids[i];
                     if (grid != null)
                     {
-                        grid.DrawPoints(renderCheck);
+                        grid.DrawPoints();
                     }
                 }
             }

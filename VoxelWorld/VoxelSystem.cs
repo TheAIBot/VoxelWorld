@@ -176,24 +176,24 @@ namespace VoxelWorld
             }
         }
 
-        public void DrawMesh(Frustum renderCheck)
+        public void DrawMesh()
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.DrawMesh(renderCheck);
+                    grid.DrawMesh();
                 }
             }
         }
 
-        public void DrawPoints(Frustum renderCheck)
+        public void DrawPoints()
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.DrawPoints(renderCheck);
+                    grid.DrawPoints();
                 }
             }
         }
