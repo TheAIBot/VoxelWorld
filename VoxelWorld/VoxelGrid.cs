@@ -383,6 +383,28 @@ namespace VoxelWorld
             return inUse;
         }
 
+        public AxisAlignedBoundingBox GetBoundingBox()
+        {
+            bool[] inUse = GetVPInUse();
+
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+
+            for (int i = 0; i < VoxelPoints.Length; i++)
+            {
+                if (!inUse[i])
+                {
+                    continue;
+                }
+
+                Vector3 vp = VoxelPoints[i];
+                min = Vector3.Min(min, vp);
+                max = Vector3.Max(max, vp);
+            }
+
+            return new AxisAlignedBoundingBox(min, max);
+        }
+
         public void Triangulize(VoxelGridInfo vaoConv)
         {
             int GridToVP(int x, int y, int z)
@@ -490,8 +512,6 @@ namespace VoxelWorld
 
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indicesArr);
             //Console.WriteLine(indicesArr.Length);
-
-            vaoConv.BoundingBox = new AxisAlignedBoundingBox(min, max);
 
             var createVao = new Action(() =>
             {
