@@ -35,6 +35,7 @@ namespace VoxelWorld
 
         //keeps track of sub hierarchies
         private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
+        private readonly bool[] IsEmptyHierarchies = new bool[GridLocations.Length];
         private readonly AxisAlignedBoundingBox[] SubHirBoundBoxes = new AxisAlignedBoundingBox[GridLocations.Length];
         private readonly bool[] IsGeneratingGrids = new bool[GridLocations.Length];
 
@@ -148,12 +149,19 @@ namespace VoxelWorld
                 VoxelHierarchy subHireachy = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen);
                 subHireachy.Generate(cameraPos);
 
+                if (subHireachy.IsEmpty())
+                {
+                    IsEmptyHierarchies[index] = true;
+                    subHireachy.Dispose();
+                    subHireachy = null;
+                }
+
                 lock (DisposeLock)
                 {
                     if (HasBeenDisposed)
                     {
                         //Console.WriteLine("Wasted work");
-                        subHireachy.Dispose();
+                        subHireachy?.Dispose();
                         subHireachy = null;
                     }
                     else
@@ -219,6 +227,7 @@ namespace VoxelWorld
 
                 if (SubHierarchies[i] == null)
                 {
+                    if (!IsEmptyHierarchies[i])
                     {
                         if (SubHirBoundBoxes[i] == null || renderCheck.Intersects(SubHirBoundBoxes[i]))
                         {
