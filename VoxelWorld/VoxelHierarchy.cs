@@ -99,6 +99,13 @@ namespace VoxelWorld
             grid.Interpolate();
             AxisAlignedBoundingBox box = grid.GetBoundingBox();
             GridNormal normal = grid.GetGridNormal();
+
+            if (!normal.CanSee(model_rot, lookDir))
+            {
+                grid.Dispose();
+                return (null, gridCenter, box, normal);
+            }
+
             //grid.SmoothGrid(1);
             grid.MakeDrawMethods();
 
