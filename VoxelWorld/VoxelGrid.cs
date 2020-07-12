@@ -404,6 +404,41 @@ namespace VoxelWorld
 
             return new AxisAlignedBoundingBox(min, max);
         }
+        
+        public GridNormal GetGridNormal()
+        {
+            int PosToGridIndex(int x, int y, int z)
+            {
+                return z * Size * Size + y * Size + x;
+            }
+
+            GridNormal normal = new GridNormal();
+
+            for (int z = 1; z < Size - 1; z++)
+            {
+                for (int y = 1; y < Size - 1; y++)
+                {
+                    for (int x = 1; x < Size - 1; x++)
+                    {
+                        int centerSign = GridSign[PosToGridIndex(x, y, z)];
+                        if (centerSign < 0)
+                        {
+                            continue;
+                        }
+
+                        normal.Xp |= centerSign > GridSign[PosToGridIndex(x + 1, y, z)];
+                        normal.Xm |= centerSign > GridSign[PosToGridIndex(x - 1, y, z)];
+                        normal.Yp |= centerSign > GridSign[PosToGridIndex(x, y + 1, z)];
+                        normal.Ym |= centerSign > GridSign[PosToGridIndex(x, y - 1, z)];
+                        normal.Zp |= centerSign > GridSign[PosToGridIndex(x, y, z + 1)];
+                        normal.Zm |= centerSign > GridSign[PosToGridIndex(x, y, z - 1)];
+                    }
+                }
+            }
+
+            return normal;
+        }
+
 
         public void Triangulize(VoxelGridInfo vaoConv)
         {

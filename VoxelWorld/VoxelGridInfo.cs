@@ -60,6 +60,11 @@ namespace VoxelWorld
             return BoundingBox;
         }
 
+        public GridNormal GetGridNormal()
+        {
+            return Grid.GetGridNormal();
+        }
+
         public void DrawMesh()
         {
             if (meshVao == null || BoundingBox == null)

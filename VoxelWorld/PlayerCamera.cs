@@ -11,7 +11,7 @@ namespace VoxelWorld
         private int WindowHeight;
 
         public Vector3 CameraPos;
-        private Vector3 LookDirection;
+        public Vector3 LookDirection;
         public Vector3 UpVector;
         private bool PrevLeftMouseDown;
         private Vector2 PrevMousePos;
@@ -64,7 +64,9 @@ namespace VoxelWorld
                 float dx = 0.6f * MathF.PI * (PrevMousePos.X - mouse.X) / WindowWidth;
                 float dy = 0.3f * MathF.PI * (PrevMousePos.Y - mouse.Y) / WindowHeight;
                 CameraAngles += new Vector2(dx, -dy);
+                Console.WriteLine(CameraAngles);
                 LookDirection = new Vector3(MathF.Cos(CameraAngles.X) * MathF.Cos(CameraAngles.Y), MathF.Sin(CameraAngles.Y), MathF.Sin(CameraAngles.X) * MathF.Cos(CameraAngles.Y));
+                //LookDirection += new Vector3(MathF.Cos(dx) * MathF.Cos(-dy), MathF.Sin(-dy), MathF.Sin(dx) * MathF.Cos(-dy)) - new Vector3(MathF.Cos(0) * MathF.Cos(0), MathF.Sin(0), MathF.Sin(0) * MathF.Cos(0));
                 //LookDirection = Matrix4.CreateRotationX(dx) * Matrix4.CreateRotationY(-dy) * LookDirection;
 
                 PrevMousePos = new Vector2(mouse.X, mouse.Y);
