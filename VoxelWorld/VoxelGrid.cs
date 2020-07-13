@@ -548,27 +548,10 @@ namespace VoxelWorld
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indicesArr);
             //Console.WriteLine(indicesArr.Length);
 
-            var createVao = new Action(() =>
+            var createVao = new Action<WorkOptimizer>(x =>
             {
-                VAO meshVao = null;
-                VAO boxVao = null;
-
-                {
-                    VBO<uint> indiceBuffer = new VBO<uint>(indicesArr, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
-                    VBO<Vector3> posBuffer = new VBO<Vector3>(prunedPoints);
-                    VBO<Vector3> normalBuffer = new VBO<Vector3>(normals);
-
-                    var vbos = new IGenericVBO[]
-                    {
-                    new GenericVBO<Vector3>(posBuffer, "vertex_pos"),
-                    new GenericVBO<Vector3>(normalBuffer, "vertex_normal"),
-                    new GenericVBO<uint>(indiceBuffer)
-                    };
-
-                    meshVao = new VAO(SimpleShader.GetShader(), vbos);
-                    meshVao.DisposeChildren = true;
-                    meshVao.DisposeElementArray = true;
-                }
+                GridVAO meshVao = x.MakeGridVAO(prunedPoints, normals, indicesArr);
+                GridVAO boxVao = null;
 
                 {
                     Vector3[] vertex = new Vector3[] 
@@ -595,28 +578,15 @@ namespace VoxelWorld
 
                     Vector3[] normal = Geometry.CalculateNormals(vertex, element);
 
-                    VBO<uint> indiceBuffer = new VBO<uint>(element, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
-                    VBO<Vector3> posBuffer = new VBO<Vector3>(vertex);
-                    VBO<Vector3> normalBuffer = new VBO<Vector3>(normal);
-
-                    var vbos = new IGenericVBO[]
-                    {
-                    new GenericVBO<Vector3>(posBuffer, "vertex_pos"),
-                    new GenericVBO<Vector3>(normalBuffer, "vertex_normal"),
-                    new GenericVBO<uint>(indiceBuffer)
-                    };
-
-                    boxVao = new VAO(SimpleShader.GetShader(), vbos);
-                    boxVao.DisposeChildren = true;
-                    boxVao.DisposeElementArray = true;
+                    boxVao = x.MakeGridVAO(vertex, normal, element);
                 }
 
                 lock (vaoConv.DisposeLock)
                 {
                     if (vaoConv.HasBeenDisposed)
                     {
-                        meshVao.Dispose();
-                        boxVao.Dispose();
+                        x.StoreGridVAOForReuse(meshVao);
+                        x.StoreGridVAOForReuse(boxVao);
                     }
                     else
                     {

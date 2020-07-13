@@ -11,8 +11,8 @@ namespace VoxelWorld
     {
         private VoxelGrid Grid = null;
         public Vector3 Center { get; set; }
-        public VAO meshVao = null;
-        public VAO pointsVao = null;
+        public GridVAO meshVao = null;
+        public GridVAO pointsVao = null;
         public AxisAlignedBoundingBox BoundingBox = null;
         public readonly object DisposeLock = new object();
         public bool HasBeenDisposed = false;
@@ -100,10 +100,16 @@ namespace VoxelWorld
 
             if (meshVao != null || pointsVao != null)
             {
-                MainThreadWork.QueueWork(() =>
+                MainThreadWork.QueueWork(x =>
                 {
-                    meshVao?.Dispose();
-                    pointsVao?.Dispose();
+                    if (meshVao != null)
+                    {
+                        x.StoreGridVAOForReuse(meshVao);
+                    }
+                    if (pointsVao != null)
+                    {
+                        x.StoreGridVAOForReuse(pointsVao);
+                    }
 
                     meshVao = null;
                     pointsVao = null;
