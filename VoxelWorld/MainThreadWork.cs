@@ -50,9 +50,47 @@ namespace VoxelWorld
 
         //private readonly Stack<GridVAO> GridVaos = new Stack<GridVAO>();
         private readonly List<GridVAO> GridVaos = new List<GridVAO>();
+        private readonly Queue<int> PosVBOSizes = new Queue<int>();
+        private int PosVBOSizesSum = 0;
+        private readonly Queue<int> IndiceVBOSizes = new Queue<int>();
+        private int IndiceVBOSizesSum = 0;
+
+        private const int SamplesNeeded = 1000;
+        private const float MinSizeIncreaseOverAvgSize = 1.5f;
+
+        private void AddSizeSamples(int posSize, int indiceSize)
+        {
+            PosVBOSizes.Enqueue(posSize);
+            PosVBOSizesSum += posSize;
+            if (PosVBOSizes.Count > SamplesNeeded)
+            {
+                PosVBOSizesSum -= PosVBOSizes.Dequeue();
+            }
+
+            IndiceVBOSizes.Enqueue(indiceSize);
+            IndiceVBOSizesSum += indiceSize;
+            if (IndiceVBOSizes.Count > SamplesNeeded)
+            {
+                IndiceVBOSizesSum -= IndiceVBOSizes.Dequeue();
+            }
+        }
+
+        private int GetMinPositionVBOSize()
+        {
+            int avg = PosVBOSizesSum / PosVBOSizes.Count;
+            return (int)(avg * MinSizeIncreaseOverAvgSize);
+        }
+
+        private int GetMinIndiceVBOSize()
+        {
+            int avg = IndiceVBOSizesSum / IndiceVBOSizes.Count;
+            return (int)(avg * MinSizeIncreaseOverAvgSize);
+        }
 
         public GridVAO MakeGridVAO(Vector3[] positions, Vector3[] normals, uint[] indices)
         {
+            AddSizeSamples(positions.Length, indices.Length);
+
             for (int i = GridVaos.Count - 1; i >= 0; i--)
             {
                 if (GridVaos[i].IsLargeEnough(positions.Length, normals.Length, indices.Length))
@@ -65,17 +103,25 @@ namespace VoxelWorld
                 }
             }
 
-            Vector3[] resizedPos = new Vector3[Math.Max(500, positions.Length)];
-            positions.CopyTo(resizedPos, 0);
-            positions = resizedPos;
+            int minPosVBOSize = GetMinPositionVBOSize();
+            if (positions.Length < minPosVBOSize)
+            {
+                Vector3[] resizedPos = new Vector3[minPosVBOSize];
+                positions.CopyTo(resizedPos, 0);
+                positions = resizedPos;
 
-            Vector3[] resizedNorm = new Vector3[Math.Max(500, normals.Length)];
-            normals.CopyTo(resizedNorm, 0);
-            normals = resizedNorm;
+                Vector3[] resizedNorm = new Vector3[minPosVBOSize];
+                normals.CopyTo(resizedNorm, 0);
+                normals = resizedNorm;
+            }
 
-            uint[] resizedIndices = new uint[Math.Max(1500, normals.Length)];
-            indices.CopyTo(resizedIndices, 0);
-            indices = resizedIndices;
+            int minIndiceVBOSize = GetMinIndiceVBOSize();
+            if (indices.Length < minIndiceVBOSize)
+            {
+                uint[] resizedIndices = new uint[minIndiceVBOSize];
+                indices.CopyTo(resizedIndices, 0);
+                indices = resizedIndices;
+            }
 
             VBO<uint> indiceBuffer = new VBO<uint>(indices, BufferTarget.ElementArrayBuffer, BufferUsageHint.StaticRead);
             VBO<Vector3> posBuffer = new VBO<Vector3>(positions);
