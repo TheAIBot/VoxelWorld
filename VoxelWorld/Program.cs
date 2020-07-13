@@ -27,10 +27,26 @@ namespace VoxelWorld
 
             bool renderMesh = true;
             bool renderPoints = false;
+            bool controlDummyCamera = false;
 
+
+            PlayerCamera dummyCamera = new PlayerCamera(Window.Width, Window.Height, new Vector3(30, 30, 30));
+            Input.Subscribe('i', dummyCamera.MoveForward);
+            Input.Subscribe('k', dummyCamera.MoveBackward);
+            Input.Subscribe('l', () => controlDummyCamera = !controlDummyCamera);
 
             PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-30, -30, -30));
-            Input.MouseLeftClick = new Event(player.UpdateCameraDirection);
+            Input.MouseLeftClick = new Event(x => 
+            {
+                if (controlDummyCamera)
+                {
+                    dummyCamera.UpdateCameraDirection(x);
+                }
+                else
+                {
+                    player.UpdateCameraDirection(x);
+                }
+            });
             Input.Subscribe('w', player.MoveForward);
             Input.Subscribe('s', player.MoveBackward);
             Input.Subscribe('a', player.MoveLeft);
@@ -38,9 +54,7 @@ namespace VoxelWorld
             Input.Subscribe('1', () => renderMesh = !renderMesh);
             Input.Subscribe('2', () => renderPoints = !renderPoints);
 
-            PlayerCamera dummyCamera = new PlayerCamera(Window.Width, Window.Height, new Vector3(-30, -30, -30));
-            Input.Subscribe('i', dummyCamera.MoveForward);
-            Input.Subscribe('k', dummyCamera.MoveBackward);
+
 
             var planetGen = PlanetGen.GetPlanetGen(3, 8.0f, 3.0f, 3.0f);
             VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
@@ -74,16 +88,18 @@ namespace VoxelWorld
                 Window.HandleEvents();     
                 MainThreadWork.ExecuteWork();
 
-                if (player.UpdateCameraDimensions(Window.Width, Window.Height))
+                PlayerCamera renderFrom = controlDummyCamera ? dummyCamera : player;
+
+                if (renderFrom.UpdateCameraDimensions(Window.Width, Window.Height))
                 {
                     Gl.Viewport(0, 0, Window.Width, Window.Height);
                 }
 
-                player.UpdateCameraDirection(Input.MousePosition);
-                renderCheck.UpdateFrustum(player.Perspective, player.View);
+                renderFrom.UpdateCameraDirection(Input.MousePosition);
+                renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
 
                 Matrix4 model = Matrix4.CreateRotationY(angle);
-                system.CheckVoxelResolution(player, renderCheck);
+                system.CheckVoxelResolution(renderFrom, renderCheck);
 
 
 
