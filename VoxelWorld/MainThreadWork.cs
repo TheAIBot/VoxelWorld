@@ -46,55 +46,33 @@ namespace VoxelWorld
 
     internal class WorkOptimizer
     {
-        private static int madeCount = 0;
-
-        //private readonly Stack<GridVAO> GridVaos = new Stack<GridVAO>();
         private readonly List<GridVAO> GridVaos = new List<GridVAO>();
-        private readonly Queue<int> PosVBOSizes = new Queue<int>();
-        private int PosVBOSizesSum = 0;
-        private readonly Queue<int> IndiceVBOSizes = new Queue<int>();
-        private int IndiceVBOSizesSum = 0;
 
-        private const int SamplesNeeded = 1000;
+        private PerfNumAverage<int> AvgPosVBOSize = new PerfNumAverage<int>(100000, x => x);
+        private PerfNumAverage<int> AvgIndiceVBOSize = new PerfNumAverage<int>(100000, x => x);
+        private PerfNumAverage<bool> AvgReuseRate = new PerfNumAverage<bool>(10000, x => x ? 1 : 0);
         private const float MinSizeIncreaseOverAvgSize = 1.5f;
-
-        private void AddSizeSamples(int posSize, int indiceSize)
-        {
-            PosVBOSizes.Enqueue(posSize);
-            PosVBOSizesSum += posSize;
-            if (PosVBOSizes.Count > SamplesNeeded)
-            {
-                PosVBOSizesSum -= PosVBOSizes.Dequeue();
-            }
-
-            IndiceVBOSizes.Enqueue(indiceSize);
-            IndiceVBOSizesSum += indiceSize;
-            if (IndiceVBOSizes.Count > SamplesNeeded)
-            {
-                IndiceVBOSizesSum -= IndiceVBOSizes.Dequeue();
-            }
-        }
 
         private int GetMinPositionVBOSize()
         {
-            int avg = PosVBOSizesSum / PosVBOSizes.Count;
-            return (int)(avg * MinSizeIncreaseOverAvgSize);
+            return (int)(AvgPosVBOSize.GetAverage() * MinSizeIncreaseOverAvgSize);
         }
 
         private int GetMinIndiceVBOSize()
         {
-            int avg = IndiceVBOSizesSum / IndiceVBOSizes.Count;
-            return (int)(avg * MinSizeIncreaseOverAvgSize);
+            return (int)(AvgIndiceVBOSize.GetAverage() * MinSizeIncreaseOverAvgSize);
         }
 
         public GridVAO MakeGridVAO(Vector3[] positions, Vector3[] normals, uint[] indices)
         {
-            AddSizeSamples(positions.Length, indices.Length);
+            AvgPosVBOSize.AddSample(positions.Length);
+            AvgIndiceVBOSize.AddSample(indices.Length);
 
             for (int i = GridVaos.Count - 1; i >= 0; i--)
             {
                 if (GridVaos[i].IsLargeEnough(positions.Length, normals.Length, indices.Length))
                 {
+                    AvgReuseRate.AddSample(true);
                     GridVAO vao = GridVaos[i];
                     vao.Reuse(positions, normals, indices);
                     GridVaos.RemoveAt(i);
@@ -102,6 +80,8 @@ namespace VoxelWorld
                     return vao;
                 }
             }
+            AvgReuseRate.AddSample(false);
+
 
             int minPosVBOSize = GetMinPositionVBOSize();
             if (positions.Length < minPosVBOSize)
@@ -137,6 +117,33 @@ namespace VoxelWorld
                 return;
             }
             GridVaos.Add(vao);
+        }
+
+        public void PrintPerformanceNumbers()
+        {
+            if (AvgPosVBOSize.FilledWithSamples())
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("---------------------------------");
+                Console.WriteLine("----Positions Count Histogram----");
+                Console.WriteLine("---------------------------------");
+                Console.WriteLine();
+                AvgPosVBOSize.PrintHistogram();
+
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("-------------------------------");
+                Console.WriteLine("----indices Count Histogram----");
+                Console.WriteLine("-------------------------------");
+                Console.WriteLine();
+                AvgIndiceVBOSize.PrintHistogram();
+
+                throw new Exception();
+            }
+            //Console.WriteLine($"VAO Reuse: {AvgReuseRate.GetAverage() * 100}%");
         }
     }
 
