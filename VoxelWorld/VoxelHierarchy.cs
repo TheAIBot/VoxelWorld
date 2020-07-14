@@ -203,14 +203,19 @@ namespace VoxelWorld
 
         public bool IsGenerating()
         {
-            if (IsGeneratingHierarchy.Any(x => x))
+            for (int i = 0; i < IsGeneratingHierarchy.Length; i++)
             {
-                return true;
+                if (IsGeneratingHierarchy[i])
+                {
+                    return true;
+                }
             }
-
-            if (IsGeneratingGrids.Any(x => x))
+            for (int i = 0; i < IsGeneratingGrids.Length; i++)
             {
-                return true;
+                if (IsGeneratingGrids[i])
+                {
+                    return true;
+                }
             }
 
             return false;
