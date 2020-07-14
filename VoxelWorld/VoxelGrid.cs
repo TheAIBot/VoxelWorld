@@ -1,11 +1,7 @@
 ﻿using OpenGL;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Threading;
-using VoxelWorld.Shaders;
-using static OpenGL.GenericVAO;
 
 namespace VoxelWorld
 {
@@ -159,73 +155,14 @@ namespace VoxelWorld
 
         public void Interpolate()
         {
-            int VPToGrid(int x, int y, int z)
-            {
-                return z * Size * Size + y * Size + x;
-            }
-
-            int VPToIndex(int x, int y, int z)
-            {
-                return z * (Size - 1) * (Size - 1) + y * (Size - 1) + x;
-            }
-
-            Vector3 middle = new Vector3(0.5f, 0.5f, 0.5f);
-            Span<Vector3> offsets = stackalloc Vector3[8];
-            offsets[0] = middle - new Vector3(0, 0, 0);
-            offsets[1] = middle - new Vector3(0, 0, 1);
-            offsets[2] = middle - new Vector3(0, 1, 0);
-            offsets[3] = middle - new Vector3(0, 1, 1);
-            offsets[4] = middle - new Vector3(1, 0, 0);
-            offsets[5] = middle - new Vector3(1, 0, 1);
-            offsets[6] = middle - new Vector3(1, 1, 0);
-            offsets[7] = middle - new Vector3(1, 1, 1);
-
-            Span<int> gridIndexOffsets = stackalloc int[8];
-            gridIndexOffsets[0] = VPToGrid(0, 0, 0);
-            gridIndexOffsets[1] = VPToGrid(0, 0, 1);
-            gridIndexOffsets[2] = VPToGrid(0, 1, 0);
-            gridIndexOffsets[3] = VPToGrid(0, 1, 1);
-            gridIndexOffsets[4] = VPToGrid(1, 0, 0);
-            gridIndexOffsets[5] = VPToGrid(1, 0, 1);
-            gridIndexOffsets[6] = VPToGrid(1, 1, 0);
-            gridIndexOffsets[7] = VPToGrid(1, 1, 1);
-
-            bool[] inUse = GetVPInUse();
-
+            int index = 0;
             for (int vpZ = 0; vpZ < Size - 1; vpZ++)
             {
                 for (int vpY = 0; vpY < Size - 1; vpY++)
                 {
                     for (int vpX = 0; vpX < Size - 1; vpX++)
                     {
-                        Vector3 center = TopLeftCorner - new Vector3(vpX, vpY, vpZ) * VoxelSize - (new Vector3(VoxelSize) * 0.5f);
-
-                        if (!inUse[VPToIndex(vpX, vpY, vpZ)])
-                        {
-                            VoxelPoints[VPToIndex(vpX, vpY, vpZ)] = center;
-                            continue;
-                        }
-
-
-
-                        float maxWeight = -1;
-                        float minWeight = 2;
-
-                        Vector3 offset = Vector3.Zero;
-
-                        int gridIndex = VPToGrid(vpX, vpY, vpZ);
-                        for (int i = 0; i < gridIndexOffsets.Length; i++)
-                        {
-                            float weight = Grid[gridIndex + gridIndexOffsets[i]];
-
-                            maxWeight = MathF.Max(maxWeight, weight);
-                            minWeight = MathF.Min(minWeight, weight);
-
-                            offset += offsets[i] * weight;
-                        }
-
-                        float weightScale = 1.0f / (maxWeight - minWeight);
-                        VoxelPoints[VPToIndex(vpX, vpY, vpZ)] = center + offset * VoxelSize * weightScale;
+                        VoxelPoints[index++] = TopLeftCorner - new Vector3(vpX, vpY, vpZ) * VoxelSize - (new Vector3(VoxelSize) * 0.5f);
                     }
                 }
             }
