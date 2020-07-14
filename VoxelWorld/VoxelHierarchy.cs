@@ -117,7 +117,7 @@ namespace VoxelWorld
 
         private bool IsEmpty()
         {
-            return Grids.All(x => x == null);
+            return GridCenters.All(x => !x.HasValue);
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, Vector3 cameraPos)
