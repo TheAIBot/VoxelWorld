@@ -1,8 +1,6 @@
 ﻿using OpenGL;
 using System;
-using System.Linq;
 using System.Numerics;
-using System.Threading;
 
 namespace VoxelWorld
 {
@@ -118,7 +116,15 @@ namespace VoxelWorld
 
         private bool IsEmpty()
         {
-            return GridCenters.All(x => !x.HasValue);
+            for (int i = 0; i < GridCenters.Length; i++)
+            {
+                if (GridCenters[i].HasValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, Vector3 cameraPos)
