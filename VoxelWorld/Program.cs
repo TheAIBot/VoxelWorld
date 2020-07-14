@@ -86,7 +86,7 @@ namespace VoxelWorld
                 watch.Restart();
 
                 Window.HandleEvents();     
-                MainThreadWork.ExecuteWork();
+
 
                 PlayerCamera renderFrom = controlDummyCamera ? dummyCamera : player;
 
@@ -100,6 +100,8 @@ namespace VoxelWorld
 
                 Matrix4 model = Matrix4.CreateRotationY(angle);
                 system.CheckVoxelResolution(renderFrom, renderCheck);
+
+                MainThreadWork.ExecuteWork();
 
 
 

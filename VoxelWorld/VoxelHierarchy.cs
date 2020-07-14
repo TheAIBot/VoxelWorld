@@ -241,20 +241,6 @@ namespace VoxelWorld
                     }
                 }
 
-                if (Grids[i] != null)
-                {
-                    if (HierarchyDepth > 0 && 
-                        !GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) ||
-                        !renderCheck.Intersects(GridBoundBoxes[i]))
-                    {
-                        if ((SubHierarchies[i] == null && IsEmptyHierarchies[i]) || (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow && !SubHierarchies[i].IsGenerating()))
-                        {
-                            Grids[i].Dispose();
-                            Grids[i] = null;
-                        }
-                    }
-                }
-
                 if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
                 {
                     if (Grids[i] == null)
@@ -267,7 +253,18 @@ namespace VoxelWorld
                     }
                     else
                     {
-                        SubHierarchies[i]?.MakeHollow();
+                        if (HierarchyDepth > 0 &&
+                            (!GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) ||
+                             !renderCheck.Intersects(GridBoundBoxes[i])))
+                        {
+                            Grids[i].Dispose();
+                            Grids[i] = null;
+                        }
+
+                        if (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow)
+                        {
+                            SubHierarchies[i]?.MakeHollow();
+                        }
                     }
                 }
                 else
@@ -288,6 +285,7 @@ namespace VoxelWorld
                             //Grids[i] = null;
 
                             //SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
+
 
                             if (SubHierarchies[i].IsHollow)
                             {
@@ -341,6 +339,19 @@ namespace VoxelWorld
             bool drewSomething = false;
             for (int i = 0; i < Grids.Length; i++)
             {
+                if (!IsGeneratingHierarchy[i])
+                {
+                    VoxelHierarchy hir = SubHierarchies[i];
+                    if (hir != null && !hir.IsHollow)
+                    {
+                        if (hir.DrawMesh())
+                        {
+                            drewSomething = true;
+                            continue;
+                        }
+                    }
+                }
+
                 if (!IsGeneratingGrids[i])
                 {
                     VoxelGridInfo grid = Grids[i];
@@ -350,21 +361,6 @@ namespace VoxelWorld
                         continue;
                     }
                 }
-
-                if (!IsGeneratingHierarchy[i])
-                {
-                    VoxelHierarchy hir = SubHierarchies[i];
-                    if (hir != null && !hir.IsHollow)
-                    {
-                        if (hir.DrawMesh())
-                        {
-                            //drewSomething = true;
-                            continue;
-                        }
-                    }
-                }
-
-
             }
 
             return drewSomething;
@@ -394,6 +390,7 @@ namespace VoxelWorld
                     if (grid != null)
                     {
                         drewSomething |= grid.DrawPoints();
+                        continue;
                     }
                 }
             }
