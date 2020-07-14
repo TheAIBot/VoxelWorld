@@ -281,12 +281,6 @@ namespace VoxelWorld
                         if (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
                             renderCheck.Intersects(SubHirBoundBoxes[i]))
                         {
-                            //Grids[i]?.Dispose();
-                            //Grids[i] = null;
-
-                            //SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
-
-
                             if (SubHierarchies[i].IsHollow)
                             {
                                 if (Grids[i] == null)
