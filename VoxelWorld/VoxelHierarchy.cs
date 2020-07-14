@@ -99,6 +99,7 @@ namespace VoxelWorld
                 return (null, null, null, new GridNormal());
             }
 
+            grid.PreCalculateGeometryData();
             grid.Interpolate();
             AxisAlignedBoundingBox box = grid.GetBoundingBox();
             GridNormal normal = grid.GetGridNormal();

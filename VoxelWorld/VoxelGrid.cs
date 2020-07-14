@@ -1,7 +1,9 @@
 ﻿using OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace VoxelWorld
 {
@@ -13,7 +15,9 @@ namespace VoxelWorld
         private readonly Func<Vector3, float> WeightGen;
         private readonly float[] Grid;
         private readonly sbyte[] GridSign;
-        public readonly Vector3[] VoxelPoints;
+        private readonly Vector3[] VoxelPoints;
+        private readonly bool[] IsUsingVoxelPoint;
+        private int TriangleCount = 0;
 
         public VoxelGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
         {
@@ -25,12 +29,14 @@ namespace VoxelWorld
             this.Grid = new float[Size * Size * Size];
             this.GridSign = new sbyte[Size * Size * Size];
             this.VoxelPoints = new Vector3[(Size - 1) * (Size - 1) * (Size - 1)];
+            this.IsUsingVoxelPoint = new bool[VoxelPoints.Length];
         }
 
         public void Repurpose(Vector3 newCenter, float newVoxelSize)
         {
             GridCenter = newCenter;
             VoxelSize = newVoxelSize;
+            Array.Fill(IsUsingVoxelPoint, false);
         }
 
         private Vector3 GetTopLeftCorner()
@@ -84,14 +90,12 @@ namespace VoxelWorld
                 return z * (Size - 1) * (Size - 1) + y * (Size - 1) + x;
             }
 
-            bool[] inUse = GetVPInUse();
-
             bool pointsAtEdge = false;
             for (int y = 0; y < Size - 1; y++)
             {
                 for (int x = 0; x < Size - 1; x++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(x, y, 0)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, 0)];
                 }
             }
             if (pointsAtEdge)
@@ -103,7 +107,7 @@ namespace VoxelWorld
             {
                 for (int x = 0; x < Size - 1; x++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(x, y, Size - 2)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, Size - 2)];
                 }
             }
             if (pointsAtEdge)
@@ -115,7 +119,7 @@ namespace VoxelWorld
             {
                 for (int x = 0; x < Size - 1; x++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(x, 0, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, 0, z)];
                 }
             }
             if (pointsAtEdge)
@@ -127,7 +131,7 @@ namespace VoxelWorld
             {
                 for (int x = 0; x < Size - 1; x++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(x, Size - 2, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, Size - 2, z)];
                 }
             }
             if (pointsAtEdge)
@@ -139,7 +143,7 @@ namespace VoxelWorld
             {
                 for (int y = 0; y < Size - 1; y++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(0, y, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(0, y, z)];
                 }
             }
             if (pointsAtEdge)
@@ -151,7 +155,7 @@ namespace VoxelWorld
             {
                 for (int y = 0; y < Size - 1; y++)
                 {
-                    pointsAtEdge |= inUse[VPToIndex(Size - 2, y, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(Size - 2, y, z)];
                 }
             }
             if (pointsAtEdge)
@@ -186,8 +190,6 @@ namespace VoxelWorld
                 return z * (Size - 1) * (Size - 1) + y * (Size - 1) + x;
             }
 
-            bool[] inUse = GetVPInUse();
-
             for (int i = 0; i < iterations; i++)
             {
                 for (int z = 1; z < Size - 2; z++)
@@ -196,7 +198,7 @@ namespace VoxelWorld
                     {
                         for (int x = 1; x < Size - 2; x++)
                         {
-                            if (!inUse[VPToIndex(x, y, z)])
+                            if (!IsUsingVoxelPoint[VPToIndex(x, y, z)])
                             {
                                 continue;
                             }
@@ -204,34 +206,34 @@ namespace VoxelWorld
                             int points = 0;
                             Vector3 center = new Vector3(0, 0, 0);
 
-                            if (inUse[VPToIndex(x - 1, y, z)])
+                            if (IsUsingVoxelPoint[VPToIndex(x - 1, y, z)])
                             {
                                 center += VoxelPoints[VPToIndex(x - 1, y, z)];
                                 points++;
                             }
-                            if (inUse[VPToIndex(x + 1, y, z)])
+                            if (IsUsingVoxelPoint[VPToIndex(x + 1, y, z)])
                             {
                                 center += VoxelPoints[VPToIndex(x + 1, y, z)];
                                 points++;
                             }
 
-                            if (inUse[VPToIndex(x, y - 1, z)])
+                            if (IsUsingVoxelPoint[VPToIndex(x, y - 1, z)])
                             {
                                 center += VoxelPoints[VPToIndex(x, y - 1, z)];
                                 points++;
                             }
-                            if (inUse[VPToIndex(x, y + 1, z)])
+                            if (IsUsingVoxelPoint[VPToIndex(x, y + 1, z)])
                             {
                                 center += VoxelPoints[VPToIndex(x, y + 1, z)];
                                 points++;
                             }
 
-                            if (inUse[VPToIndex(x, y, z - 1)])
+                            if (IsUsingVoxelPoint[VPToIndex(x, y, z - 1)])
                             {
                                 center += VoxelPoints[VPToIndex(x, y, z - 1)];
                                 points++;
                             }
-                            if (inUse[VPToIndex(x, y, z + 1)])
+                            if (IsUsingVoxelPoint[VPToIndex(x, y, z + 1)])
                             {
                                 center += VoxelPoints[VPToIndex(x, y, z + 1)];
                                 points++;
@@ -246,7 +248,7 @@ namespace VoxelWorld
             }
         }
 
-        private bool[] GetVPInUse()
+        public void PreCalculateGeometryData()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -258,8 +260,7 @@ namespace VoxelWorld
                 return z * Size * Size + y * Size + x;
             }
 
-            bool[] inUse = new bool[(Size - 1) * (Size - 1) * (Size - 1)];
-
+            TriangleCount = 0;
             for (int z = 1; z < Size - 1; z++)
             {
                 for (int y = 1; y < Size - 1; y++)
@@ -283,64 +284,66 @@ namespace VoxelWorld
 
                         if (centerSign > GridSign[PosToGridIndex(x - 1, y, z)])
                         {
-                            inUse[x0y0z0] = true;
-                            inUse[x0y0z1] = true;
-                            inUse[x0y1z0] = true;
-                            inUse[x0y1z1] = true;
+                            IsUsingVoxelPoint[x0y0z0] = true;
+                            IsUsingVoxelPoint[x0y0z1] = true;
+                            IsUsingVoxelPoint[x0y1z0] = true;
+                            IsUsingVoxelPoint[x0y1z1] = true;
+                            TriangleCount += 2;
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y - 1, z)])
                         {
-                            inUse[x1y0z1] = true;
-                            inUse[x1y0z0] = true;
-                            inUse[x0y0z1] = true;
-                            inUse[x0y0z0] = true;
+                            IsUsingVoxelPoint[x1y0z1] = true;
+                            IsUsingVoxelPoint[x1y0z0] = true;
+                            IsUsingVoxelPoint[x0y0z1] = true;
+                            IsUsingVoxelPoint[x0y0z0] = true;
+                            TriangleCount += 2;
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z - 1)])
                         {
-                            inUse[x0y0z0] = true;
-                            inUse[x0y1z0] = true;
-                            inUse[x1y0z0] = true;
-                            inUse[x1y1z0] = true;
+                            IsUsingVoxelPoint[x0y0z0] = true;
+                            IsUsingVoxelPoint[x0y1z0] = true;
+                            IsUsingVoxelPoint[x1y0z0] = true;
+                            IsUsingVoxelPoint[x1y1z0] = true;
+                            TriangleCount += 2;
                         }
 
                         if (centerSign > GridSign[PosToGridIndex(x + 1, y, z)])
                         {
-                            inUse[x1y0z0] = true;
-                            inUse[x1y0z1] = true;
-                            inUse[x1y1z0] = true;
-                            inUse[x1y1z1] = true;
+                            IsUsingVoxelPoint[x1y0z0] = true;
+                            IsUsingVoxelPoint[x1y0z1] = true;
+                            IsUsingVoxelPoint[x1y1z0] = true;
+                            IsUsingVoxelPoint[x1y1z1] = true;
+                            TriangleCount += 2;
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y + 1, z)])
                         {
-                            inUse[x1y1z1] = true;
-                            inUse[x1y1z0] = true;
-                            inUse[x0y1z1] = true;
-                            inUse[x0y1z0] = true;
+                            IsUsingVoxelPoint[x1y1z1] = true;
+                            IsUsingVoxelPoint[x1y1z0] = true;
+                            IsUsingVoxelPoint[x0y1z1] = true;
+                            IsUsingVoxelPoint[x0y1z0] = true;
+                            TriangleCount += 2;
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z + 1)])
                         {
-                            inUse[x0y0z1] = true;
-                            inUse[x0y1z1] = true;
-                            inUse[x1y0z1] = true;
-                            inUse[x1y1z1] = true;
+                            IsUsingVoxelPoint[x0y0z1] = true;
+                            IsUsingVoxelPoint[x0y1z1] = true;
+                            IsUsingVoxelPoint[x1y0z1] = true;
+                            IsUsingVoxelPoint[x1y1z1] = true;
+                            TriangleCount += 2;
                         }
                     }
                 }
             }
-
-            return inUse;
         }
 
         public AxisAlignedBoundingBox GetBoundingBox()
         {
-            bool[] inUse = GetVPInUse();
-
             Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
 
             for (int i = 0; i < VoxelPoints.Length; i++)
             {
-                if (!inUse[i])
+                if (!IsUsingVoxelPoint[i])
                 {
                     continue;
                 }
@@ -400,18 +403,20 @@ namespace VoxelWorld
                 return z * Size * Size + y * Size + x;
             }
 
-            void AddRectangleTriangles(List<uint> indices, uint a, uint b, uint c, uint d)
-            {
-                indices.Add(c);
-                indices.Add(a);
-                indices.Add(b);
+            uint[] indices = new uint[TriangleCount * 3];
+            int indiceIndex = 0;
 
-                indices.Add(b);
-                indices.Add(d);
-                indices.Add(c);
+            void AddRectangleTriangles(uint a, uint b, uint c, uint d)
+            {
+                indices[indiceIndex++] = c;
+                indices[indiceIndex++] = a;
+                indices[indiceIndex++] = b;
+
+                indices[indiceIndex++] = b;
+                indices[indiceIndex++] = d;
+                indices[indiceIndex++] = c;
             }
 
-            List<uint> indices = new List<uint>();
 
             for (int z = 1; z < Size - 1; z++)
             {
@@ -437,53 +442,58 @@ namespace VoxelWorld
 
                         if (centerSign > GridSign[PosToGridIndex(x - 1, y, z)])
                         {
-                            AddRectangleTriangles(indices, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                            AddRectangleTriangles(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y - 1, z)])
                         {
-                            AddRectangleTriangles(indices, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                            AddRectangleTriangles(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z - 1)])
                         {
-                            AddRectangleTriangles(indices, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                            AddRectangleTriangles(x0y1z0, x0y0z0, x1y1z0, x1y0z0);
                         }
 
                         if (centerSign > GridSign[PosToGridIndex(x + 1, y, z)])
                         {
-                            AddRectangleTriangles(indices, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                            AddRectangleTriangles(x1y0z0, x1y0z1, x1y1z0, x1y1z1);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y + 1, z)])
                         {
-                            AddRectangleTriangles(indices, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                            AddRectangleTriangles(x0y1z1, x0y1z0, x1y1z1, x1y1z0);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z + 1)])
                         {
-                            AddRectangleTriangles(indices, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                            AddRectangleTriangles(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
                         }
                     }
                 }
             }
 
+            Span<byte> usedVP = MemoryMarshal.Cast<bool, byte>(IsUsingVoxelPoint);
+            int vpUsedCount = 0;
+            for (int i = 0; i < usedVP.Length; i++)
+            {
+                vpUsedCount += usedVP[i];
+            }
+
             uint[] indexConverter = new uint[VoxelPoints.Length];
-            List<uint> indexes = new List<uint>();
-            List<Vector3> vps = new List<Vector3>();
+            Vector3[] prunedPoints = new Vector3[vpUsedCount];
+            int vpIndex = 0;
 
             Array.Fill(indexConverter, uint.MaxValue);
 
-            for (int i = 0; i < indices.Count; i++)
+            for (int i = 0; i < indices.Length; i++)
             {
                 uint oldIndex = indices[i];
                 uint newIndex = indexConverter[oldIndex];
                 if (newIndex == uint.MaxValue)
                 {
-                    newIndex = (uint)vps.Count;
-                    vps.Add(VoxelPoints[indices[i]]);
+                    newIndex = (uint)vpIndex;
+                    indexConverter[oldIndex] = newIndex;
+                    prunedPoints[vpIndex++] = VoxelPoints[oldIndex];
                 }
-                indexes.Add(newIndex);
+                indices[i] = newIndex;
             }
-
-            uint[] indicesArr = indexes.ToArray();
-            Vector3[] prunedPoints = vps.ToArray();
 
             Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -493,12 +503,12 @@ namespace VoxelWorld
                 max = Vector3.Max(max, prunedPoints[i]);
             }
 
-            Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indicesArr);
+            Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indices);
             //Console.WriteLine(indicesArr.Length);
 
             var createVao = new Action<WorkOptimizer>(x =>
             {
-                GridVAO meshVao = x.MakeGridVAO(prunedPoints, normals, indicesArr);
+                GridVAO meshVao = x.MakeGridVAO(prunedPoints, normals, indices);
                 GridVAO boxVao = null;
 
                 {

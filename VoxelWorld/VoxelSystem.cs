@@ -113,12 +113,22 @@ namespace VoxelWorld
                 VoxelGridInfo grid = new VoxelGridInfo();
 
                 grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
-                if (grid.IsgridEmpty() || grid.EdgePointsUsed())
+                if (grid.IsgridEmpty())
                 {
                     grid.Dispose();
                     VoxelSize *= 2;
                     continue;
                 }
+
+                grid.PreCalculateGeometryData();
+                if (grid.EdgePointsUsed())
+                {
+                    grid.Dispose();
+                    VoxelSize *= 2;
+                    continue;
+                }
+
+
                 grid.Dispose();
 
                 VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen, 0);

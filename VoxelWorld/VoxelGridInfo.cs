@@ -53,6 +53,11 @@ namespace VoxelWorld
             Grid.Triangulize(this);
         }
 
+        public void PreCalculateGeometryData()
+        {
+            Grid.PreCalculateGeometryData();
+        }
+
         public AxisAlignedBoundingBox GetBoundingBox()
         {
             BoundingBox = Grid.GetBoundingBox();
