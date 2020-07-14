@@ -36,6 +36,8 @@ namespace VoxelWorld
 
         private AxisAlignedBoundingBox BoundingBox = null;
         private GridNormal HirNormal = new GridNormal();
+        public bool IsHollow = false;
+        private readonly int HierarchyDepth;
 
         //keeps track of sub hierarchies
         private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
@@ -49,12 +51,13 @@ namespace VoxelWorld
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
-        public VoxelHierarchy(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator)
+        public VoxelHierarchy(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator, int hierarchyDepth)
         {
             this.Center = center;
             this.VoxelSize = voxelSize / 2.0f;
             this.GridSize = gridSize;// + 2;
             this.WeightGen = generator;
+            this.HierarchyDepth = hierarchyDepth;
         }
 
         public void Generate(Matrix4 model_rot, Vector3 lookDir)
@@ -162,7 +165,7 @@ namespace VoxelWorld
                     }
                 }
 
-                VoxelHierarchy subHireachy = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen);
+                VoxelHierarchy subHireachy = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen, HierarchyDepth + 1);
                 subHireachy.Generate(model_rot, lookDir);
 
                 if (subHireachy.IsEmpty())
@@ -197,17 +200,29 @@ namespace VoxelWorld
             });
         }
 
-        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck)
+        public bool IsGenerating()
         {
             if (IsGeneratingHierarchy.Any(x => x))
             {
-                return;
+                return true;
             }
 
             if (IsGeneratingGrids.Any(x => x))
             {
+                return true;
+            }
+
+            return false;
+        }
+
+        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck)
+        {
+            if (IsGenerating())
+            {
                 return;
             }
+
+            IsHollow = false;
 
             for (int i = 0; i < GridLocations.Length; i++)
             {
@@ -216,12 +231,33 @@ namespace VoxelWorld
                     continue;
                 }
 
-                VoxelGridInfo grid = Grids[i];
-                VoxelHierarchy subHir = SubHierarchies[i];
 
-                if (grid == null && subHir == null)
+                if (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow)
                 {
-                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                    if (!SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) ||
+                        !renderCheck.Intersects(SubHirBoundBoxes[i]))
+                    {
+                        SubHierarchies[i].MakeHollow();
+                    }
+                }
+
+                if (Grids[i] != null)
+                {
+                    if (HierarchyDepth > 0 && 
+                        !GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) ||
+                        !renderCheck.Intersects(GridBoundBoxes[i]))
+                    {
+                        if ((SubHierarchies[i] == null && IsEmptyHierarchies[i]) || (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow && !SubHierarchies[i].IsGenerating()))
+                        {
+                            Grids[i].Dispose();
+                            Grids[i] = null;
+                        }
+                    }
+                }
+
+                if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                {
+                    if (Grids[i] == null)
                     {
                         if (GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
                             renderCheck.Intersects(GridBoundBoxes[i]))
@@ -231,100 +267,124 @@ namespace VoxelWorld
                     }
                     else
                     {
-                        if (!IsEmptyHierarchies[i] &&
-                            (SubHirBoundBoxes[i] == null ||
-                            (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
-                            renderCheck.Intersects(SubHirBoundBoxes[i]))))
+                        SubHierarchies[i]?.MakeHollow();
+                    }
+                }
+                else
+                {
+                    if (SubHierarchies[i] == null)
+                    {
+                        if (!IsEmptyHierarchies[i])
                         {
                             QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
                         }
-                    }
-                }
-                else if (grid == null && subHir != null)
-                {
-                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
-                    {
-                        if (GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
-                            renderCheck.Intersects(GridBoundBoxes[i]))
-                        {
-                            QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
-                            continue;
-                        }
-                    }
-
-                    if (!SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
-                    {
-                        SubHierarchies[i].Dispose();
-                        SubHierarchies[i] = null;
-                        continue;
-                    }
-
-                    if (!renderCheck.Intersects(SubHirBoundBoxes[i]))
-                    {
-                        SubHierarchies[i].Dispose();
-                        SubHierarchies[i] = null;
-                        continue;
-                    }
-
-                    subHir.CheckAndIncreaseResolution(camera, renderCheck);
-                }
-                else if (grid != null && subHir == null)
-                {
-                    if (!IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
-                    {
-                        if (!IsEmptyHierarchies[i] &&
-                            (SubHirBoundBoxes[i] == null ||
-                            (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
-                            renderCheck.Intersects(SubHirBoundBoxes[i]))))
-                        {
-                            QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
-                            continue;
-                        }
-                    }
-
-                    if (!GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection))
-                    {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
-                        continue;
-                    }
-
-                    if (!renderCheck.Intersects(GridBoundBoxes[i]))
-                    {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
-                        continue;
-                    }
-                }
-                else if (grid != null && subHir != null)
-                {
-                    if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
-                    {
-                        SubHierarchies[i].Dispose();
-                        SubHierarchies[i] = null;
                     }
                     else
                     {
-                        Grids[i].Dispose();
-                        Grids[i] = null;
+                        if (SubHirNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
+                            renderCheck.Intersects(SubHirBoundBoxes[i]))
+                        {
+                            //Grids[i]?.Dispose();
+                            //Grids[i] = null;
 
-                        subHir.CheckAndIncreaseResolution(camera, renderCheck);
+                            //SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
+
+                            if (SubHierarchies[i].IsHollow)
+                            {
+                                if (Grids[i] == null)
+                                {
+                                    QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
+                                }
+                                else
+                                {
+                                    SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
+                                }
+                            }
+                            else
+                            {
+                                if (!SubHierarchies[i].IsGenerating() && HierarchyDepth > 0)
+                                {
+                                    Grids[i]?.Dispose();
+                                    Grids[i] = null;
+                                }
+
+                                SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        public void DrawMesh()
+        public void MakeHollow()
         {
+            if (IsHollow)
+            {
+                return;
+            }
+
+            IsHollow = true;
+            for (int i = 0; i < Grids.Length; i++)
+            {
+                Grids[i]?.Dispose();
+                Grids[i] = null;
+            }
+
+            for (int i = 0; i < SubHierarchies.Length; i++)
+            {
+                SubHierarchies[i]?.MakeHollow();
+            }
+        }
+
+        public bool DrawMesh()
+        {
+            bool drewSomething = false;
+            for (int i = 0; i < Grids.Length; i++)
+            {
+                if (!IsGeneratingGrids[i])
+                {
+                    VoxelGridInfo grid = Grids[i];
+                    if (grid != null)
+                    {
+                        drewSomething |= grid.DrawMesh();
+                        continue;
+                    }
+                }
+
+                if (!IsGeneratingHierarchy[i])
+                {
+                    VoxelHierarchy hir = SubHierarchies[i];
+                    if (hir != null && !hir.IsHollow)
+                    {
+                        if (hir.DrawMesh())
+                        {
+                            //drewSomething = true;
+                            continue;
+                        }
+                    }
+                }
+
+
+            }
+
+            return drewSomething;
+        }
+
+        public bool DrawPoints()
+        {
+            bool drewSomething = false;
             for (int i = 0; i < Grids.Length; i++)
             {
                 if (!IsGeneratingHierarchy[i])
                 {
                     VoxelHierarchy hir = SubHierarchies[i];
-                    if (hir != null)
+                    if (hir != null && !hir.IsHollow)
                     {
-                        hir.DrawMesh();
-                        continue;
+                        if (hir.DrawPoints())
+                        {
+                            drewSomething = true;
+                            continue;
+                        }
                     }
                 }
 
@@ -333,35 +393,12 @@ namespace VoxelWorld
                     VoxelGridInfo grid = Grids[i];
                     if (grid != null)
                     {
-                        grid.DrawMesh();
+                        drewSomething |= grid.DrawPoints();
                     }
                 }
             }
-        }
 
-        public void DrawPoints()
-        {
-            for (int i = 0; i < Grids.Length; i++)
-            {
-                if (!IsGeneratingHierarchy[i])
-                {
-                    VoxelHierarchy hir = SubHierarchies[i];
-                    if (hir != null)
-                    {
-                        hir.DrawPoints();
-                        continue;
-                    }
-                }
-
-                if (!IsGeneratingGrids[i])
-                {
-                    VoxelGridInfo grid = Grids[i];
-                    if (grid != null)
-                    {
-                        grid.DrawPoints();
-                    }
-                }
-            }
+            return drewSomething;
         }
 
         public void Dispose()

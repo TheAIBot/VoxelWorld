@@ -65,23 +65,25 @@ namespace VoxelWorld
             return Grid.GetGridNormal();
         }
 
-        public void DrawMesh()
+        public bool DrawMesh()
         {
             if (meshVao == null || BoundingBox == null)
             {
-                return;
+                return false;
             }
             DrawCalls++;
 
             meshVao.Program.Use();
             meshVao.Draw();
+
+            return true;
         }
 
-        public void DrawPoints()
+        public bool DrawPoints()
         {
             if (pointsVao == null || BoundingBox == null)
             {
-                return;
+                return false;
             }
             DrawCalls++;
 
@@ -89,6 +91,8 @@ namespace VoxelWorld
             pointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
             pointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
             pointsVao.Draw();
+
+            return true;
         }
 
         public void Dispose()

@@ -121,7 +121,7 @@ namespace VoxelWorld
                 }
                 grid.Dispose();
 
-                VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen);
+                VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen, 0);
                 hir.Generate(Matrix4.Identity, new Vector3(0, 0, 0));
 
                 if (!TryAddGrid(gridPos, hir))
