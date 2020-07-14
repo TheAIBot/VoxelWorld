@@ -1,6 +1,7 @@
 ﻿using OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ namespace VoxelWorld
         public void GenerateGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
         {
             Center = center;
-            Grid = new VoxelGrid(size, center, voxelSize, gen);
+            Grid =  VoxelGridStorage.GetGrid(size, center, voxelSize, gen);
             Grid.Randomize();
 
         }
@@ -50,8 +51,6 @@ namespace VoxelWorld
         public void MakeDrawMethods()
         {
             Grid.Triangulize(this);
-            //Grid.Pointizise(this, isBlocking);
-            Grid = null;
         }
 
         public AxisAlignedBoundingBox GetBoundingBox()
@@ -101,6 +100,10 @@ namespace VoxelWorld
             {
                 HasBeenDisposed = true;
             }
+
+            Debug.Assert(Grid != null);
+            VoxelGridStorage.StoreForReuse(Grid);
+            Grid = null;
 
             if (meshVao != null || pointsVao != null)
             {

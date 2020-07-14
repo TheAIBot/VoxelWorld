@@ -8,13 +8,12 @@ namespace VoxelWorld
     internal class VoxelGrid
     {
         private readonly int Size;
-        public readonly Vector3 GridCenter;
-        private readonly float VoxelSize;
+        private Vector3 GridCenter;
+        private float VoxelSize;
         private readonly Func<Vector3, float> WeightGen;
         private readonly float[] Grid;
         private readonly sbyte[] GridSign;
         public readonly Vector3[] VoxelPoints;
-        private readonly Vector3 TopLeftCorner;
 
         public VoxelGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
         {
@@ -23,12 +22,21 @@ namespace VoxelWorld
             this.VoxelSize = voxelSize;
             this.WeightGen = gen;
 
-            float distanceFromCenter = (((float)size - 1.0f) / 2.0f) * voxelSize;
-            this.TopLeftCorner = GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter);
-
             this.Grid = new float[Size * Size * Size];
             this.GridSign = new sbyte[Size * Size * Size];
             this.VoxelPoints = new Vector3[(Size - 1) * (Size - 1) * (Size - 1)];
+        }
+
+        public void Repurpose(Vector3 newCenter, float newVoxelSize)
+        {
+            GridCenter = newCenter;
+            VoxelSize = newVoxelSize;
+        }
+
+        private Vector3 GetTopLeftCorner()
+        {
+            float distanceFromCenter = (((float)Size - 1.0f) / 2.0f) * VoxelSize;
+            return GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter);
         }
 
         public void Randomize()
@@ -38,13 +46,14 @@ namespace VoxelWorld
                 return z * Size * Size + y * Size + x;
             }
 
+            Vector3 topLeftCorner = GetTopLeftCorner();
             for (int z = 0; z < Size; z++)
             {
                 for (int y = 0; y < Size; y++)
                 {
                     for (int x = 0; x < Size; x++)
                     {
-                        Vector3 pos = TopLeftCorner - new Vector3(VoxelSize * x, VoxelSize * y, VoxelSize * z);
+                        Vector3 pos = topLeftCorner - new Vector3(VoxelSize * x, VoxelSize * y, VoxelSize * z);
 
                         float noise = WeightGen(pos);
 
@@ -155,6 +164,8 @@ namespace VoxelWorld
 
         public void Interpolate()
         {
+            Vector3 topLeftCorner = GetTopLeftCorner();
+
             int index = 0;
             for (int vpZ = 0; vpZ < Size - 1; vpZ++)
             {
@@ -162,7 +173,7 @@ namespace VoxelWorld
                 {
                     for (int vpX = 0; vpX < Size - 1; vpX++)
                     {
-                        VoxelPoints[index++] = TopLeftCorner - new Vector3(vpX, vpY, vpZ) * VoxelSize - (new Vector3(VoxelSize) * 0.5f);
+                        VoxelPoints[index++] = topLeftCorner - new Vector3(vpX, vpY, vpZ) * VoxelSize - (new Vector3(VoxelSize) * 0.5f);
                     }
                 }
             }
