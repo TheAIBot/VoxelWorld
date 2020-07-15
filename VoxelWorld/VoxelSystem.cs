@@ -108,6 +108,7 @@ namespace VoxelWorld
                 VoxelGridInfo grid = new VoxelGridInfo();
 
                 grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
+                grid.PreCalculateGeometryData();
                 if (grid.IsgridEmpty())
                 {
                     grid.Dispose();
@@ -115,7 +116,7 @@ namespace VoxelWorld
                     continue;
                 }
 
-                grid.PreCalculateGeometryData();
+
                 if (grid.EdgePointsUsed())
                 {
                     grid.Dispose();

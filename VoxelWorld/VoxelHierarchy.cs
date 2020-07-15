@@ -91,13 +91,14 @@ namespace VoxelWorld
             VoxelGridInfo grid = new VoxelGridInfo();
 
             grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
+            grid.PreCalculateGeometryData();
             if (grid.IsgridEmpty())
             {
                 grid.Dispose();
                 return (null, null, null, new GridNormal());
             }
 
-            grid.PreCalculateGeometryData();
+
             grid.Interpolate();
             AxisAlignedBoundingBox box = grid.GetBoundingBox();
             GridNormal normal = grid.GetGridNormal();

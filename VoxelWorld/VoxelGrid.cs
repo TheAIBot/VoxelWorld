@@ -70,15 +70,7 @@ namespace VoxelWorld
 
         public bool IsEmpty()
         {
-            bool hasTrue = false;
-            bool hasFalse = false;
-            for (int i = 0; i < GridSign.Length; i++)
-            {
-                hasTrue |= GridSign[i] >= 0;
-                hasFalse |= GridSign[i] < 0;
-            }
-
-            return !(hasTrue && hasFalse);
+            return TriangleCount == 0;
         }
 
         public bool EdgePointsUsed()
