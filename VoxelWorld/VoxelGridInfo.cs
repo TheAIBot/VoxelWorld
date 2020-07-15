@@ -7,91 +7,189 @@ namespace VoxelWorld
 {
     internal class VoxelGridInfo : IDisposable
     {
-        private VoxelGrid Grid = null;
-        public Vector3 Center { get; set; }
-        public GridVAO meshVao = null;
-        public GridVAO pointsVao = null;
-        public AxisAlignedBoundingBox BoundingBox = null;
-        public readonly object DisposeLock = new object();
-        public bool HasBeenDisposed = false;
+        public readonly Vector3 GridCenter;
+        public bool IsBeingGenerated { get; private set; }
+        public bool IsEmpty { get; private set; } = false;
+        public bool VoxelsAtEdge { get; private set; } = false;
+        public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
+        public GridNormal Normal { get; private set; }
+
+        private bool Initialized = false;
+        private GridVAO MeshVao = null;
+        private GridVAO PointsVao = null;
+        private readonly object DisposeLock = new object();
+        private bool HasBeenDisposed = false;
 
         public static int DrawCalls = 0;
 
-        public void GenerateGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
+        public VoxelGridInfo(Vector3 center)
         {
-            Center = center;
-            Grid =  VoxelGridStorage.GetGrid(size, center, voxelSize, gen);
-            Grid.Randomize();
-
+            this.GridCenter = center;
         }
 
-        public bool IsgridEmpty()
+        public Action GenerateGridAction(int size, float voxelSize, Func<Vector3, float> gen, Matrix4 model_rot, Vector3 lookDir)
         {
-            return Grid.IsEmpty();
+            Debug.Assert(MeshVao == null);
+            Debug.Assert(PointsVao == null);
+            Debug.Assert(IsBeingGenerated == false);
+
+            IsBeingGenerated = true;
+            return () =>
+            {
+                VoxelGrid grid = VoxelGridStorage.GetGrid(size, GridCenter, voxelSize, gen);
+                grid.Randomize();
+
+                grid.PreCalculateGeometryData();
+                if (grid.IsEmpty())
+                {
+                    IsEmpty = true;
+                    Initialized = true;
+                    IsBeingGenerated = false;
+                    VoxelGridStorage.StoreForReuse(grid);
+                    return;
+                }
+
+                grid.Interpolate();
+                if (!Initialized)
+                {
+                    VoxelsAtEdge = grid.EdgePointsUsed();
+                    BoundingBox = grid.GetBoundingBox();
+                    Normal = grid.GetGridNormal();
+                }
+
+                if (!Normal.CanSee(model_rot, lookDir))
+                {
+                    Initialized = true;
+                    IsBeingGenerated = false;
+                    VoxelGridStorage.StoreForReuse(grid);
+                    return;
+                }
+
+
+                var meshData = grid.Triangulize();
+                var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
+
+                //set grid to null here to make sure it isn't captured in the lambda in the future
+                //as using the grid after storing it would be a problem
+                VoxelGridStorage.StoreForReuse(grid);
+                grid = null;
+
+                MainThreadWork.QueueWork(new Action<WorkOptimizer>(x =>
+                {
+                    GridVAO meshVao = x.MakeGridVAO(meshData.points, meshData.normals, meshData.indices);
+                    GridVAO boxVao = x.MakeGridVAO(boxData.points, boxData.normals, boxData.indices);
+
+                    lock (DisposeLock)
+                    {
+                        if (HasBeenDisposed)
+                        {
+                            x.StoreGridVAOForReuse(meshVao);
+                            x.StoreGridVAOForReuse(boxVao);
+                        }
+                        else
+                        {
+                            Debug.Assert(MeshVao == null);
+                            Debug.Assert(PointsVao == null);
+
+                            MeshVao = meshVao;
+                            PointsVao = boxVao;
+                        }
+                    }
+
+                    Initialized = true;
+                    IsBeingGenerated = false;
+                }));
+            };
         }
 
-        public bool EdgePointsUsed()
+        public bool ShouldGenerate(Frustum onScreenCheck, Matrix4 model_rot, Vector3 lookDir)
         {
-            return Grid.EdgePointsUsed();
+            if (IsBeingGenerated)
+            {
+                return false;
+            }
+
+            if (IsEmpty)
+            {
+                return false;
+            }
+
+            if (IsReadyToDraw())
+            {
+                return false;
+            }
+
+            if (!Normal.CanSee(model_rot, lookDir))
+            {
+                return false;
+            }
+
+            if (!onScreenCheck.Intersects(BoundingBox))
+            {
+                return false;
+            }
+
+            return true;
         }
 
-        public void Interpolate()
+        public bool IsReadyToDraw()
         {
-            Grid.Interpolate();
+            return MeshVao != null && PointsVao != null;
         }
 
-        public void SmoothGrid(int iterations)
+        public void MakeHollow()
         {
-            Grid.Smooth(iterations);
-        }
+            lock (DisposeLock)
+            {
+                if (!HasBeenDisposed)
+                {
+                    if (MeshVao != null || PointsVao != null)
+                    {
+                        MainThreadWork.QueueWork(x =>
+                        {
+                            if (MeshVao != null)
+                            {
+                                x.StoreGridVAOForReuse(MeshVao);
+                            }
+                            if (PointsVao != null)
+                            {
+                                x.StoreGridVAOForReuse(PointsVao);
+                            }
 
-        public void MakeDrawMethods()
-        {
-            Grid.Triangulize(this);
-        }
-
-        public void PreCalculateGeometryData()
-        {
-            Grid.PreCalculateGeometryData();
-        }
-
-        public AxisAlignedBoundingBox GetBoundingBox()
-        {
-            BoundingBox = Grid.GetBoundingBox();
-            return BoundingBox;
-        }
-
-        public GridNormal GetGridNormal()
-        {
-            return Grid.GetGridNormal();
+                            MeshVao = null;
+                            PointsVao = null;
+                        });
+                    }
+                }
+            }
         }
 
         public bool DrawMesh()
         {
-            if (meshVao == null || BoundingBox == null)
+            if (MeshVao == null)
             {
                 return false;
             }
             DrawCalls++;
 
-            meshVao.Program.Use();
-            meshVao.Draw();
+            MeshVao.Program.Use();
+            MeshVao.Draw();
 
             return true;
         }
 
         public bool DrawPoints()
         {
-            if (pointsVao == null || BoundingBox == null)
+            if (PointsVao == null)
             {
                 return false;
             }
             DrawCalls++;
 
-            pointsVao.Program.Use();
-            pointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
-            pointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(Center.Normalize()), 0.4f));
-            pointsVao.Draw();
+            PointsVao.Program.Use();
+            PointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.4f));
+            PointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.4f));
+            PointsVao.Draw();
 
             return true;
         }
@@ -103,25 +201,21 @@ namespace VoxelWorld
                 HasBeenDisposed = true;
             }
 
-            Debug.Assert(Grid != null);
-            VoxelGridStorage.StoreForReuse(Grid);
-            Grid = null;
-
-            if (meshVao != null || pointsVao != null)
+            if (MeshVao != null || PointsVao != null)
             {
                 MainThreadWork.QueueWork(x =>
                 {
-                    if (meshVao != null)
+                    if (MeshVao != null)
                     {
-                        x.StoreGridVAOForReuse(meshVao);
+                        x.StoreGridVAOForReuse(MeshVao);
                     }
-                    if (pointsVao != null)
+                    if (PointsVao != null)
                     {
-                        x.StoreGridVAOForReuse(pointsVao);
+                        x.StoreGridVAOForReuse(PointsVao);
                     }
 
-                    meshVao = null;
-                    pointsVao = null;
+                    MeshVao = null;
+                    PointsVao = null;
                 });
             }
         }

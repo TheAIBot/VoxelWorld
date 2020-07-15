@@ -4,6 +4,13 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
+    internal class VoxelHierarchyInfo : IDisposable
+    {
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+    }
 
     internal class VoxelHierarchy : IDisposable
     {
@@ -24,13 +31,9 @@ namespace VoxelWorld
         private readonly float VoxelSize;
         private readonly int GridSize;
         private readonly Func<Vector3, float> WeightGen;
-        private readonly Vector3?[] GridCenters = new Vector3?[GridLocations.Length];
 
         //keeps track of grids
         private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
-        private readonly bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
-        private readonly AxisAlignedBoundingBox[] GridBoundBoxes = new AxisAlignedBoundingBox[GridLocations.Length];
-        private readonly GridNormal[] GridNormals = new GridNormal[GridLocations.Length];
 
         private AxisAlignedBoundingBox BoundingBox = null;
         private GridNormal HirNormal = new GridNormal();
@@ -40,9 +43,10 @@ namespace VoxelWorld
         //keeps track of sub hierarchies
         private readonly VoxelHierarchy[] SubHierarchies = new VoxelHierarchy[GridLocations.Length];
         private readonly bool[] IsEmptyHierarchies = new bool[GridLocations.Length];
+        private readonly bool[] IsGeneratingHierarchy = new bool[GridLocations.Length];
         private readonly AxisAlignedBoundingBox[] SubHirBoundBoxes = new AxisAlignedBoundingBox[GridLocations.Length];
         private readonly GridNormal[] SubHirNormals = new GridNormal[GridLocations.Length];
-        private readonly bool[] IsGeneratingGrids = new bool[GridLocations.Length];
+        
 
         //make sure all grids and hierarchies are disposed of
         //no matter if they are being generated
@@ -56,70 +60,40 @@ namespace VoxelWorld
             this.GridSize = gridSize;// + 2;
             this.WeightGen = generator;
             this.HierarchyDepth = hierarchyDepth;
+
+            for (int i = 0; i < Grids.Length; i++)
+            {
+                Vector3 gridCenter = Center + GridLocations[i].AsFloatVector3() * 0.5f * (GridSize - 2) * VoxelSize;
+                Grids[i] = new VoxelGridInfo(gridCenter);
+            }
         }
 
         public void Generate(Matrix4 model_rot, Vector3 lookDir)
         {
-            BoundingBox = new AxisAlignedBoundingBox(new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), new Vector3(float.MinValue, float.MinValue, float.MinValue));
-
-            bool addedBox = false;
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                var gridInfo = GenerateGrid(GridLocations[i], model_rot, lookDir);
-                GridCenters[i] = gridInfo.center;
-                Grids[i] = gridInfo.grid;
-                GridNormals[i] = gridInfo.normal;
-                HirNormal.AddNormal(gridInfo.normal);
-
-                if (gridInfo.box != null)
+                Grids[i].GenerateGridAction(GridSize, VoxelSize, WeightGen, model_rot, lookDir)();
+                if (!Grids[i].IsEmpty)
                 {
-                    GridBoundBoxes[i] = gridInfo.box;
-                    BoundingBox.AddBoundingBox(gridInfo.box);
-                    addedBox = true;
+                    if (BoundingBox == null)
+                    {
+                        BoundingBox = Grids[i].BoundingBox;
+                    }
+                    else
+                    {
+                        BoundingBox.AddBoundingBox(Grids[i].BoundingBox);
+                    }
+
+                    HirNormal.AddNormal(Grids[i].Normal);
                 }
             }
-
-            if (!addedBox)
-            {
-                BoundingBox = null;
-            }
-        }
-
-        private (VoxelGridInfo grid, Vector3? center, AxisAlignedBoundingBox box, GridNormal normal) GenerateGrid(Vector3I gridDir, Matrix4 model_rot, Vector3 lookDir)
-        {
-            Vector3 gridCenter = Center + gridDir.AsFloatVector3() * 0.5f * (GridSize - 2) * VoxelSize;
-            VoxelGridInfo grid = new VoxelGridInfo();
-
-            grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
-            grid.PreCalculateGeometryData();
-            if (grid.IsgridEmpty())
-            {
-                grid.Dispose();
-                return (null, null, null, new GridNormal());
-            }
-
-
-            grid.Interpolate();
-            AxisAlignedBoundingBox box = grid.GetBoundingBox();
-            GridNormal normal = grid.GetGridNormal();
-
-            if (!normal.CanSee(model_rot, lookDir))
-            {
-                grid.Dispose();
-                return (null, gridCenter, box, normal);
-            }
-
-            //grid.SmoothGrid(1);
-            grid.MakeDrawMethods();
-
-            return (grid, gridCenter, box, normal);
         }
 
         private bool IsEmpty()
         {
-            for (int i = 0; i < GridCenters.Length; i++)
+            for (int i = 0; i < Grids.Length; i++)
             {
-                if (GridCenters[i].HasValue)
+                if (!Grids[i].IsEmpty)
                 {
                     return false;
                 }
@@ -140,27 +114,12 @@ namespace VoxelWorld
 
         private void QueueGridGen(int index, Matrix4 model_rot, Vector3 lookDir)
         {
-            IsGeneratingGrids[index] = true;
-            WorkLimiter.QueueWork(() =>
-            {
-                VoxelGridInfo newGrid = GenerateGrid(GridLocations[index], model_rot, lookDir).grid;
-                lock (DisposeLock)
-                {
-                    if (HasBeenDisposed)
-                    {
-                        newGrid?.Dispose();
-                        newGrid = null;
-                    }
-
-                    Grids[index] = newGrid;
-                    IsGeneratingGrids[index] = false;
-                }
-            });
+            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GridSize, VoxelSize, WeightGen, model_rot, lookDir));
         }
 
         private void QueueHierarchyGen(int index, Matrix4 model_rot, Vector3 lookDir)
         {
-            Vector3 gridCenter = GridCenters[index].Value;
+            Vector3 gridCenter = Grids[index].GridCenter;
 
             IsGeneratingHierarchy[index] = true;
             WorkLimiter.QueueWork(() =>
@@ -217,13 +176,6 @@ namespace VoxelWorld
                     return true;
                 }
             }
-            for (int i = 0; i < IsGeneratingGrids.Length; i++)
-            {
-                if (IsGeneratingGrids[i])
-                {
-                    return true;
-                }
-            }
 
             return false;
         }
@@ -239,11 +191,10 @@ namespace VoxelWorld
 
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                if (!GridCenters[i].HasValue)
+                if (Grids[i].IsBeingGenerated)
                 {
                     continue;
                 }
-
 
                 if (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow)
                 {
@@ -254,29 +205,24 @@ namespace VoxelWorld
                     }
                 }
 
-                if (IsHighEnoughResolution(GridCenters[i].Value, camera.CameraPos))
+                if (IsHighEnoughResolution(Grids[i].GridCenter, camera.CameraPos))
                 {
-                    if (Grids[i] == null)
+                    if (Grids[i].IsReadyToDraw())
                     {
-                        if (GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) &&
-                            renderCheck.Intersects(GridBoundBoxes[i]))
+                        if (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow)
                         {
-                            QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
+                            SubHierarchies[i]?.MakeHollow();
                         }
                     }
                     else
                     {
-                        if (HierarchyDepth > 0 &&
-                            (!GridNormals[i].CanSee(Matrix4.Identity, camera.LookDirection) ||
-                             !renderCheck.Intersects(GridBoundBoxes[i])))
+                        if (Grids[i].ShouldGenerate(renderCheck, Matrix4.Identity, camera.LookDirection))
                         {
-                            Grids[i].Dispose();
-                            Grids[i] = null;
+                            QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
                         }
-
-                        if (SubHierarchies[i] != null && !SubHierarchies[i].IsHollow)
+                        else
                         {
-                            SubHierarchies[i]?.MakeHollow();
+                            Grids[i].MakeHollow();
                         }
                     }
                 }
@@ -284,9 +230,12 @@ namespace VoxelWorld
                 {
                     if (SubHierarchies[i] == null)
                     {
-                        if (!IsEmptyHierarchies[i])
+                        if (!Grids[i].IsEmpty)
                         {
-                            QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
+                            if (!IsEmptyHierarchies[i])
+                            {
+                                QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
+                            }
                         }
                     }
                     else
@@ -296,7 +245,7 @@ namespace VoxelWorld
                         {
                             if (SubHierarchies[i].IsHollow)
                             {
-                                if (Grids[i] == null)
+                                if (Grids[i].ShouldGenerate(renderCheck, Matrix4.Identity, camera.LookDirection))
                                 {
                                     QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
                                 }
@@ -309,8 +258,7 @@ namespace VoxelWorld
                             {
                                 if (!SubHierarchies[i].IsGenerating() && HierarchyDepth > 0)
                                 {
-                                    Grids[i]?.Dispose();
-                                    Grids[i] = null;
+                                    Grids[i].MakeHollow();
                                 }
 
                                 SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
@@ -331,8 +279,7 @@ namespace VoxelWorld
             IsHollow = true;
             for (int i = 0; i < Grids.Length; i++)
             {
-                Grids[i]?.Dispose();
-                Grids[i] = null;
+                Grids[i].MakeHollow();
             }
 
             for (int i = 0; i < SubHierarchies.Length; i++)
@@ -359,14 +306,10 @@ namespace VoxelWorld
                     }
                 }
 
-                if (!IsGeneratingGrids[i])
+                if (Grids[i].IsReadyToDraw())
                 {
-                    VoxelGridInfo grid = Grids[i];
-                    if (grid != null)
-                    {
-                        drewSomething |= grid.DrawMesh();
-                        continue;
-                    }
+                    drewSomething |= Grids[i].DrawMesh();
+                    continue;
                 }
             }
 
@@ -391,14 +334,10 @@ namespace VoxelWorld
                     }
                 }
 
-                if (!IsGeneratingGrids[i])
+                if (Grids[i].IsReadyToDraw())
                 {
-                    VoxelGridInfo grid = Grids[i];
-                    if (grid != null)
-                    {
-                        drewSomething |= grid.DrawPoints();
-                        continue;
-                    }
+                    drewSomething |= Grids[i].DrawPoints();
+                    continue;
                 }
             }
 
@@ -411,14 +350,16 @@ namespace VoxelWorld
             {
                 HasBeenDisposed = true;
 
-                foreach (var grid in Grids)
+                for (int i = 0; i < Grids.Length; i++)
                 {
-                    grid?.Dispose();
+                    Grids[i].Dispose();
+                    Grids[i] = null;
                 }
 
-                foreach (var hierarchy in SubHierarchies)
+                for (int i = 0; i < SubHierarchies.Length; i++)
                 {
-                    hierarchy?.Dispose();
+                    SubHierarchies[i]?.Dispose();
+                    SubHierarchies[i] = null;
                 }
             }
         }

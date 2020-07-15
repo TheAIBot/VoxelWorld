@@ -105,11 +105,10 @@ namespace VoxelWorld
             {
                 Vector3I gridPos = new Vector3I(0, 0, 0);
                 Vector3 gridCenter = Center + gridPos.AsFloatVector3() * GridSize * VoxelSize;
-                VoxelGridInfo grid = new VoxelGridInfo();
+                VoxelGridInfo grid = new VoxelGridInfo(gridCenter);
 
-                grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
-                grid.PreCalculateGeometryData();
-                if (grid.IsgridEmpty())
+                grid.GenerateGridAction(GridSize, VoxelSize, WeightGen, Matrix4.Identity, new Vector3(0, 0, 0))();
+                if (grid.IsEmpty)
                 {
                     grid.Dispose();
                     VoxelSize *= 2;
@@ -117,7 +116,7 @@ namespace VoxelWorld
                 }
 
 
-                if (grid.EdgePointsUsed())
+                if (grid.VoxelsAtEdge)
                 {
                     grid.Dispose();
                     VoxelSize *= 2;

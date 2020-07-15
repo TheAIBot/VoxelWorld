@@ -381,7 +381,7 @@ namespace VoxelWorld
         }
 
 
-        public void Triangulize(VoxelGridInfo vaoConv)
+        public (Vector3[] points, uint[] indices, Vector3[] normals) Triangulize()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -485,66 +485,9 @@ namespace VoxelWorld
                 indices[i] = newIndex;
             }
 
-            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-            for (int i = 0; i < prunedPoints.Length; i++)
-            {
-                min = Vector3.Min(min, prunedPoints[i]);
-                max = Vector3.Max(max, prunedPoints[i]);
-            }
-
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indices);
-            //Console.WriteLine(indicesArr.Length);
 
-            var createVao = new Action<WorkOptimizer>(x =>
-            {
-                GridVAO meshVao = x.MakeGridVAO(prunedPoints, normals, indices);
-                GridVAO boxVao = null;
-
-                {
-                    Vector3[] vertex = new Vector3[] 
-                    {
-                        new Vector3(min.X, min.Y, max.Z),
-                        new Vector3(max.X, min.Y, max.Z),
-                        new Vector3(min.X, max.Y, max.Z),
-                        new Vector3(max.X, max.Y, max.Z),
-                        new Vector3(max.X, min.Y, min.Z),
-                        new Vector3(max.X, max.Y, min.Z),
-                        new Vector3(min.X, max.Y, min.Z),
-                        new Vector3(min.X, min.Y, min.Z)
-                    };
-
-                    uint[] element = new uint[] 
-                    {
-                        0, 1, 2, 1, 3, 2,
-                        1, 4, 3, 4, 5, 3,
-                        4, 7, 5, 7, 6, 5,
-                        7, 0, 6, 0, 2, 6,
-                        7, 4, 0, 4, 1, 0,
-                        2, 3, 6, 3, 5, 6
-                    };
-
-                    Vector3[] normal = Geometry.CalculateNormals(vertex, element);
-
-                    boxVao = x.MakeGridVAO(vertex, normal, element);
-                }
-
-                lock (vaoConv.DisposeLock)
-                {
-                    if (vaoConv.HasBeenDisposed)
-                    {
-                        x.StoreGridVAOForReuse(meshVao);
-                        x.StoreGridVAOForReuse(boxVao);
-                    }
-                    else
-                    {
-                        vaoConv.meshVao = meshVao;
-                        vaoConv.pointsVao = boxVao;
-                    }
-                }
-            });
-
-            MainThreadWork.QueueWork(createVao);
+            return (prunedPoints, indices, normals);
         }
     }
 }
