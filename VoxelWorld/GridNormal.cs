@@ -49,11 +49,11 @@ namespace VoxelWorld
         public void AddNormal(GridNormal normal)
         {
             Xp |= normal.Xp;
-            Xm |= normal.Xp;
+            Xm |= normal.Xm;
             Yp |= normal.Yp;
-            Ym |= normal.Yp;
+            Ym |= normal.Ym;
             Zp |= normal.Zp;
-            Zm |= normal.Zp;
+            Zm |= normal.Zm;
         }
     }
 }
