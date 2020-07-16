@@ -67,16 +67,19 @@ namespace VoxelWorld
             AvgPosVBOSize.AddSample(positions.Length);
             AvgIndiceVBOSize.AddSample(indices.Length);
 
-            for (int i = GridVaos.Count - 1; i >= 0; i--)
+            lock (GridVaos)
             {
-                if (GridVaos[i].IsLargeEnough(positions.Length, normals.Length, indices.Length))
+                for (int i = GridVaos.Count - 1; i >= 0; i--)
                 {
-                    AvgReuseRate.AddSample(true);
-                    GridVAO vao = GridVaos[i];
-                    vao.Reuse(positions, normals, indices);
-                    GridVaos.RemoveAt(i);
+                    if (GridVaos[i].IsLargeEnough(positions.Length, normals.Length, indices.Length))
+                    {
+                        AvgReuseRate.AddSample(true);
+                        GridVAO vao = GridVaos[i];
+                        vao.Reuse(positions, normals, indices);
+                        GridVaos.RemoveAt(i);
 
-                    return vao;
+                        return vao;
+                    }
                 }
             }
             AvgReuseRate.AddSample(false);
@@ -108,14 +111,17 @@ namespace VoxelWorld
             return new GridVAO(posBuffer, normalBuffer, indiceBuffer);
         }
 
-        public void StoreGridVAOForReuse(GridVAO vao)
+        public bool TryReuseGridVAO(GridVAO vao)
         {
-            if (GridVaos.Count > 3000)
+            lock (GridVaos)
             {
-                vao.Dispose();
-                return;
+                if (GridVaos.Count > 3000)
+                {
+                    return false;
+                }
+                GridVaos.Add(vao);
             }
-            GridVaos.Add(vao);
+            return true;
         }
 
         public void PrintPerformanceNumbers()
@@ -155,6 +161,14 @@ namespace VoxelWorld
         public static void QueueWork(Action<WorkOptimizer> action)
         {
             WorkToDo.Enqueue(action);
+        }
+
+        public static void DisposeVAO(GridVAO vao)
+        {
+            if (!optimizer.TryReuseGridVAO(vao))
+            {
+                QueueWork(_ => vao.Dispose());
+            }
         }
 
         public static void ExecuteWork()

@@ -14,7 +14,7 @@ namespace VoxelWorld
         public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
         public GridNormal Normal { get; private set; }
 
-        private bool IsHollow = false;
+        private bool IsHollow = true;
         private bool Initialized = false;
         private GridVAO MeshVao = null;
         private GridVAO PointsVao = null;
@@ -67,7 +67,6 @@ namespace VoxelWorld
                     return;
                 }
 
-
                 var meshData = grid.Triangulize();
                 var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
 
@@ -83,10 +82,10 @@ namespace VoxelWorld
 
                     lock (DisposeLock)
                     {
-                        if (HasBeenDisposed)
+                        if (HasBeenDisposed || IsHollow)
                         {
-                            x.StoreGridVAOForReuse(meshVao);
-                            x.StoreGridVAOForReuse(boxVao);
+                            MainThreadWork.DisposeVAO(meshVao);
+                            MainThreadWork.DisposeVAO(boxVao);
                         }
                         else
                         {
@@ -115,7 +114,7 @@ namespace VoxelWorld
                 return false;
             }
 
-            if (IsReadyToDraw())
+            if (!IsHollow)
             {
                 return false;
             }
@@ -145,7 +144,7 @@ namespace VoxelWorld
 
         public bool IsReadyToDraw()
         {
-            return MeshVao != null && PointsVao != null;
+            return !IsHollow;
         }
 
         public void MakeHollow()
@@ -154,28 +153,22 @@ namespace VoxelWorld
             {
                 return;
             }
-            IsHollow = true;
 
             lock (DisposeLock)
             {
+                IsHollow = true;
+
                 if (!HasBeenDisposed)
                 {
-                    if (MeshVao != null || PointsVao != null)
+                    if (MeshVao != null)
                     {
-                        MainThreadWork.QueueWork(x =>
-                        {
-                            if (MeshVao != null)
-                            {
-                                x.StoreGridVAOForReuse(MeshVao);
-                            }
-                            if (PointsVao != null)
-                            {
-                                x.StoreGridVAOForReuse(PointsVao);
-                            }
-
-                            MeshVao = null;
-                            PointsVao = null;
-                        });
+                        MainThreadWork.DisposeVAO(MeshVao);
+                        MeshVao = null;
+                    }
+                    if (PointsVao != null)
+                    {
+                        MainThreadWork.DisposeVAO(PointsVao);
+                        PointsVao = null;
                     }
                 }
             }
@@ -218,22 +211,15 @@ namespace VoxelWorld
                 HasBeenDisposed = true;
             }
 
-            if (MeshVao != null || PointsVao != null)
+            if (MeshVao != null)
             {
-                MainThreadWork.QueueWork(x =>
-                {
-                    if (MeshVao != null)
-                    {
-                        x.StoreGridVAOForReuse(MeshVao);
-                    }
-                    if (PointsVao != null)
-                    {
-                        x.StoreGridVAOForReuse(PointsVao);
-                    }
-
-                    MeshVao = null;
-                    PointsVao = null;
-                });
+                MainThreadWork.DisposeVAO(MeshVao);
+                MeshVao = null;
+            }
+            if (PointsVao != null)
+            {
+                MainThreadWork.DisposeVAO(PointsVao);
+                PointsVao = null;
             }
         }
     }
