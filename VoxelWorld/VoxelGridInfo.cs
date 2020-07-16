@@ -52,6 +52,7 @@ namespace VoxelWorld
                 grid.Interpolate();
                 if (!Initialized)
                 {
+                    Initialized = true;
                     VoxelsAtEdge = grid.EdgePointsUsed();
                     BoundingBox = grid.GetBoundingBox();
                     Normal = grid.GetGridNormal();
@@ -59,7 +60,6 @@ namespace VoxelWorld
 
                 if (!Normal.CanSee(model_rot, lookDir))
                 {
-                    Initialized = true;
                     IsBeingGenerated = false;
                     VoxelGridStorage.StoreForReuse(grid);
                     return;
@@ -96,13 +96,12 @@ namespace VoxelWorld
                         }
                     }
 
-                    Initialized = true;
                     IsBeingGenerated = false;
                 }));
             };
         }
 
-        public bool ShouldGenerate(Frustum onScreenCheck, Matrix4 model_rot, Vector3 lookDir)
+        public bool ShouldGenerate()
         {
             if (IsBeingGenerated)
             {
@@ -115,6 +114,16 @@ namespace VoxelWorld
             }
 
             if (IsReadyToDraw())
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool CanSee(Frustum onScreenCheck, Matrix4 model_rot, Vector3 lookDir)
+        {
+            if (IsEmpty)
             {
                 return false;
             }
@@ -187,8 +196,8 @@ namespace VoxelWorld
             DrawCalls++;
 
             PointsVao.Program.Use();
-            PointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.4f));
-            PointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.4f));
+            PointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.2f));
+            PointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.2f));
             PointsVao.Draw();
 
             return true;
