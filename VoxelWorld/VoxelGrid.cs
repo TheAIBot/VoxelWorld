@@ -381,7 +381,7 @@ namespace VoxelWorld
         }
 
 
-        public (Vector3[] points, uint[] indices, Vector3[] normals) Triangulize()
+        public GeometryData Triangulize()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -487,7 +487,7 @@ namespace VoxelWorld
 
             Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indices);
 
-            return (prunedPoints, indices, normals);
+            return new GeometryData(prunedPoints, normals, indices);
         }
     }
 }

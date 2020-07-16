@@ -15,7 +15,7 @@ namespace VoxelWorld
             2, 3, 6, 3, 5, 6
         };
 
-        public static (Vector3[] points, uint[] indices, Vector3[] normals) MakeBoxGeometry(Vector3 min, Vector3 max)
+        public static GeometryData MakeBoxGeometry(Vector3 min, Vector3 max)
         {
             Vector3[] vertices = new Vector3[]
             {
@@ -31,7 +31,7 @@ namespace VoxelWorld
 
             Vector3[] normals = Geometry.CalculateNormals(vertices, Indices);
 
-            return (vertices, Indices, normals);
+            return new GeometryData(vertices, normals, Indices);
         }
     }
 }

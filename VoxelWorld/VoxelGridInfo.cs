@@ -99,8 +99,8 @@ namespace VoxelWorld
                         return;
                     }
 
-                    GridVAO meshVao = x.MakeGridVAO(meshData.points, meshData.normals, meshData.indices);
-                    GridVAO boxVao = x.MakeGridVAO(boxData.points, boxData.normals, boxData.indices);
+                    GridVAO meshVao = x.MakeGridVAO(meshData.Vertices, meshData.Normals, meshData.Indices);
+                    GridVAO boxVao = x.MakeGridVAO(boxData.Vertices, boxData.Normals, boxData.Indices);
 
                     lock (DisposeLock)
                     {
