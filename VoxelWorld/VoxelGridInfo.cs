@@ -38,6 +38,13 @@ namespace VoxelWorld
             IsHollow = false;
             return () =>
             {
+                //no need to do the work if it's already hollow again
+                if (IsHollow)
+                {
+                    IsBeingGenerated = false;
+                    return;
+                }
+
                 VoxelGrid grid = VoxelGridStorage.GetGrid(size, GridCenter, voxelSize, gen);
                 grid.Randomize();
 
@@ -75,8 +82,23 @@ namespace VoxelWorld
                 VoxelGridStorage.StoreForReuse(grid);
                 grid = null;
 
+
+                //no need to make vaos if the grid is already hollow again
+                if (IsHollow)
+                {
+                    IsBeingGenerated = false;
+                    return;
+                }
+
                 MainThreadWork.QueueWork(new Action<WorkOptimizer>(x =>
                 {
+                    //no need to make vaos if the grid is already hollow again
+                    if (IsHollow)
+                    {
+                        IsBeingGenerated = false;
+                        return;
+                    }
+
                     GridVAO meshVao = x.MakeGridVAO(meshData.points, meshData.normals, meshData.indices);
                     GridVAO boxVao = x.MakeGridVAO(boxData.points, boxData.normals, boxData.indices);
 
