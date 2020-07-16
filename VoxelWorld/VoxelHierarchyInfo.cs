@@ -21,17 +21,23 @@ namespace VoxelWorld
         public Action GenerateHierarchyAction(int gridSize, Vector3 gridCenter, float voxelSize, Func<Vector3, float> weightGen, int hirDepth, Matrix4 model_rot, Vector3 lookDir)
         {
             IsBeingGenerated = true;
+            IsHollow = false;
             return () =>
             {
-                Debug.Assert(VoxelHir == null);
-                VoxelHir = new VoxelHierarchy(gridSize, gridCenter, voxelSize, weightGen, hirDepth + 1);
-                VoxelHir.Generate(model_rot, lookDir);
+                if (IsHollow)
+                {
+                    IsBeingGenerated = false;
+                    return;
+                }
 
-                if (VoxelHir.IsEmpty())
+
+                VoxelHierarchy hir = new VoxelHierarchy(gridSize, gridCenter, voxelSize, weightGen, hirDepth + 1);
+                hir.Generate(model_rot, lookDir);
+
+                if (hir.IsEmpty())
                 {
                     IsEmpty = true;
-                    VoxelHir.Dispose();
-                    VoxelHir = null;
+                    hir.Dispose();
                     IsBeingGenerated = false;
                     HasBeenGenerated = true;
                     return;
@@ -41,14 +47,21 @@ namespace VoxelWorld
                 {
                     if (HasBeenDisposed)
                     {
-                        VoxelHir?.Dispose();
-                        VoxelHir = null;
+                        hir?.Dispose();
+                        hir = null;
                     }
-
-                    if (VoxelHir != null)
+                    else
                     {
-                        BoundingBox = VoxelHir.BoundingBox;
-                        Normal = VoxelHir.HirNormal;
+                        BoundingBox = hir.BoundingBox;
+                        Normal = hir.HirNormal;
+
+                        if (IsHollow)
+                        {
+                            hir.MakeHollow();
+                        }
+
+                        Debug.Assert(VoxelHir == null);
+                        VoxelHir = hir;
                     }
 
                     IsBeingGenerated = false;
@@ -120,13 +133,17 @@ namespace VoxelWorld
                 return;
             }
 
-            IsHollow = true;
-            VoxelHir.MakeHollow();
+            lock (DisposeLock)
+            {
+                IsHollow = true;
+
+                VoxelHir?.MakeHollow();
+            }
         }
 
         public bool IsReadyToDraw()
         {
-            return !IsBeingGenerated && VoxelHir != null;
+            return !IsBeingGenerated && VoxelHir != null && !IsHollow;
         }
 
         public bool DrawMesh()
