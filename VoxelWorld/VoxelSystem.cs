@@ -180,28 +180,5 @@ namespace VoxelWorld
                 }
             }
         }
-
-        public void DrawMesh()
-        {
-            lock (Grids)
-            {
-                foreach (var grid in Grids.Values)
-                {
-                    grid.DrawMesh();
-                }
-            }
-        }
-
-        public void DrawPoints()
-        {
-            lock (Grids)
-            {
-                foreach (var grid in Grids.Values)
-                {
-                    grid.DrawPoints();
-                }
-            }
-        }
-
     }
 }

@@ -12,8 +12,6 @@ namespace VoxelWorld
     {
         static void Main(string[] args)
         {
-            MainThreadWork.SetThisThreadToMainThread();
-
             int windowWidth = 1280;
             int windowHeight = 720;
 
@@ -97,8 +95,6 @@ namespace VoxelWorld
                 Matrix4 model = Matrix4.CreateRotationY(angle);
                 system.CheckVoxelResolution(renderFrom, renderCheck);
 
-                MainThreadWork.ExecuteWork();
-
 
 
 
@@ -128,15 +124,15 @@ namespace VoxelWorld
                 if (renderMesh)
                 {
                     Gl.Disable(EnableCap.Blend);
-                    system.DrawMesh();
+                    MainThreadWork.DrawGrids();
                 }
-                if (renderPoints)
-                {
-                    Gl.Enable(EnableCap.Blend);
-                    system.DrawPoints();
-                }
+                //if (renderPoints)
+                //{
+                //    Gl.Enable(EnableCap.Blend);
+                //    system.DrawPoints();
+                //}
 
-                Console.WriteLine(VoxelGridInfo.DrawCalls);
+                //Console.WriteLine(VoxelGridInfo.DrawCalls);
 
                 watch.Stop();
 

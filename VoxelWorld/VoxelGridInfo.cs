@@ -14,10 +14,9 @@ namespace VoxelWorld
         public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
         public GridNormal Normal { get; private set; }
 
+        private bool MadeDrawable = false;
         private bool IsHollow = true;
         private bool Initialized = false;
-        private GridVAO MeshVao = null;
-        private GridVAO PointsVao = null;
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
@@ -30,8 +29,6 @@ namespace VoxelWorld
 
         public Action GenerateGridAction(int size, float voxelSize, Func<Vector3, float> gen, Matrix4 model_rot, Vector3 lookDir)
         {
-            Debug.Assert(MeshVao == null);
-            Debug.Assert(PointsVao == null);
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
@@ -90,37 +87,20 @@ namespace VoxelWorld
                     return;
                 }
 
-                MainThreadWork.QueueWork(new Action<WorkOptimizer>(x =>
+                lock (DisposeLock)
                 {
-                    //no need to make vaos if the grid is already hollow again
-                    if (IsHollow)
+                    if (HasBeenDisposed || IsHollow)
                     {
-                        IsBeingGenerated = false;
                         return;
                     }
-
-                    GridVAO meshVao = x.MakeGridVAO(meshData.Vertices, meshData.Normals, meshData.Indices);
-                    GridVAO boxVao = x.MakeGridVAO(boxData.Vertices, boxData.Normals, boxData.Indices);
-
-                    lock (DisposeLock)
+                    else
                     {
-                        if (HasBeenDisposed || IsHollow)
-                        {
-                            MainThreadWork.DisposeVAO(meshVao);
-                            MainThreadWork.DisposeVAO(boxVao);
-                        }
-                        else
-                        {
-                            Debug.Assert(MeshVao == null);
-                            Debug.Assert(PointsVao == null);
-
-                            MeshVao = meshVao;
-                            PointsVao = boxVao;
-                        }
+                        MainThreadWork.MakeGridDrawable(this, meshData);
+                        MadeDrawable = true;
                     }
+                }
 
-                    IsBeingGenerated = false;
-                }));
+                IsBeingGenerated = false;
             };
         }
 
@@ -180,50 +160,12 @@ namespace VoxelWorld
             {
                 IsHollow = true;
 
-                if (!HasBeenDisposed)
+                if (MadeDrawable)
                 {
-                    if (MeshVao != null)
-                    {
-                        MainThreadWork.DisposeVAO(MeshVao);
-                        MeshVao = null;
-                    }
-                    if (PointsVao != null)
-                    {
-                        MainThreadWork.DisposeVAO(PointsVao);
-                        PointsVao = null;
-                    }
+                    MainThreadWork.RemoveDrawableGrid(this);
+                    MadeDrawable = false;
                 }
             }
-        }
-
-        public bool DrawMesh()
-        {
-            if (MeshVao == null)
-            {
-                return false;
-            }
-            DrawCalls++;
-
-            MeshVao.Program.Use();
-            MeshVao.Draw();
-
-            return true;
-        }
-
-        public bool DrawPoints()
-        {
-            if (PointsVao == null)
-            {
-                return false;
-            }
-            DrawCalls++;
-
-            PointsVao.Program.Use();
-            PointsVao.Program["mat_diff"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.2f));
-            PointsVao.Program["mat_spec"].SetValue(new Vector4(Vector3.Abs(GridCenter.Normalize()), 0.2f));
-            PointsVao.Draw();
-
-            return true;
         }
 
         public void Dispose()
@@ -231,17 +173,12 @@ namespace VoxelWorld
             lock (DisposeLock)
             {
                 HasBeenDisposed = true;
-            }
 
-            if (MeshVao != null)
-            {
-                MainThreadWork.DisposeVAO(MeshVao);
-                MeshVao = null;
-            }
-            if (PointsVao != null)
-            {
-                MainThreadWork.DisposeVAO(PointsVao);
-                PointsVao = null;
+                if (MadeDrawable)
+                {
+                    MainThreadWork.RemoveDrawableGrid(this);
+                    MadeDrawable = false;
+                }
             }
         }
     }

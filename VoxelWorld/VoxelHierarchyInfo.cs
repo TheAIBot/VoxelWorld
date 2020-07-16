@@ -146,16 +146,6 @@ namespace VoxelWorld
             return !IsBeingGenerated && VoxelHir != null && !IsHollow;
         }
 
-        public bool DrawMesh()
-        {
-            return VoxelHir.DrawMesh();
-        }
-
-        public bool DrawPoints()
-        {
-            return VoxelHir.DrawPoints();
-        }
-
         public void Dispose()
         {
             lock (DisposeLock)

@@ -226,54 +226,6 @@ namespace VoxelWorld
             }
         }
 
-        public bool DrawMesh()
-        {
-            bool drewSomething = false;
-            for (int i = 0; i < Grids.Length; i++)
-            {
-                if (SubHierarchies[i].IsReadyToDraw())
-                {
-                    if (SubHierarchies[i].DrawMesh())
-                    {
-                        drewSomething = true;
-                        continue;
-                    }
-                }
-
-                if (Grids[i].IsReadyToDraw())
-                {
-                    drewSomething |= Grids[i].DrawMesh();
-                    continue;
-                }
-            }
-
-            return drewSomething;
-        }
-
-        public bool DrawPoints()
-        {
-            bool drewSomething = false;
-            for (int i = 0; i < Grids.Length; i++)
-            {
-                if (SubHierarchies[i].IsReadyToDraw())
-                {
-                    if (SubHierarchies[i].DrawPoints())
-                    {
-                        drewSomething = true;
-                        continue;
-                    }
-                }
-
-                if (Grids[i].IsReadyToDraw())
-                {
-                    drewSomething |= Grids[i].DrawPoints();
-                    continue;
-                }
-            }
-
-            return drewSomething;
-        }
-
         public void Dispose()
         {
             for (int i = 0; i < Grids.Length; i++)
