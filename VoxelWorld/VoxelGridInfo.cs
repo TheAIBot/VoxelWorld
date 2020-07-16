@@ -14,6 +14,7 @@ namespace VoxelWorld
         public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
         public GridNormal Normal { get; private set; }
 
+        private bool IsHollow = false;
         private bool Initialized = false;
         private GridVAO MeshVao = null;
         private GridVAO PointsVao = null;
@@ -34,6 +35,7 @@ namespace VoxelWorld
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
+            IsHollow = false;
             return () =>
             {
                 VoxelGrid grid = VoxelGridStorage.GetGrid(size, GridCenter, voxelSize, gen);
@@ -148,6 +150,12 @@ namespace VoxelWorld
 
         public void MakeHollow()
         {
+            if (IsHollow)
+            {
+                return;
+            }
+            IsHollow = true;
+
             lock (DisposeLock)
             {
                 if (!HasBeenDisposed)
