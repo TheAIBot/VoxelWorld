@@ -118,33 +118,30 @@ namespace VoxelWorld
                     uint[] indicesTemp = new uint[indices];
 
                     {
-                        int vertexIndex = 0;
+                        Span<Vector3> availableSpace = verticesTemp.AsSpan();
                         for (int i = 0; i < TransferToBuffers.Count; i++)
                         {
-                            Vector3[] verts = TransferToBuffers[i].Geom.Vertices;
-                            Array.Copy(verts, 0, verticesTemp, vertexIndex, verts.Length);
-                            vertexIndex += verts.Length;
+                            TransferToBuffers[i].Geom.Vertices.CopyTo(availableSpace);
+                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Vertices.Length);
                         }
                         VertexBuffer.BufferSubData(verticesTemp, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
                     }
                     {
-                        int normalIndex = 0;
+                        Span<Vector3> availableSpace = verticesTemp.AsSpan();
                         for (int i = 0; i < TransferToBuffers.Count; i++)
                         {
-                            Vector3[] norms = TransferToBuffers[i].Geom.Normals;
-                            Array.Copy(norms, 0, verticesTemp, normalIndex, norms.Length);
-                            normalIndex += norms.Length;
+                            TransferToBuffers[i].Geom.Normals.CopyTo(availableSpace);
+                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Normals.Length);
                         }
                         NormalBuffer.BufferSubData(verticesTemp, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
                     }
 
                     {
-                        int indiceIndex = 0;
+                        Span<uint> availableSpace = indicesTemp.AsSpan();
                         for (int i = 0; i < TransferToBuffers.Count; i++)
                         {
-                            uint[] indi = TransferToBuffers[i].Geom.Indices;
-                            Array.Copy(indi, 0, indicesTemp, indiceIndex, indi.Length);
-                            indiceIndex += indi.Length;
+                            TransferToBuffers[i].Geom.Indices.CopyTo(availableSpace);
+                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Indices.Length);
                         }
                         IndiceBuffer.BufferSubData(indicesTemp, indicesTemp.Length * Marshal.SizeOf<uint>(), FirstAvailableIndiceIndex * Marshal.SizeOf<uint>());
                     }
