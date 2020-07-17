@@ -49,7 +49,7 @@ namespace VoxelWorld
             VertexBuffer = new VBO<Vector3>(new Vector3[VERTEX_BUFFER_SIZE], BufferTarget.ArrayBuffer);
             NormalBuffer = new VBO<Vector3>(new Vector3[VERTEX_BUFFER_SIZE], BufferTarget.ArrayBuffer);
             IndiceBuffer = new VBO<uint>(new uint[INDICE_BUFFER_SIZE], BufferTarget.ElementArrayBuffer);
-            CommandBuffer = new VBO<DrawElementsIndirectCommand>(new DrawElementsIndirectCommand[COMMAND_BUFFER_SIZE], BufferTarget.DrawIndirectBuffer);
+            CommandBuffer = new VBO<DrawElementsIndirectCommand>(new DrawElementsIndirectCommand[COMMAND_BUFFER_SIZE], BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw);
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer, "vertex_pos"),
