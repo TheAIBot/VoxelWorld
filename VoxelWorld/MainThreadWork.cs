@@ -195,10 +195,6 @@ namespace VoxelWorld
 
     internal static class MainThreadWork
     {
-        //private static readonly ConcurrentQueue<Action<WorkOptimizer>> WorkToDo = new ConcurrentQueue<Action<WorkOptimizer>>();
-        //private static readonly WorkOptimizer optimizer = new WorkOptimizer();
-        //private static int MainThreadID = 0;
-
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly List<(VoxelGridInfo grid, GeometryData geometry)> UnallocatedGridGeometry = new List<(VoxelGridInfo grid, GeometryData geometry)>();
 
