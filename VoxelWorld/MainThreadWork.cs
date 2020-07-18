@@ -37,6 +37,7 @@ namespace VoxelWorld
         private int FirstAvailableVertexIndex = 0;
         private int FirstAvailableIndiceIndex = 0;
         private readonly object Lock = new object();
+        private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly VBO<Vector3> VertexBuffer;
         private readonly VBO<Vector3> NormalBuffer;
@@ -95,6 +96,7 @@ namespace VoxelWorld
                 }
                 else
                 {
+                    CommandsChangeSinceLastPrepareDraw = true;
                     return true;
                 }
             }
@@ -155,12 +157,14 @@ namespace VoxelWorld
                     }
 
                     TransferToBuffers.Clear();
+                    CommandsChangeSinceLastPrepareDraw = true;
                 }
 
-                if (DrawCommands.Count > 0)
+                if (DrawCommands.Count > 0 && CommandsChangeSinceLastPrepareDraw)
                 {
                     DrawElementsIndirectCommand[] commands = DrawCommands.Values.ToArray();
                     CommandBuffer.BufferSubData(commands);
+                    CommandsChangeSinceLastPrepareDraw = false;
                 }
             }
         }
