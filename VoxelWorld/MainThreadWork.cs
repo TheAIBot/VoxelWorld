@@ -175,10 +175,7 @@ namespace VoxelWorld
             {
                 if (DrawCommands.Count > 0)
                 {
-                    Gl.BindVertexArray(Vao.ID);
-                    Gl.BindBuffer(CommandBuffer);
-                    Gl.MultiDrawElementsIndirect(BeginMode.Triangles, DrawElementsType.UnsignedInt, IntPtr.Zero, DrawCommands.Count, 0);
-                    Gl.BindVertexArray(0);
+                    Vao.MultiDrawElementsIndirect(CommandBuffer, DrawCommands.Count);
                 }
             }
         }
@@ -287,7 +284,7 @@ namespace VoxelWorld
                     }
                 }
 
-                Console.WriteLine(GridDrawBuffers.Count);
+                //Console.WriteLine(GridDrawBuffers.Count);
             }
         }
     }
