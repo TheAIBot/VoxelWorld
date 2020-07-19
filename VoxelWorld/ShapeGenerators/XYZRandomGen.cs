@@ -8,9 +8,18 @@ using System.Runtime.Intrinsics.X86;
 
 namespace VoxelWorld
 {
-    internal static class XYZRandomGen
+    internal readonly struct SeedsInfo
     {
-        internal static float[] Initialize(int seed, int seedLength)
+        public readonly float[] Seeds;
+        public readonly float Reci_SeedsCount;
+
+        public SeedsInfo(int seed, int seedCount)
+        {
+            this.Seeds = Initialize(seed, seedCount);
+            this.Reci_SeedsCount = 1.0f / (seedCount);
+        }
+
+        private static float[] Initialize(int seed, int seedLength)
         {
             Random rand = new Random(seed);
 
@@ -33,7 +42,10 @@ namespace VoxelWorld
 
             return randVecs;
         }
+    }
 
+    internal static class XYZRandomGen
+    {
         private static readonly Vector256<float> const0_25 = Vector256.Create(0.25f);
         private static readonly Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
         private static readonly Vector256<float> const16 = Vector256.Create(16.0f);
@@ -49,15 +61,16 @@ namespace VoxelWorld
             return x;
         }
 
-        internal unsafe static float GetNoise(float[] seeds, Vector3 pos)
+        internal unsafe static float GetNoise(SeedsInfo seeds, Vector3 pos)
         {
             if (Avx.IsSupported)
             {
-                fixed (float* aa = seeds)
+                fixed (float* aa = seeds.Seeds)
                 {
                     Vector128<float> pospos = Vector128.Create(pos.X, pos.Y, pos.Z, 0.0f);
+                    Vector256<float> pospospos = Vector256.Create(pospos, pospos);
                     Vector256<float> noise = Vector256<float>.Zero;
-                    for (int i = 0; i < seeds.Length; i += 32)
+                    for (int i = 0; i < seeds.Seeds.Length; i += 32)
                     {
                         //dotnet core 3.1 makes shit code generation so this temp variable is needed to
                         //avoid that.

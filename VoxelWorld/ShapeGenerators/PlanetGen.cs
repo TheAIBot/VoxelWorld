@@ -7,7 +7,7 @@ namespace VoxelWorld
     {
         internal static Func<Vector3, float> GetPlanetGen(int seed, float planetRadius, float noiseWeight, float noiseFrequency)
         {
-            var seeds = XYZRandomGen.Initialize(seed, 32);
+            var seeds = new SeedsInfo(seed, 32);
 
             return new Func<Vector3, float>(pos =>
             {
