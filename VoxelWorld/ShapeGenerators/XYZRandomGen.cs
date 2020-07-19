@@ -76,28 +76,22 @@ namespace VoxelWorld
                         //avoid that.
                         //The problem does not persist in dotnet 5.0
                         float* core3_1fix = aa + i;
-                        Vector128<float> x0 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 0), 0b1111_1000);
-                        Vector128<float> x1 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 4), 0b1111_0100);
-                        Vector128<float> x2 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 8), 0b1111_0010);
-                        Vector128<float> x3 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 12), 0b1111_0001);
-                        Vector128<float> s1 = Avx.Add(Avx.Add(x0, x1), Avx.Add(x2, x3));
+                        Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 0), 0b1111_1000);
+                        Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 8), 0b1111_0100);
+                        Vector256<float> s1 = Avx.Add(x0, x2);
 
-                        Vector128<float> x4 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 16), 0b1111_1000);
-                        Vector128<float> x5 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 20), 0b1111_0100);
-                        Vector128<float> x6 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 24), 0b1111_0010);
-                        Vector128<float> x7 = Avx.DotProduct(pospos, Avx.LoadVector128(core3_1fix + 28), 0b1111_0001);
-                        Vector128<float> s2 = Avx.Add(Avx.Add(x4, x5), Avx.Add(x6, x7));
+                        Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 16), 0b1111_0010);
+                        Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 24), 0b1111_0001);
+                        Vector256<float> s2 = Avx.Add(x4, x6);
 
-                        noise = Avx.Add(noise, CosApproximationVectorized(Vector256.Create(s1, s2)));
+                        noise = Avx.Add(noise, CosApproximationVectorized(Avx.Add(s1, s2)));
                     }
 
                     noise = Avx.HorizontalAdd(noise, noise);
                     Vector128<float> lower = noise.GetLower();
                     Vector128<float> upper = noise.GetUpper();
-                    lower = Avx.HorizontalAdd(lower, lower);
-                    upper = Avx.HorizontalAdd(upper, upper);
-
-                    return (Avx.Add(lower, upper).GetElement(0)) / (seeds.Length / 4);
+                    Vector128<float> dd = Avx.Add(lower, upper);
+                    return Avx.Multiply(Avx.HorizontalAdd(dd, dd), Vector128.Create(seeds.Reci_SeedsCount)).GetElement(0);
                 }
             }
             else
