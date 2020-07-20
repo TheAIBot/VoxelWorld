@@ -26,6 +26,7 @@ namespace VoxelWorld
             }
         }
 
+
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
         private readonly Dictionary<VoxelGridInfo, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridInfo, DrawElementsIndirectCommand>();
         private const int VERTEX_BUFFER_SIZE = 20_000;
