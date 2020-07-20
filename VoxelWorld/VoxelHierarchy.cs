@@ -101,7 +101,7 @@ namespace VoxelWorld
             Vector3 c = model * cameraPos;
 
             float resolution = (VoxelSize * 100.0f) / (a - c).Length();
-            return resolution < 0.7f;
+            return resolution < 0.3f;
         }
 
         private void QueueGridGen(int index, Matrix4 model_rot, Vector3 lookDir)
