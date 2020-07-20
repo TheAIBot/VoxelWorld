@@ -185,6 +185,28 @@ namespace VoxelWorld
             return DrawCommands.Count;
         }
 
+        public bool Reset()
+        {
+            lock (Lock)
+            {
+                if (TransferToBuffers.Count > 0 || DrawCommands.Count > 0)
+                {
+                    return false;
+                }
+
+                TransferToBuffers.Clear();
+                DrawCommands.Clear();
+
+                VerticesAvailable = VERTEX_BUFFER_SIZE;
+                IndicesAvailable = INDICE_BUFFER_SIZE;
+                CommandsAvailable = COMMAND_BUFFER_SIZE;
+                FirstAvailableVertexIndex = 0;
+                FirstAvailableIndiceIndex = 0;
+
+                return true;
+            }
+        }
+
         public void Dispose()
         {
             Vao.Dispose();
@@ -279,8 +301,7 @@ namespace VoxelWorld
                 {
                     if (GridDrawBuffers[i].CommandCount() == 0)
                     {
-                        GridDrawBuffers[i].Dispose();
-                        GridDrawBuffers.RemoveAt(i);
+                        GridDrawBuffers[i].Reset();
                     }
                 }
 
