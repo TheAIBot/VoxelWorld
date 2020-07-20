@@ -78,22 +78,19 @@ namespace VoxelWorld
             return false;
         }
 
-        public bool RemoveGeometry(VoxelGridInfo grid)
+        public void RemoveGeometry(VoxelGridInfo grid)
         {
             if (!DrawCommands.Remove(grid))
             {
-                int removed = TransferToBuffers.RemoveAll(x => x.Grid == grid);
-                if (removed > 1)
+                int gridIndex = TransferToBuffers.FindIndex(x => x.Grid == grid);
+                if (gridIndex  == -1)
                 {
-                    throw new Exception();
+                    throw new Exception("Failed to find grid and remove it.");
                 }
-                return removed == 1;
+                TransferToBuffers.RemoveAt(gridIndex);
             }
-            else
-            {
-                CommandsChangeSinceLastPrepareDraw = true;
-                return true;
-            }
+
+            CommandsChangeSinceLastPrepareDraw = true;
         }
 
         public void PrepareDraw()
@@ -224,6 +221,7 @@ namespace VoxelWorld
         private static ConcurrentQueue<Command> CommandSwitchout = new ConcurrentQueue<Command>();
 
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
+        private static readonly Dictionary<VoxelGridInfo, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridInfo, IndirectDraw>();
 
 
         public static void MakeGridDrawable(VoxelGridInfo grid, GeometryData geometry)
@@ -242,6 +240,8 @@ namespace VoxelWorld
             //we willwork on now
             var cmds = Interlocked.Exchange(ref Commands, CommandSwitchout);
             CommandSwitchout = cmds;
+
+            Console.WriteLine(cmds.Count);
 
             int indexFirstBufferNotFull = 0;
             while (!cmds.IsEmpty)
@@ -268,6 +268,7 @@ namespace VoxelWorld
                             }
                             else
                             {
+                                GridsToBuffer.Add(cmd.Grid, GridDrawBuffers[i]);
                                 allocatedGrid = true;
                                 break;
                             }
@@ -281,17 +282,12 @@ namespace VoxelWorld
                 }
                 else if (cmd.CType == CmdType.Remove)
                 {
-                    bool removedGrid = false;
-                    for (int i = 0; i < GridDrawBuffers.Count; i++)
+                    if (GridsToBuffer.TryGetValue(cmd.Grid, out var buffer) && 
+                        GridsToBuffer.Remove(cmd.Grid))
                     {
-                        if (GridDrawBuffers[i].RemoveGeometry(cmd.Grid))
-                        {
-                            removedGrid = true;
-                            break;
-                        }
+                        buffer.RemoveGeometry(cmd.Grid);
                     }
-
-                    if (!removedGrid)
+                    else
                     {
                         throw new Exception("Failed to find and remove a grid.");
                     }
