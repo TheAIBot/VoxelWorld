@@ -1,6 +1,7 @@
 ﻿using OpenGL;
 using OpenGL.Constructs;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -105,37 +106,43 @@ namespace VoxelWorld
                     indices += TransferToBuffers[i].Geom.Indices.Length;
                 }
 
-                Vector3[] verticesTemp = new Vector3[vertices];
-                uint[] indicesTemp = new uint[indices];
+                Vector3[] verticesTempArr = ArrayPool<Vector3>.Shared.Rent(vertices);
+                uint[] indicesTempArr = ArrayPool<uint>.Shared.Rent(indices);
+
+                Span<Vector3> verticesTemp = verticesTempArr.AsSpan(0, vertices);
+                Span<uint> indicesTemp = indicesTempArr.AsSpan(0, indices);
 
                 {
-                    Span<Vector3> availableSpace = verticesTemp.AsSpan();
+                    Span<Vector3> availableSpace = verticesTemp;
                     for (int i = 0; i < TransferToBuffers.Count; i++)
                     {
                         TransferToBuffers[i].Geom.Vertices.CopyTo(availableSpace);
                         availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Vertices.Length);
                     }
-                    VertexBuffer.BufferSubData(verticesTemp, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
+                    VertexBuffer.BufferSubData(verticesTempArr, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
                 }
                 {
-                    Span<Vector3> availableSpace = verticesTemp.AsSpan();
+                    Span<Vector3> availableSpace = verticesTemp;
                     for (int i = 0; i < TransferToBuffers.Count; i++)
                     {
                         TransferToBuffers[i].Geom.Normals.CopyTo(availableSpace);
                         availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Normals.Length);
                     }
-                    NormalBuffer.BufferSubData(verticesTemp, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
+                    NormalBuffer.BufferSubData(verticesTempArr, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
                 }
 
                 {
-                    Span<uint> availableSpace = indicesTemp.AsSpan();
+                    Span<uint> availableSpace = indicesTemp;
                     for (int i = 0; i < TransferToBuffers.Count; i++)
                     {
                         TransferToBuffers[i].Geom.Indices.CopyTo(availableSpace);
                         availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Indices.Length);
                     }
-                    IndiceBuffer.BufferSubData(indicesTemp, indicesTemp.Length * Marshal.SizeOf<uint>(), FirstAvailableIndiceIndex * Marshal.SizeOf<uint>());
+                    IndiceBuffer.BufferSubData(indicesTempArr, indicesTemp.Length * Marshal.SizeOf<uint>(), FirstAvailableIndiceIndex * Marshal.SizeOf<uint>());
                 }
+
+                ArrayPool<Vector3>.Shared.Return(verticesTempArr);
+                ArrayPool<uint>.Shared.Return(indicesTempArr);
 
                 for (int i = 0; i < TransferToBuffers.Count; i++)
                 {
@@ -143,6 +150,8 @@ namespace VoxelWorld
                     DrawCommands.Add(TransferToBuffers[i].Grid, new DrawElementsIndirectCommand(geom.Indices.Length, 1, FirstAvailableIndiceIndex, FirstAvailableVertexIndex, 0));
                     FirstAvailableVertexIndex += geom.Vertices.Length;
                     FirstAvailableIndiceIndex += geom.Indices.Length;
+
+                    TransferToBuffers[i].Geom.Reuse();
                 }
 
                 TransferToBuffers.Clear();
@@ -231,7 +240,7 @@ namespace VoxelWorld
 
         public static void RemoveDrawableGrid(VoxelGridInfo grid)
         {
-            Commands.Enqueue(new Command(CmdType.Remove, grid, new GeometryData()));
+            Commands.Enqueue(new Command(CmdType.Remove, grid, null));
         }
 
         public static void DrawGrids()
@@ -241,7 +250,7 @@ namespace VoxelWorld
             var cmds = Interlocked.Exchange(ref Commands, CommandSwitchout);
             CommandSwitchout = cmds;
 
-            Console.WriteLine(cmds.Count);
+            //Console.WriteLine(cmds.Count);
 
             int indexFirstBufferNotFull = 0;
             while (!cmds.IsEmpty)
@@ -316,7 +325,7 @@ namespace VoxelWorld
                 }
             }
 
-            Console.WriteLine(GridDrawBuffers.Count);
+            //Console.WriteLine(GridDrawBuffers.Count);
         }
     }
 }
