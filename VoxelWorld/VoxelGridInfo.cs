@@ -72,7 +72,7 @@ namespace VoxelWorld
                 }
 
                 var meshData = grid.Triangulize();
-                var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
+                //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
 
                 //set grid to null here to make sure it isn't captured in the lambda in the future
                 //as using the grid after storing it would be a problem
