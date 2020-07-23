@@ -93,8 +93,8 @@ namespace VoxelWorld
                 renderFrom.UpdateCameraDirection(Input.MousePosition);
                 renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
 
-                system.Model = Matrix4.CreateRotationY(angle);
-                system.CheckVoxelResolution(renderFrom, renderCheck);
+                system.UpdateModel(renderFrom, angle);
+                system.CheckVoxelResolution(renderCheck);
 
 
 

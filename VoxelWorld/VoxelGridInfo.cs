@@ -27,7 +27,7 @@ namespace VoxelWorld
             this.GridCenter = center;
         }
 
-        public Action GenerateGridAction(int size, float voxelSize, Func<Vector3, float> gen, Matrix4 model_rot, Vector3 lookDir)
+        public Action GenerateGridAction(int size, float voxelSize, Func<Vector3, float> gen, Vector3 rotatedLookDir)
         {
             Debug.Assert(IsBeingGenerated == false);
 
@@ -64,7 +64,7 @@ namespace VoxelWorld
                     Normal = grid.GetGridNormal();
                 }
 
-                if (!Normal.CanSee(model_rot, lookDir))
+                if (!Normal.CanSee(rotatedLookDir))
                 {
                     IsBeingGenerated = false;
                     VoxelGridStorage.StoreForReuse(grid);
@@ -125,14 +125,14 @@ namespace VoxelWorld
             return true;
         }
 
-        public bool CanSee(Frustum onScreenCheck, Matrix4 model_rot, Vector3 lookDir)
+        public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
             if (IsEmpty)
             {
                 return false;
             }
 
-            if (!Normal.CanSee(model_rot, lookDir))
+            if (!Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }

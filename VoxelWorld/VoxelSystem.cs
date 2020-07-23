@@ -5,6 +5,23 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
+    internal class ModelTransformations
+    {
+        public Matrix4 Rotation = Matrix4.Identity;
+        public Matrix4 RevRotation = Matrix4.Identity;
+        public Vector3 Translation = new Vector3(0, 0, 0);
+        public Vector3 RotatedLookDir = new Vector3(0, 0, 0);
+        public Vector3 CameraPos = new Vector3(0, 0, 0);
+
+        public void Update(PlayerCamera camera, float yAngle)
+        {
+            Rotation = Matrix4.CreateRotationY(yAngle);
+            RevRotation = Matrix4.CreateRotationY(-yAngle);
+            RotatedLookDir = Rotation * camera.LookDirection;
+            CameraPos = camera.CameraPos;
+        }
+    }
+
 
     internal class VoxelSystem
     {
@@ -13,7 +30,9 @@ namespace VoxelWorld
         private float VoxelSize;
         private readonly int GridSize;
         private readonly Func<Vector3, float> WeightGen;
-        public Matrix4 Model { get; set; } = Matrix4.Identity;
+        private readonly ModelTransformations ModelTrans = new ModelTransformations();
+
+        public Matrix4 Model { get { return ModelTrans.Rotation; } }
 
         public VoxelSystem(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator)
         {
@@ -31,7 +50,7 @@ namespace VoxelWorld
                 Vector3 gridCenter = Center + gridPos.AsFloatVector3() * GridSize * VoxelSize;
                 VoxelGridInfo grid = new VoxelGridInfo(gridCenter);
 
-                grid.GenerateGridAction(GridSize, VoxelSize, WeightGen, Matrix4.Identity, new Vector3(0, 0, 0))();
+                grid.GenerateGridAction(GridSize, VoxelSize, WeightGen, new Vector3(0, 0, 0))();
                 if (grid.IsEmpty)
                 {
                     grid.Dispose();
@@ -51,7 +70,7 @@ namespace VoxelWorld
                 grid.Dispose();
 
                 VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen, 0);
-                hir.Generate(Matrix4.Identity, new Vector3(0, 0, 0));
+                hir.Generate(new Vector3(0, 0, 0));
 
                 if (!TryAddGrid(gridPos, hir))
                 {
@@ -85,13 +104,18 @@ namespace VoxelWorld
             }
         }
 
-        public void CheckVoxelResolution(PlayerCamera camera, Frustum renderCheck)
+        public void UpdateModel(PlayerCamera camera, float yAngle)
+        {
+            ModelTrans.Update(camera, yAngle);
+        }
+
+        public void CheckVoxelResolution(Frustum renderCheck)
         {
             lock (Grids)
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.CheckAndIncreaseResolution(camera, renderCheck, Model);
+                    grid.CheckAndIncreaseResolution(renderCheck, ModelTrans);
                 }
             }
         }

@@ -13,32 +13,29 @@ namespace VoxelWorld
         public bool Zp;
         public bool Zm;
 
-        public bool CanSee(Matrix4 model_rotation, Vector3 lookDir)
+        public bool CanSee(Vector3 lookDir)
         {
-            Vector3 rotLookDir = model_rotation * lookDir;
-            //Console.WriteLine(rotLookDir);
-
-            if (rotLookDir.X > 0 && Xp)
+            if (lookDir.X > 0 && Xp)
             {
                 return true;
             }
-            else if (rotLookDir.X < 0 && Xm)
+            else if (lookDir.X < 0 && Xm)
             {
                 return true;
             }
-            if (rotLookDir.Y > 0 && Yp)
+            if (lookDir.Y > 0 && Yp)
             {
                 return true;
             }
-            else if (rotLookDir.Y < 0 && Ym)
+            else if (lookDir.Y < 0 && Ym)
             {
                 return true;
             }
-            if (rotLookDir.Z > 0 && Zp)
+            if (lookDir.Z > 0 && Zp)
             {
                 return true;
             }
-            else if (rotLookDir.Z < 0 && Zm)
+            else if (lookDir.Z < 0 && Zm)
             {
                 return true;
             }

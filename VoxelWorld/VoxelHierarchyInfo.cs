@@ -18,7 +18,7 @@ namespace VoxelWorld
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
-        public Action GenerateHierarchyAction(int gridSize, Vector3 gridCenter, float voxelSize, Func<Vector3, float> weightGen, int hirDepth, Matrix4 model_rot, Vector3 lookDir)
+        public Action GenerateHierarchyAction(int gridSize, Vector3 gridCenter, float voxelSize, Func<Vector3, float> weightGen, int hirDepth, Vector3 rotatedLookDir)
         {
             IsBeingGenerated = true;
             IsHollow = false;
@@ -32,7 +32,7 @@ namespace VoxelWorld
 
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridSize, gridCenter, voxelSize, weightGen, hirDepth + 1);
-                hir.Generate(model_rot, lookDir);
+                hir.Generate(rotatedLookDir);
 
                 if (hir.IsEmpty())
                 {
@@ -90,7 +90,7 @@ namespace VoxelWorld
             return true;
         }
 
-        public bool CanSee(Frustum onScreenCheck, Matrix4 model_rot, Vector3 lookDir)
+        public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
             if (!HasBeenGenerated)
             {
@@ -107,7 +107,7 @@ namespace VoxelWorld
                 return false;
             }
 
-            if (!Normal.CanSee(model_rot, lookDir))
+            if (!Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }
@@ -120,10 +120,10 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck, Matrix4 model)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(camera, renderCheck, model);
+            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans);
         }
 
         public void MakeHollow()

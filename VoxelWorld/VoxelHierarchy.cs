@@ -60,11 +60,11 @@ namespace VoxelWorld
             return Center + GridLocations[index].AsFloatVector3() * 0.5f * (GridSize - 2) * VoxelSize;
         }
 
-        public void Generate(Matrix4 model_rot, Vector3 lookDir)
+        public void Generate(Vector3 rotatedLookDir)
         {
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                Grids[i].GenerateGridAction(GridSize, VoxelSize, WeightGen, model_rot, lookDir)();
+                Grids[i].GenerateGridAction(GridSize, VoxelSize, WeightGen, rotatedLookDir)();
                 if (!Grids[i].IsEmpty)
                 {
                     if (BoundingBox == null)
@@ -94,26 +94,26 @@ namespace VoxelWorld
             return true;
         }
 
-        private bool IsHighEnoughResolution(Vector3 voxelCenter, Vector3 cameraPos, Matrix4 model)
+        private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans)
         {
-            Vector3 a = voxelCenter;
-            Vector3 c = model * cameraPos;
+            Vector3 a = modelTrans.Translation + (modelTrans.RevRotation * voxelCenter);
+            Vector3 c = modelTrans.CameraPos; // rotate cameraPos instead of center because rotate center need inverse modelRotate
 
             float resolution = (VoxelSize * 100.0f) / (a - c).Length();
             return resolution < 0.3f;
         }
 
-        private void QueueGridGen(int index, Matrix4 model_rot, Vector3 lookDir)
+        private void QueueGridGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GridSize, VoxelSize, WeightGen, model_rot, lookDir));
+            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GridSize, VoxelSize, WeightGen, rotatedLookDir));
         }
 
-        private void QueueHierarchyGen(int index, Matrix4 model_rot, Vector3 lookDir)
+        private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GridSize, GetGridCenter(index), VoxelSize, WeightGen, HierarchyDepth, model_rot, lookDir));
+            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GridSize, GetGridCenter(index), VoxelSize, WeightGen, HierarchyDepth, rotatedLookDir));
         }
 
-        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck, Matrix4 model)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
         {
             IsHollow = false;
 
@@ -148,15 +148,15 @@ namespace VoxelWorld
                  *              generate subhir
                 */
 
-                if (!SubHierarchies[i].IsHollow && !SubHierarchies[i].CanSee(renderCheck, model, camera.LookDirection))
+                if (!SubHierarchies[i].IsHollow && !SubHierarchies[i].CanSee(renderCheck, modelTrans))
                 {
                     SubHierarchies[i].MakeHollow();
                     continue;
                 }
 
-                if (IsHighEnoughResolution(Grids[i].GridCenter, camera.CameraPos, model))
+                if (IsHighEnoughResolution(Grids[i].GridCenter, modelTrans))
                 {
-                    if (Grids[i].CanSee(renderCheck, model, camera.LookDirection))
+                    if (Grids[i].CanSee(renderCheck, modelTrans))
                     {
                         if (Grids[i].IsReadyToDraw())
                         {
@@ -169,7 +169,7 @@ namespace VoxelWorld
                         {
                             if (Grids[i].ShouldGenerate())
                             {
-                                QueueGridGen(i, model, camera.LookDirection);
+                                QueueGridGen(i, modelTrans.RotatedLookDir);
                             }
                         }
                     }
@@ -185,21 +185,21 @@ namespace VoxelWorld
                 {
                     if (SubHierarchies[i].HasBeenGenerated)
                     {
-                        if (SubHierarchies[i].CanSee(renderCheck, model, camera.LookDirection))
+                        if (SubHierarchies[i].CanSee(renderCheck, modelTrans))
                         {
                             if (HierarchyDepth > 0)
                             {
                                 Grids[i].MakeHollow();
                             }
 
-                            SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck, model);
+                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans);
                         }
                     }
                     else
                     {
                         if (SubHierarchies[i].ShouldGenerate())
                         {
-                            QueueHierarchyGen(i, model, camera.LookDirection);
+                            QueueHierarchyGen(i, modelTrans.RotatedLookDir);
                         }
                     }
                 }
