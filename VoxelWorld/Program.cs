@@ -1,5 +1,6 @@
 ﻿using OpenGL;
 using OpenGL.Platform;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -24,12 +25,12 @@ namespace VoxelWorld
             bool controlDummyCamera = false;
 
 
-            PlayerCamera dummyCamera = new PlayerCamera(Window.Width, Window.Height, new Vector3(30, 30, 30));
+            PlayerCamera dummyCamera = new PlayerCamera(Window.Width, Window.Height, new Vector3(15, 15, 15));
             Input.Subscribe('i', dummyCamera.MoveForward);
             Input.Subscribe('k', dummyCamera.MoveBackward);
             Input.Subscribe('l', () => controlDummyCamera = !controlDummyCamera);
 
-            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-30, -30, -30));
+            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-15, -15, -15));
             Input.MouseLeftClick = new Event(x => 
             {
                 if (controlDummyCamera)
@@ -92,7 +93,7 @@ namespace VoxelWorld
                 renderFrom.UpdateCameraDirection(Input.MousePosition);
                 renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
 
-                Matrix4 model = Matrix4.CreateRotationY(angle);
+                system.Model = Matrix4.CreateRotationY(angle);
                 system.CheckVoxelResolution(renderFrom, renderCheck);
 
 
@@ -108,10 +109,10 @@ namespace VoxelWorld
                 meshShader.Use();
                 meshShader["P"].SetValue(player.Perspective);
                 meshShader["V"].SetValue(player.View);
-                meshShader["M"].SetValue(model);
-                meshShader["N"].SetValue((model * player.View).Transpose().Inverse());
+                meshShader["M"].SetValue(system.Model);
+                meshShader["N"].SetValue((system.Model * player.View).Transpose().Inverse());
 
-                meshShader["light_pos"].SetValue(player.View * (model * new Vector4(-3, -3, 0.0f, 0.0f)));
+                meshShader["light_pos"].SetValue(player.View * (system.Model * new Vector4(-3, -3, 0.0f, 0.0f)));
                 meshShader["light_diff"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
                 meshShader["light_spec"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
                 meshShader["light_amb"].SetValue(new Vector4(0.3f, 0.4f, 0.6f, 0.4f));
@@ -140,7 +141,7 @@ namespace VoxelWorld
 
 
 
-                //angle += 0.01f;
+                angle += 0.2f;
 
 
 

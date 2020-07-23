@@ -1,5 +1,6 @@
 ﻿using OpenGL;
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -393,10 +394,21 @@ namespace VoxelWorld
                 return z * Size * Size + y * Size + x;
             }
 
-            uint[] indices = new uint[TriangleCount * 3];
+            Span<byte> usedVP = MemoryMarshal.Cast<bool, byte>(IsUsingVoxelPoint);
+            int vertexCount = 0;
+            for (int i = 0; i < usedVP.Length; i++)
+            {
+                vertexCount += usedVP[i];
+            }
+
+            int triangleIndiceCount = TriangleCount * 3;
+            GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
+            Span<uint> indices = geoData.Indices;
+
+
             int indiceIndex = 0;
 
-            void AddRectangleTriangles(uint a, uint b, uint c, uint d)
+            void AddRectangleTriangles(Span<uint> indices, uint a, uint b, uint c, uint d)
             {
                 indices[indiceIndex++] = c;
                 indices[indiceIndex++] = a;
@@ -432,62 +444,58 @@ namespace VoxelWorld
 
                         if (centerSign > GridSign[PosToGridIndex(x - 1, y, z)])
                         {
-                            AddRectangleTriangles(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                            AddRectangleTriangles(indices, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y - 1, z)])
                         {
-                            AddRectangleTriangles(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                            AddRectangleTriangles(indices, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z - 1)])
                         {
-                            AddRectangleTriangles(x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                            AddRectangleTriangles(indices, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
                         }
 
                         if (centerSign > GridSign[PosToGridIndex(x + 1, y, z)])
                         {
-                            AddRectangleTriangles(x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                            AddRectangleTriangles(indices, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y + 1, z)])
                         {
-                            AddRectangleTriangles(x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                            AddRectangleTriangles(indices, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
                         }
                         if (centerSign > GridSign[PosToGridIndex(x, y, z + 1)])
                         {
-                            AddRectangleTriangles(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                            AddRectangleTriangles(indices, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
                         }
                     }
                 }
             }
 
-            Span<byte> usedVP = MemoryMarshal.Cast<bool, byte>(IsUsingVoxelPoint);
-            int vpUsedCount = 0;
-            for (int i = 0; i < usedVP.Length; i++)
+            using (var indexConverterArr = new RentedArray<uint>(VoxelPoints.Length))
             {
-                vpUsedCount += usedVP[i];
-            }
+                Span<uint> indexConverter = indexConverterArr.AsSpan();
+                indexConverter.Fill(uint.MaxValue);
 
-            uint[] indexConverter = new uint[VoxelPoints.Length];
-            Vector3[] prunedPoints = new Vector3[vpUsedCount];
-            int vpIndex = 0;
+                Span<Vector3> vertices = geoData.Vertices;
+                int vpIndex = 0;
 
-            Array.Fill(indexConverter, uint.MaxValue);
-
-            for (int i = 0; i < indices.Length; i++)
-            {
-                uint oldIndex = indices[i];
-                uint newIndex = indexConverter[oldIndex];
-                if (newIndex == uint.MaxValue)
+                for (int i = 0; i < indices.Length; i++)
                 {
-                    newIndex = (uint)vpIndex;
-                    indexConverter[oldIndex] = newIndex;
-                    prunedPoints[vpIndex++] = VoxelPoints[oldIndex];
+                    int oldIndex = (int)indices[i];
+                    uint newIndex = indexConverter[oldIndex];
+                    if (newIndex == uint.MaxValue)
+                    {
+                        newIndex = (uint)vpIndex;
+                        indexConverter[oldIndex] = newIndex;
+                        vertices[vpIndex++] = VoxelPoints[oldIndex];
+                    }
+                    indices[i] = newIndex;
                 }
-                indices[i] = newIndex;
             }
 
-            Vector3[] normals = Geometry.CalculateNormals(prunedPoints, indices);
+            Geometry.CalculateNormals(geoData.Vertices, indices, geoData.Normals);
 
-            return new GeometryData(prunedPoints, normals, indices);
+            return geoData;
         }
     }
 }
