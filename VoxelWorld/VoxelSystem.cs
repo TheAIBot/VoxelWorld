@@ -13,6 +13,7 @@ namespace VoxelWorld
         private float VoxelSize;
         private readonly int GridSize;
         private readonly Func<Vector3, float> WeightGen;
+        public Matrix4 Model { get; set; } = Matrix4.Identity;
 
         public VoxelSystem(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator)
         {
@@ -21,83 +22,6 @@ namespace VoxelWorld
             this.GridSize = gridSize;
             this.WeightGen = generator;
         }
-
-        /*
-        public async void TestFindRelevantGrids()
-        {
-            Vector3I searchCenter = new Vector3I(0, 0, 0);
-
-            ExecutionDataflowBlockOptions options = new ExecutionDataflowBlockOptions();
-            options.MaxDegreeOfParallelism = 7;
-
-            TransformBlock<Vector3I, bool> toCheck = null;
-
-            void AddPos(Vector3I pos)
-            {
-                toCheck.Post(pos);
-            }
-
-
-            toCheck = new TransformBlock<Vector3I, bool>(gridPos =>
-            {
-                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * (GridSize - 2) * VoxelSize;
-                VoxelGridInfo grid = new VoxelGridInfo();
-
-                if (!TryAddGrid(gridPos, grid))
-                {
-                    grid.Dispose();
-                    return false;
-                }
-
-                grid.GenerateGrid(GridSize, gridCenter, VoxelSize, WeightGen);
-                if (grid.IsgridEmpty())
-                {
-                    if (TryRemoveGrid(gridPos))
-                    {
-                        grid.Dispose();
-                    }
-                    return false;
-                }
-
-                grid.Interpolate();
-                //grid.SmoothGrid(1);
-                grid.MakeDrawMethods(false);
-
-
-                foreach (Direction dir in grid.GetDirectionsOfMissingNeighbors())
-                {
-                    AddPos(gridPos + dir.AsVector3());
-                }
-
-                return true;
-            }, options);
-
-            while (Grids.Count == 0)
-            {
-                toCheck.Post(searchCenter);
-                searchCenter = new Vector3I(searchCenter.X + 1, 0, 0);
-
-                if (toCheck.Receive())
-                {
-                    break;
-                }
-            }
-
-            while (true)
-            {
-                //Shit way of checking if it's done generating
-                if (toCheck.InputCount == 0)
-                {
-                    await Task.Delay(1000);
-                    if (toCheck.InputCount == 0)
-                    {
-                        return;
-                    }
-                }
-                await Task.Delay(1000);
-            }
-        }
-        */
 
         public void TestResizeToFindFirstGrid()
         {
@@ -148,15 +72,6 @@ namespace VoxelWorld
                 {
                     return false;
                 }
-
-                //foreach (Direction dir in Enum.GetValues(typeof(Direction)))
-                //{
-                //    if (Grids.TryGetValue(gridPos + dir.AsVector3(), out VoxelHierarchy neighbor))
-                //    {
-                //        grid.AddNeighbor(neighbor, dir);
-                //        neighbor.AddNeighbor(grid, dir.Opposite());
-                //    }
-                //}
             }
 
             return true;
@@ -176,7 +91,7 @@ namespace VoxelWorld
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.CheckAndIncreaseResolution(camera, renderCheck);
+                    grid.CheckAndIncreaseResolution(camera, renderCheck, Model);
                 }
             }
         }

@@ -120,10 +120,10 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck)
+        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck, Matrix4 model)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(camera, renderCheck);
+            VoxelHir.CheckAndIncreaseResolution(camera, renderCheck, model);
         }
 
         public void MakeHollow()

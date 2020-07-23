@@ -94,10 +94,9 @@ namespace VoxelWorld
             return true;
         }
 
-        private bool IsHighEnoughResolution(Vector3 voxelCenter, Vector3 cameraPos)
+        private bool IsHighEnoughResolution(Vector3 voxelCenter, Vector3 cameraPos, Matrix4 model)
         {
-            Matrix4 model = Matrix4.Identity;
-            Vector3 a = model * voxelCenter;
+            Vector3 a = voxelCenter;
             Vector3 c = model * cameraPos;
 
             float resolution = (VoxelSize * 100.0f) / (a - c).Length();
@@ -114,7 +113,7 @@ namespace VoxelWorld
             WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GridSize, GetGridCenter(index), VoxelSize, WeightGen, HierarchyDepth, model_rot, lookDir));
         }
 
-        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck)
+        public void CheckAndIncreaseResolution(PlayerCamera camera, Frustum renderCheck, Matrix4 model)
         {
             IsHollow = false;
 
@@ -149,15 +148,15 @@ namespace VoxelWorld
                  *              generate subhir
                 */
 
-                if (!SubHierarchies[i].IsHollow && !SubHierarchies[i].CanSee(renderCheck, Matrix4.Identity, camera.LookDirection))
+                if (!SubHierarchies[i].IsHollow && !SubHierarchies[i].CanSee(renderCheck, model, camera.LookDirection))
                 {
                     SubHierarchies[i].MakeHollow();
                     continue;
                 }
 
-                if (IsHighEnoughResolution(Grids[i].GridCenter, camera.CameraPos))
+                if (IsHighEnoughResolution(Grids[i].GridCenter, camera.CameraPos, model))
                 {
-                    if (Grids[i].CanSee(renderCheck, Matrix4.Identity, camera.LookDirection))
+                    if (Grids[i].CanSee(renderCheck, model, camera.LookDirection))
                     {
                         if (Grids[i].IsReadyToDraw())
                         {
@@ -170,7 +169,7 @@ namespace VoxelWorld
                         {
                             if (Grids[i].ShouldGenerate())
                             {
-                                QueueGridGen(i, Matrix4.Identity, camera.LookDirection);
+                                QueueGridGen(i, model, camera.LookDirection);
                             }
                         }
                     }
@@ -186,21 +185,21 @@ namespace VoxelWorld
                 {
                     if (SubHierarchies[i].HasBeenGenerated)
                     {
-                        if (SubHierarchies[i].CanSee(renderCheck, Matrix4.Identity, camera.LookDirection))
+                        if (SubHierarchies[i].CanSee(renderCheck, model, camera.LookDirection))
                         {
                             if (HierarchyDepth > 0)
                             {
                                 Grids[i].MakeHollow();
                             }
 
-                            SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck);
+                            SubHierarchies[i].CheckAndIncreaseResolution(camera, renderCheck, model);
                         }
                     }
                     else
                     {
                         if (SubHierarchies[i].ShouldGenerate())
                         {
-                            QueueHierarchyGen(i, Matrix4.Identity, camera.LookDirection);
+                            QueueHierarchyGen(i, model, camera.LookDirection);
                         }
                     }
                 }
