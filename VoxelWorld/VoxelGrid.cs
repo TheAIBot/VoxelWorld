@@ -471,28 +471,29 @@ namespace VoxelWorld
                 }
             }
 
-            uint[] indexConverterArr = ArrayPool<uint>.Shared.Rent(VoxelPoints.Length);
-            Span<uint> indexConverter = indexConverterArr.AsSpan(0, VoxelPoints.Length);
-            indexConverter.Fill(uint.MaxValue);
-
-            Span<Vector3> vertices = geoData.Vertices;
-            int vpIndex = 0;
-
-            for (int i = 0; i < indices.Length; i++)
+            using (var indexConverterArr = new RentedArray<uint>(VoxelPoints.Length))
             {
-                int oldIndex = (int)indices[i];
-                uint newIndex = indexConverter[oldIndex];
-                if (newIndex == uint.MaxValue)
-                {
-                    newIndex = (uint)vpIndex;
-                    indexConverter[oldIndex] = newIndex;
-                    vertices[vpIndex++] = VoxelPoints[oldIndex];
-                }
-                indices[i] = newIndex;
-            }
-            ArrayPool<uint>.Shared.Return(indexConverterArr);
+                Span<uint> indexConverter = indexConverterArr.AsSpan();
+                indexConverter.Fill(uint.MaxValue);
 
-            Geometry.CalculateNormals(vertices, indices, geoData.Normals);
+                Span<Vector3> vertices = geoData.Vertices;
+                int vpIndex = 0;
+
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    int oldIndex = (int)indices[i];
+                    uint newIndex = indexConverter[oldIndex];
+                    if (newIndex == uint.MaxValue)
+                    {
+                        newIndex = (uint)vpIndex;
+                        indexConverter[oldIndex] = newIndex;
+                        vertices[vpIndex++] = VoxelPoints[oldIndex];
+                    }
+                    indices[i] = newIndex;
+                }
+            }
+
+            Geometry.CalculateNormals(geoData.Vertices, indices, geoData.Normals);
 
             return geoData;
         }
