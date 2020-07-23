@@ -88,6 +88,7 @@ namespace VoxelWorld
                 {
                     throw new Exception("Failed to find grid and remove it.");
                 }
+                TransferToBuffers[gridIndex].Geom.Reuse();
                 TransferToBuffers.RemoveAt(gridIndex);
             }
 

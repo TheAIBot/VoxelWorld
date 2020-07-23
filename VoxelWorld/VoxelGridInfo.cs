@@ -84,6 +84,7 @@ namespace VoxelWorld
                 if (IsHollow)
                 {
                     IsBeingGenerated = false;
+                    meshData.Reuse();
                     return;
                 }
 
@@ -91,7 +92,7 @@ namespace VoxelWorld
                 {
                     if (HasBeenDisposed || IsHollow)
                     {
-                        return;
+                        meshData.Reuse();
                     }
                     else
                     {
