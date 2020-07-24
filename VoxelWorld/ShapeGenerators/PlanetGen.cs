@@ -1,21 +1,31 @@
 ﻿using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace VoxelWorld
 {
-    internal static class PlanetGen
+    internal readonly struct PlanetGen
     {
-        internal static Func<Vector3, float> GetPlanetGen(int seed, float planetRadius, float noiseWeight, float noiseFrequency)
+        private readonly SeedsInfo Seeds;
+        private readonly float PlanetRadius;
+        private readonly float NoiseWeight;
+        private readonly float NoiseFrequency;
+
+        public PlanetGen(int seed, float planetRadius, float noiseWeight, float noiseFrequency)
         {
-            var seeds = new SeedsInfo(seed, 32);
+            this.Seeds = new SeedsInfo(seed, 32);
+            this.PlanetRadius = planetRadius;
+            this.NoiseWeight = noiseWeight;
+            this.NoiseFrequency = noiseFrequency;
+        }
 
-            return new Func<Vector3, float>(pos =>
-            {
-                float noise = XYZRandomGen.GetNoise(seeds, pos * noiseFrequency);
-                float sphere = SphereGen.GetValue(pos, planetRadius);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float GenerateWeight(Vector3 pos)
+        {
+            float noise = XYZRandomGen.GetNoise(Seeds, pos * NoiseFrequency);
+            float sphere = SphereGen.GetValue(pos, PlanetRadius);
 
-                return noise * noiseWeight + sphere;
-            });
+            return noise * NoiseWeight + sphere;
         }
     }
 }

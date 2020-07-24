@@ -18,7 +18,7 @@ namespace VoxelWorld
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
-        public Action GenerateHierarchyAction(int gridSize, Vector3 gridCenter, float voxelSize, Func<Vector3, float> weightGen, int hirDepth, Vector3 rotatedLookDir)
+        public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, int hirDepth, Vector3 rotatedLookDir)
         {
             IsBeingGenerated = true;
             IsHollow = false;
@@ -31,7 +31,7 @@ namespace VoxelWorld
                 }
 
 
-                VoxelHierarchy hir = new VoxelHierarchy(gridSize, gridCenter, voxelSize, weightGen, hirDepth + 1);
+                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData, hirDepth + 1);
                 hir.Generate(rotatedLookDir);
 
                 if (hir.IsEmpty())

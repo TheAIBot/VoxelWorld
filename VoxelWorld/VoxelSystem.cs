@@ -22,24 +22,47 @@ namespace VoxelWorld
         }
     }
 
+    internal class VoxelSystemData
+    {
+        public readonly int GridSize;
+        public readonly float VoxelSize;
+        public readonly PlanetGen WeightGen;
+        private VoxelSystemData OneDown = null;
+
+        private const int MaxDepth = 10;
+
+        public VoxelSystemData(int gridSize, float voxelSize, PlanetGen generator)
+        {
+            this.GridSize = gridSize;
+            this.VoxelSize = voxelSize;
+            this.WeightGen = generator;
+        }
+
+        public VoxelSystemData GetOneDown()
+        {
+            if (OneDown == null)
+            {
+                OneDown = new VoxelSystemData(GridSize, VoxelSize / 2.0f, WeightGen);
+            }
+
+            return OneDown;
+        }
+    }
+
 
     internal class VoxelSystem
     {
         private readonly Dictionary<Vector3I, VoxelHierarchy> Grids = new Dictionary<Vector3I, VoxelHierarchy>();
         private readonly Vector3 Center;
-        private float VoxelSize;
-        private readonly int GridSize;
-        private readonly Func<Vector3, float> WeightGen;
+        private VoxelSystemData FirstLevelSystemData;
         private readonly ModelTransformations ModelTrans = new ModelTransformations();
 
         public Matrix4 Model { get { return ModelTrans.Rotation; } }
 
-        public VoxelSystem(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator)
+        public VoxelSystem(int gridSize, Vector3 center, float voxelSize, PlanetGen generator)
         {
             this.Center = center;
-            this.VoxelSize = voxelSize;
-            this.GridSize = gridSize;
-            this.WeightGen = generator;
+            this.FirstLevelSystemData = new VoxelSystemData(gridSize, voxelSize, generator);
         }
 
         public void TestResizeToFindFirstGrid()
@@ -47,14 +70,14 @@ namespace VoxelWorld
             while (true)
             {
                 Vector3I gridPos = new Vector3I(0, 0, 0);
-                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * GridSize * VoxelSize;
+                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * FirstLevelSystemData.GridSize * FirstLevelSystemData.VoxelSize;
                 VoxelGridInfo grid = new VoxelGridInfo(gridCenter);
 
-                grid.GenerateGridAction(GridSize, VoxelSize, WeightGen, new Vector3(0, 0, 0))();
+                grid.GenerateGridAction(FirstLevelSystemData, new Vector3(0, 0, 0))();
                 if (grid.IsEmpty)
                 {
                     grid.Dispose();
-                    VoxelSize *= 2;
+                    FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
                     continue;
                 }
 
@@ -62,14 +85,14 @@ namespace VoxelWorld
                 if (grid.VoxelsAtEdge)
                 {
                     grid.Dispose();
-                    VoxelSize *= 2;
+                    FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
                     continue;
                 }
 
 
                 grid.Dispose();
 
-                VoxelHierarchy hir = new VoxelHierarchy(GridSize, gridCenter, VoxelSize, WeightGen, 0);
+                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, FirstLevelSystemData, 0);
                 hir.Generate(new Vector3(0, 0, 0));
 
                 if (!TryAddGrid(gridPos, hir))

@@ -8,39 +8,35 @@ namespace VoxelWorld
 {
     internal class VoxelGrid
     {
-        private readonly int Size;
         private Vector3 GridCenter;
-        private float VoxelSize;
-        private readonly Func<Vector3, float> WeightGen;
+        VoxelSystemData GenData;
         private readonly float[] Grid;
         private readonly sbyte[] GridSign;
         private readonly Vector3[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
         private int TriangleCount = 0;
 
-        public VoxelGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
+        public VoxelGrid(Vector3 center, VoxelSystemData voxelSystemData)
         {
-            this.Size = size;
+            this.GenData = voxelSystemData;
             this.GridCenter = center;
-            this.VoxelSize = voxelSize;
-            this.WeightGen = gen;
 
-            this.Grid = new float[Size * Size * Size];
-            this.GridSign = new sbyte[Size * Size * Size];
-            this.VoxelPoints = new Vector3[(Size - 1) * (Size - 1) * (Size - 1)];
+            this.Grid = new float[GenData.GridSize * GenData.GridSize * GenData.GridSize];
+            this.GridSign = new sbyte[GenData.GridSize * GenData.GridSize * GenData.GridSize];
+            this.VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
             this.IsUsingVoxelPoint = new bool[VoxelPoints.Length];
         }
 
-        public void Repurpose(Vector3 newCenter, float newVoxelSize)
+        public void Repurpose(Vector3 newCenter, VoxelSystemData genData)
         {
             GridCenter = newCenter;
-            VoxelSize = newVoxelSize;
+            GenData = genData;
             Array.Fill(IsUsingVoxelPoint, false);
         }
 
         private Vector3 GetTopLeftCorner()
         {
-            float distanceFromCenter = (((float)Size - 1.0f) / 2.0f) * VoxelSize;
+            float distanceFromCenter = (((float)GenData.GridSize - 1.0f) / 2.0f) * GenData.VoxelSize;
             return GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter);
         }
 
@@ -48,19 +44,19 @@ namespace VoxelWorld
         {
             int IndexFromPos(int x, int y, int z)
             {
-                return z * Size * Size + y * Size + x;
+                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
             Vector3 topLeftCorner = GetTopLeftCorner();
-            for (int z = 0; z < Size; z++)
+            for (int z = 0; z < GenData.GridSize; z++)
             {
-                for (int y = 0; y < Size; y++)
+                for (int y = 0; y < GenData.GridSize; y++)
                 {
-                    for (int x = 0; x < Size; x++)
+                    for (int x = 0; x < GenData.GridSize; x++)
                     {
-                        Vector3 pos = topLeftCorner - new Vector3(VoxelSize * x, VoxelSize * y, VoxelSize * z);
+                        Vector3 pos = topLeftCorner - new Vector3(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z);
 
-                        float noise = WeightGen(pos);
+                        float noise = GenData.WeightGen.GenerateWeight(pos);
 
                         Grid[IndexFromPos(x, y, z)] = noise;
                         GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
@@ -78,13 +74,13 @@ namespace VoxelWorld
         {
             int VPToIndex(int x, int y, int z)
             {
-                return z * (Size - 1) * (Size - 1) + y * (Size - 1) + x;
+                return z * (GenData.GridSize - 1) * (GenData.GridSize - 1) + y * (GenData.GridSize - 1) + x;
             }
 
             bool pointsAtEdge = false;
-            for (int y = 0; y < Size - 1; y++)
+            for (int y = 0; y < GenData.GridSize - 1; y++)
             {
-                for (int x = 0; x < Size - 1; x++)
+                for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
                     pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, 0)];
                 }
@@ -94,11 +90,11 @@ namespace VoxelWorld
                 return true;
             }
 
-            for (int y = 0; y < Size - 1; y++)
+            for (int y = 0; y < GenData.GridSize - 1; y++)
             {
-                for (int x = 0; x < Size - 1; x++)
+                for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, Size - 2)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, GenData.GridSize - 2)];
                 }
             }
             if (pointsAtEdge)
@@ -106,9 +102,9 @@ namespace VoxelWorld
                 return true;
             }
 
-            for (int z = 0; z < Size - 1; z++)
+            for (int z = 0; z < GenData.GridSize - 1; z++)
             {
-                for (int x = 0; x < Size - 1; x++)
+                for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
                     pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, 0, z)];
                 }
@@ -118,11 +114,11 @@ namespace VoxelWorld
                 return true;
             }
 
-            for (int z = 0; z < Size - 1; z++)
+            for (int z = 0; z < GenData.GridSize - 1; z++)
             {
-                for (int x = 0; x < Size - 1; x++)
+                for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, Size - 2, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, GenData.GridSize - 2, z)];
                 }
             }
             if (pointsAtEdge)
@@ -130,9 +126,9 @@ namespace VoxelWorld
                 return true;
             }
 
-            for (int z = 0; z < Size - 1; z++)
+            for (int z = 0; z < GenData.GridSize - 1; z++)
             {
-                for (int y = 0; y < Size - 1; y++)
+                for (int y = 0; y < GenData.GridSize - 1; y++)
                 {
                     pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(0, y, z)];
                 }
@@ -142,11 +138,11 @@ namespace VoxelWorld
                 return true;
             }
 
-            for (int z = 0; z < Size - 1; z++)
+            for (int z = 0; z < GenData.GridSize - 1; z++)
             {
-                for (int y = 0; y < Size - 1; y++)
+                for (int y = 0; y < GenData.GridSize - 1; y++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(Size - 2, y, z)];
+                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(GenData.GridSize - 2, y, z)];
                 }
             }
             if (pointsAtEdge)
@@ -162,13 +158,13 @@ namespace VoxelWorld
             Vector3 topLeftCorner = GetTopLeftCorner();
 
             int index = 0;
-            for (int vpZ = 0; vpZ < Size - 1; vpZ++)
+            for (int vpZ = 0; vpZ < GenData.GridSize - 1; vpZ++)
             {
-                for (int vpY = 0; vpY < Size - 1; vpY++)
+                for (int vpY = 0; vpY < GenData.GridSize - 1; vpY++)
                 {
-                    for (int vpX = 0; vpX < Size - 1; vpX++)
+                    for (int vpX = 0; vpX < GenData.GridSize - 1; vpX++)
                     {
-                        VoxelPoints[index++] = topLeftCorner - new Vector3(vpX, vpY, vpZ) * VoxelSize - (new Vector3(VoxelSize) * 0.5f);
+                        VoxelPoints[index++] = topLeftCorner - new Vector3(vpX, vpY, vpZ) * GenData.VoxelSize - (new Vector3(GenData.VoxelSize) * 0.5f);
                     }
                 }
             }
@@ -178,16 +174,16 @@ namespace VoxelWorld
         {
             int VPToIndex(int x, int y, int z)
             {
-                return z * (Size - 1) * (Size - 1) + y * (Size - 1) + x;
+                return z * (GenData.GridSize - 1) * (GenData.GridSize - 1) + y * (GenData.GridSize - 1) + x;
             }
 
             for (int i = 0; i < iterations; i++)
             {
-                for (int z = 1; z < Size - 2; z++)
+                for (int z = 1; z < GenData.GridSize - 2; z++)
                 {
-                    for (int y = 1; y < Size - 2; y++)
+                    for (int y = 1; y < GenData.GridSize - 2; y++)
                     {
-                        for (int x = 1; x < Size - 2; x++)
+                        for (int x = 1; x < GenData.GridSize - 2; x++)
                         {
                             if (!IsUsingVoxelPoint[VPToIndex(x, y, z)])
                             {
@@ -243,20 +239,20 @@ namespace VoxelWorld
         {
             int GridToVP(int x, int y, int z)
             {
-                return (z - 1) * (Size - 1) * (Size - 1) + (y - 1) * (Size - 1) + (x - 1);
+                return (z - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1) + (y - 1) * (GenData.GridSize - 1) + (x - 1);
             }
 
             int PosToGridIndex(int x, int y, int z)
             {
-                return z * Size * Size + y * Size + x;
+                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
             TriangleCount = 0;
-            for (int z = 1; z < Size - 1; z++)
+            for (int z = 1; z < GenData.GridSize - 1; z++)
             {
-                for (int y = 1; y < Size - 1; y++)
+                for (int y = 1; y < GenData.GridSize - 1; y++)
                 {
-                    for (int x = 1; x < Size - 1; x++)
+                    for (int x = 1; x < GenData.GridSize - 1; x++)
                     {
                         int centerSign = GridSign[PosToGridIndex(x, y, z)];
                         if (centerSign < 0)
@@ -351,16 +347,16 @@ namespace VoxelWorld
         {
             int PosToGridIndex(int x, int y, int z)
             {
-                return z * Size * Size + y * Size + x;
+                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
             GridNormal normal = new GridNormal();
 
-            for (int z = 1; z < Size - 1; z++)
+            for (int z = 1; z < GenData.GridSize - 1; z++)
             {
-                for (int y = 1; y < Size - 1; y++)
+                for (int y = 1; y < GenData.GridSize - 1; y++)
                 {
-                    for (int x = 1; x < Size - 1; x++)
+                    for (int x = 1; x < GenData.GridSize - 1; x++)
                     {
                         int centerSign = GridSign[PosToGridIndex(x, y, z)];
                         if (centerSign < 0)
@@ -386,12 +382,12 @@ namespace VoxelWorld
         {
             int GridToVP(int x, int y, int z)
             {
-                return (z - 1) * (Size - 1) * (Size - 1) + (y - 1) * (Size - 1) + (x - 1);
+                return (z - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1) + (y - 1) * (GenData.GridSize - 1) + (x - 1);
             }
 
             int PosToGridIndex(int x, int y, int z)
             {
-                return z * Size * Size + y * Size + x;
+                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
             Span<byte> usedVP = MemoryMarshal.Cast<bool, byte>(IsUsingVoxelPoint);
@@ -420,11 +416,11 @@ namespace VoxelWorld
             }
 
 
-            for (int z = 1; z < Size - 1; z++)
+            for (int z = 1; z < GenData.GridSize - 1; z++)
             {
-                for (int y = 1; y < Size - 1; y++)
+                for (int y = 1; y < GenData.GridSize - 1; y++)
                 {
-                    for (int x = 1; x < Size - 1; x++)
+                    for (int x = 1; x < GenData.GridSize - 1; x++)
                     {
                         int centerSign = GridSign[PosToGridIndex(x, y, z)];
                         if (centerSign < 0)

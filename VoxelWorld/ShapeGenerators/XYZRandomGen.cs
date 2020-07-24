@@ -61,6 +61,7 @@ namespace VoxelWorld
             return x;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal unsafe static float GetNoise(SeedsInfo seeds, Vector3 pos)
         {
             if (Avx.IsSupported)

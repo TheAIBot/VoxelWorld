@@ -21,9 +21,7 @@ namespace VoxelWorld
 
         //required to make a grid
         private readonly Vector3 Center;
-        private readonly float VoxelSize;
-        private readonly int GridSize;
-        private readonly Func<Vector3, float> WeightGen;
+        private readonly VoxelSystemData GenData;
 
         //keeps track of grids
         private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
@@ -36,12 +34,10 @@ namespace VoxelWorld
         public bool IsHollow = false;
         private readonly int HierarchyDepth;
 
-        public VoxelHierarchy(int gridSize, Vector3 center, float voxelSize, Func<Vector3, float> generator, int hierarchyDepth)
+        public VoxelHierarchy(Vector3 center, VoxelSystemData genData, int hierarchyDepth)
         {
             this.Center = center;
-            this.VoxelSize = voxelSize / 2.0f;
-            this.GridSize = gridSize;
-            this.WeightGen = generator;
+            this.GenData = genData;
             this.HierarchyDepth = hierarchyDepth;
 
             for (int i = 0; i < Grids.Length; i++)
@@ -57,14 +53,14 @@ namespace VoxelWorld
 
         private Vector3 GetGridCenter(int index)
         {
-            return Center + GridLocations[index].AsFloatVector3() * 0.5f * (GridSize - 2) * VoxelSize;
+            return Center + GridLocations[index].AsFloatVector3() * 0.5f * (GenData.GridSize - 2) * GenData.VoxelSize;
         }
 
         public void Generate(Vector3 rotatedLookDir)
         {
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                Grids[i].GenerateGridAction(GridSize, VoxelSize, WeightGen, rotatedLookDir)();
+                Grids[i].GenerateGridAction(GenData, rotatedLookDir)();
                 if (!Grids[i].IsEmpty)
                 {
                     if (BoundingBox == null)
@@ -99,18 +95,18 @@ namespace VoxelWorld
             Vector3 a = modelTrans.Translation + (modelTrans.RevRotation * voxelCenter);
             Vector3 c = modelTrans.CameraPos; // rotate cameraPos instead of center because rotate center need inverse modelRotate
 
-            float resolution = (VoxelSize * 100.0f) / (a - c).Length();
+            float resolution = (GenData.VoxelSize * 100.0f) / (a - c).Length();
             return resolution < 0.3f;
         }
 
         private void QueueGridGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GridSize, VoxelSize, WeightGen, rotatedLookDir));
+            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GenData, rotatedLookDir));
         }
 
         private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GridSize, GetGridCenter(index), VoxelSize, WeightGen, HierarchyDepth, rotatedLookDir));
+            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GetGridCenter(index), GenData.GetOneDown(), HierarchyDepth, rotatedLookDir));
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)

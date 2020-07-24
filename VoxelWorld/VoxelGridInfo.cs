@@ -27,7 +27,7 @@ namespace VoxelWorld
             this.GridCenter = center;
         }
 
-        public Action GenerateGridAction(int size, float voxelSize, Func<Vector3, float> gen, Vector3 rotatedLookDir)
+        public Action GenerateGridAction(VoxelSystemData genData, Vector3 rotatedLookDir)
         {
             Debug.Assert(IsBeingGenerated == false);
 
@@ -42,7 +42,7 @@ namespace VoxelWorld
                     return;
                 }
 
-                VoxelGrid grid = VoxelGridStorage.GetGrid(size, GridCenter, voxelSize, gen);
+                VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
                 grid.Randomize();
 
                 grid.PreCalculateGeometryData();

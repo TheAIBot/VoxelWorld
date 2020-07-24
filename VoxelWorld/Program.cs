@@ -51,7 +51,7 @@ namespace VoxelWorld
 
 
 
-            var planetGen = PlanetGen.GetPlanetGen(3, 8.0f, 3.0f, 3.0f);
+            var planetGen = new PlanetGen(3, 8.0f, 3.0f, 3.0f);
             VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
 
             Task.Factory.StartNew(async () =>

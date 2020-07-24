@@ -8,16 +8,16 @@ namespace VoxelWorld
     {
         private static readonly ConcurrentBag<VoxelGrid> Grids = new ConcurrentBag<VoxelGrid>();
 
-        public static VoxelGrid GetGrid(int size, Vector3 center, float voxelSize, Func<Vector3, float> gen)
+        public static VoxelGrid GetGrid(Vector3 center, VoxelSystemData genData)
         {
             if (Grids.TryTake(out VoxelGrid grid))
             {
-                grid.Repurpose(center, voxelSize);
+                grid.Repurpose(center, genData);
                 return grid;
             }
             else
             {
-                return new VoxelGrid(size, center, voxelSize, gen);
+                return new VoxelGrid(center, genData);
             }
         }
 
