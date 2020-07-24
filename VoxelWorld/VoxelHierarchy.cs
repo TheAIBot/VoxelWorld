@@ -20,7 +20,7 @@ namespace VoxelWorld
         };
 
         //required to make a grid
-        private readonly Vector3 Center;
+        public readonly Vector3 Center;
         private readonly VoxelSystemData GenData;
 
         //keeps track of grids

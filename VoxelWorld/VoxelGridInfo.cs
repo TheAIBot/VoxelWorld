@@ -137,10 +137,14 @@ namespace VoxelWorld
                 return false;
             }
 
+            Vector3 centerOffset = modelTrans.RevRotation * GridCenter - GridCenter + modelTrans.Translation;
+            BoundingBox.Translate(centerOffset);
             if (!onScreenCheck.Intersects(BoundingBox))
             {
+                BoundingBox.Translate(-centerOffset);
                 return false;
             }
+            BoundingBox.Translate(-centerOffset);
 
             return true;
         }
