@@ -3,6 +3,7 @@ using OpenGL.Platform;
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using VoxelWorld.Shaders;
 
@@ -53,11 +54,7 @@ namespace VoxelWorld
 
             var planetGen = new PlanetGen(3, 8.0f, 3.0f, 3.0f);
             VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
-
-            Task.Factory.StartNew(async () =>
-            {
-                system.TestResizeToFindFirstGrid();
-            }, TaskCreationOptions.LongRunning);
+            system.TestResizeToFindFirstGrid();
 
             Frustum renderCheck = new Frustum();
 
@@ -75,6 +72,26 @@ namespace VoxelWorld
 
             Stopwatch watch = new Stopwatch();
 
+            PlayerCamera renderFrom = player;
+
+
+            Thread cake = new Thread(() =>
+            {
+                while (true)
+                {
+                    renderFrom = controlDummyCamera ? dummyCamera : player;
+                    renderFrom.UpdateCameraDirection(Input.MousePosition);
+                    renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
+
+                    system.UpdateModel(renderFrom, angle);
+                    system.CheckVoxelResolution(renderCheck);
+                }
+
+            });
+
+            cake.Priority = ThreadPriority.AboveNormal;
+            cake.Start();
+
             // handle events and render the frame
             while (Window.Open)
             {
@@ -82,22 +99,10 @@ namespace VoxelWorld
 
                 Window.HandleEvents();     
 
-
-                PlayerCamera renderFrom = controlDummyCamera ? dummyCamera : player;
-
                 if (renderFrom.UpdateCameraDimensions(Window.Width, Window.Height))
                 {
                     Gl.Viewport(0, 0, Window.Width, Window.Height);
                 }
-
-                renderFrom.UpdateCameraDirection(Input.MousePosition);
-                renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
-
-                system.UpdateModel(renderFrom, angle);
-                system.CheckVoxelResolution(renderCheck);
-
-
-
 
 
                 Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
