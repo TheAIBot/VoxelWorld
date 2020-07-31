@@ -1,8 +1,11 @@
 ﻿using OpenGL;
 using System;
 using System.Buffers;
+using System.Collections;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace VoxelWorld
 {
@@ -10,7 +13,6 @@ namespace VoxelWorld
     {
         private Vector3 GridCenter;
         VoxelSystemData GenData;
-        private readonly float[] Grid;
         private readonly sbyte[] GridSign;
         private readonly Vector3[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
@@ -21,7 +23,6 @@ namespace VoxelWorld
             this.GenData = voxelSystemData;
             this.GridCenter = center;
 
-            this.Grid = new float[GenData.GridSize * GenData.GridSize * GenData.GridSize];
             this.GridSign = new sbyte[GenData.GridSize * GenData.GridSize * GenData.GridSize];
             this.VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
             this.IsUsingVoxelPoint = new bool[VoxelPoints.Length];
@@ -32,6 +33,25 @@ namespace VoxelWorld
             GridCenter = newCenter;
             GenData = genData;
             Array.Fill(IsUsingVoxelPoint, false);
+        }
+
+        public BitArray GetCompressed()
+        {
+            BitArray signs = new BitArray(GridSign.Length);
+            for (int i = 0; i < GridSign.Length; i++)
+            {
+                signs[i] = GridSign[i] > 0;
+            }
+
+            return signs;
+        }
+
+        public void Restore(BitArray compressedGrid)
+        {
+            for (int i = 0; i < compressedGrid.Length; i++)
+            {
+                GridSign[i] = (sbyte)(compressedGrid[i] ? 1 : -1);
+            }
         }
 
         private Vector3 GetTopLeftCorner()
@@ -57,8 +77,6 @@ namespace VoxelWorld
                         Vector3 pos = topLeftCorner - new Vector3(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z);
 
                         float noise = GenData.WeightGen.GenerateWeight(pos);
-
-                        Grid[IndexFromPos(x, y, z)] = noise;
                         GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
                     }
                 }

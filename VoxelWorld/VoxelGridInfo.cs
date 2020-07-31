@@ -1,5 +1,6 @@
 ﻿using OpenGL;
 using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -19,6 +20,7 @@ namespace VoxelWorld
         private bool Initialized = false;
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
+        private BitArray CompressedGrid = null;
 
         public static int DrawCalls = 0;
 
@@ -43,7 +45,14 @@ namespace VoxelWorld
                 }
 
                 VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
-                grid.Randomize();
+                if (!Initialized)
+                {
+                    grid.Randomize();
+                }
+                else
+                {
+                    grid.Restore(CompressedGrid);
+                }
 
                 grid.PreCalculateGeometryData();
                 if (grid.IsEmpty())
@@ -62,6 +71,7 @@ namespace VoxelWorld
                     VoxelsAtEdge = grid.EdgePointsUsed();
                     BoundingBox = grid.GetBoundingBox();
                     Normal = grid.GetGridNormal();
+                    CompressedGrid = grid.GetCompressed();
                 }
 
                 if (!Normal.CanSee(rotatedLookDir))
