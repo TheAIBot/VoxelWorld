@@ -11,7 +11,7 @@ namespace VoxelWorld
         private readonly float NoiseWeight;
         private readonly float NoiseFrequency;
         private const int SEED_COUNT = 32;
-        private const int TURBULENCE_COUNT = 5;
+        private const int TURBULENCE_COUNT = 16;
 
         public PlanetGen(int seed, float planetRadius, float noiseWeight, float noiseFrequency)
         {
@@ -39,6 +39,10 @@ namespace VoxelWorld
                 noiseSum += scale * XYZRandomGen.GetNoise(Seeds, pos * NoiseFrequency);
                 scale *= 0.5f;
                 pos *= 2.0f;
+                if (MathF.Abs(noiseSum) > scale)
+                {
+                    break;
+                }
             }
 
             return noiseSum;
