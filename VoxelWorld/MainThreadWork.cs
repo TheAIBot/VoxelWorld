@@ -231,7 +231,6 @@ namespace VoxelWorld
         }
 
         private static ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
-        private static ConcurrentQueue<Command> CommandSwitchout = new ConcurrentQueue<Command>();
 
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridInfo, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridInfo, IndirectDraw>();
@@ -249,18 +248,13 @@ namespace VoxelWorld
 
         public static void DrawGrids()
         {
-            //switch queues so items stops being added to the queue
-            //we willwork on now
-            var cmds = Interlocked.Exchange(ref Commands, CommandSwitchout);
-            CommandSwitchout = cmds;
-
-            //Console.WriteLine(cmds.Count);
+            int cmdCount = Commands.Count;
 
             int indexFirstBufferNotFull = 0;
-            while (!cmds.IsEmpty)
+            for (int cmdCounter = 0; cmdCounter < cmdCount; cmdCounter++)
             {
                 Command cmd;
-                if (!cmds.TryDequeue(out cmd))
+                if (!Commands.TryDequeue(out cmd))
                 {
                     throw new Exception("Expected to dequeue a command but no command was found.");
                 }
