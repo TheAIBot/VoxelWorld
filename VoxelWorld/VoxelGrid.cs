@@ -395,6 +395,24 @@ namespace VoxelWorld
             return normal;
         }
 
+        private static int CountTruesWithPopCnt(bool[] bools)
+        {
+            ReadOnlySpan<ulong> longs = MemoryMarshal.Cast<bool, ulong>(bools);
+            int sum = 0;
+            for (int i = 0; i < longs.Length; i++)
+            {
+                sum += (int)Popcnt.X64.PopCount(longs[i]);
+            }
+
+            ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<bool, byte>(bools);
+            for (int i = longs.Length * sizeof(ulong); i < bytes.Length; i++)
+            {
+                sum += bytes[i];
+            }
+
+            return sum;
+        }
+
 
         public GeometryData Triangulize()
         {
@@ -408,12 +426,7 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            Span<byte> usedVP = MemoryMarshal.Cast<bool, byte>(IsUsingVoxelPoint);
-            int vertexCount = 0;
-            for (int i = 0; i < usedVP.Length; i++)
-            {
-                vertexCount += usedVP[i];
-            }
+            int vertexCount = CountTruesWithPopCnt(IsUsingVoxelPoint);
 
             int triangleIndiceCount = TriangleCount * 3;
             GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
