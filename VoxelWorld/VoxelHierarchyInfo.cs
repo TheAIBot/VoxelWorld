@@ -18,7 +18,7 @@ namespace VoxelWorld
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
-        public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, int hirDepth, Vector3 rotatedLookDir)
+        public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)
         {
             IsBeingGenerated = true;
             IsHollow = false;
@@ -31,7 +31,7 @@ namespace VoxelWorld
                 }
 
 
-                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData, hirDepth + 1);
+                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData);
                 var hirData = hir.Generate(rotatedLookDir);
                 BoundingCircleRadius = hirData.Item1.Radius;
                 Normal = hirData.Item2;

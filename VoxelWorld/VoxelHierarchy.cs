@@ -30,13 +30,11 @@ namespace VoxelWorld
         private readonly VoxelHierarchyInfo[] SubHierarchies = new VoxelHierarchyInfo[GridLocations.Length];
 
         public bool IsHollow = false;
-        private readonly int HierarchyDepth;
 
-        public VoxelHierarchy(Vector3 center, VoxelSystemData genData, int hierarchyDepth)
+        public VoxelHierarchy(Vector3 center, VoxelSystemData genData)
         {
             this.Center = center;
             this.GenData = genData;
-            this.HierarchyDepth = hierarchyDepth;
 
             for (int i = 0; i < Grids.Length; i++)
             {
@@ -101,7 +99,7 @@ namespace VoxelWorld
 
         private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GetGridCenter(index), GenData.GetOneDown(), HierarchyDepth, rotatedLookDir));
+            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GetGridCenter(index), GenData.GetOneDown(), rotatedLookDir));
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
@@ -166,10 +164,7 @@ namespace VoxelWorld
                     }
                     else
                     {
-                        if (HierarchyDepth > 0)
-                        {
-                            Grids[i].MakeHollow();
-                        }
+                        Grids[i].MakeHollow();
                     }
                 }
                 else
@@ -178,11 +173,7 @@ namespace VoxelWorld
                     {
                         if (SubHierarchies[i].CanSee(renderCheck, modelTrans))
                         {
-                            if (HierarchyDepth > 0)
-                            {
-                                Grids[i].MakeHollow();
-                            }
-
+                            Grids[i].MakeHollow();
                             SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans);
                         }
                     }
