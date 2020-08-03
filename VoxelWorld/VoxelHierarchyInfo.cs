@@ -7,6 +7,7 @@ namespace VoxelWorld
 {
     internal class VoxelHierarchyInfo : IDisposable
     {
+        private Vector3 Center;
         private VoxelHierarchy VoxelHir = null;
         public bool IsEmpty = false;
         public bool HasBeenGenerated { get; private set; } = false;
@@ -17,6 +18,11 @@ namespace VoxelWorld
 
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
+
+        public VoxelHierarchyInfo(Vector3 center)
+        {
+            this.Center = center;
+        }
 
         public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)
         {
@@ -32,7 +38,7 @@ namespace VoxelWorld
 
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData);
-                var hirData = hir.Generate(rotatedLookDir);
+                var hirData = hir.Generate(Center, rotatedLookDir);
                 BoundingCircleRadius = hirData.Item1.Radius;
                 Normal = hirData.Item2;
 
@@ -111,7 +117,7 @@ namespace VoxelWorld
                 return false;
             }
 
-            Vector3 newCenter = modelTrans.RevRotation * VoxelHir.Center + modelTrans.Translation;
+            Vector3 newCenter = modelTrans.RevRotation * Center + modelTrans.Translation;
             if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
             {
                 return false;

@@ -20,7 +20,6 @@ namespace VoxelWorld
         };
 
         //required to make a grid
-        public readonly Vector3 Center;
         private readonly VoxelSystemData GenData;
 
         //keeps track of grids
@@ -33,28 +32,27 @@ namespace VoxelWorld
 
         public VoxelHierarchy(Vector3 center, VoxelSystemData genData)
         {
-            this.Center = center;
             this.GenData = genData;
 
             for (int i = 0; i < Grids.Length; i++)
             {
-                Vector3 gridCenter = GetGridCenter(i);
+                Vector3 gridCenter = GetGridCenter(i, center);
                 Grids[i] = new VoxelGridInfo(gridCenter);
             }
             for (int i = 0; i < SubHierarchies.Length; i++)
             {
-                SubHierarchies[i] = new VoxelHierarchyInfo();
+                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter);
             }
         }
 
-        private Vector3 GetGridCenter(int index)
+        private Vector3 GetGridCenter(int index, Vector3 center)
         {
-            return Center + GridLocations[index].AsFloatVector3() * 0.5f * (GenData.GridSize - 2) * GenData.VoxelSize;
+            return center + GridLocations[index].AsFloatVector3() * 0.5f * (GenData.GridSize - 2) * GenData.VoxelSize;
         }
 
-        public (BoundingCircle, GridNormal) Generate(Vector3 rotatedLookDir)
+        public (BoundingCircle, GridNormal) Generate(Vector3 center, Vector3 rotatedLookDir)
         {
-            BoundingCircle circle = new BoundingCircle(Center, 0);
+            BoundingCircle circle = new BoundingCircle(center, 0);
             GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
@@ -99,7 +97,7 @@ namespace VoxelWorld
 
         private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(GetGridCenter(index), GenData.GetOneDown(), rotatedLookDir));
+            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(Grids[index].GridCenter, GenData.GetOneDown(), rotatedLookDir));
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)

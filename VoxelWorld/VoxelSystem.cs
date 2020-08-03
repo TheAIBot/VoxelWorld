@@ -93,7 +93,7 @@ namespace VoxelWorld
                 grid.Dispose();
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridCenter, FirstLevelSystemData);
-                hir.Generate(new Vector3(0, 0, 0));
+                hir.Generate(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
 
                 if (!TryAddGrid(gridPos, hir))
                 {
