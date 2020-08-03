@@ -19,9 +19,10 @@ namespace VoxelWorld
         private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
-        public VoxelHierarchyInfo(Vector3 center)
+        public VoxelHierarchyInfo(Vector3 center, int gridSize, float voxelSize)
         {
             this.Center = center;
+            this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
         }
 
         public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)

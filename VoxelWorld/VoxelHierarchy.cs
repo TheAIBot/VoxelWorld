@@ -32,7 +32,7 @@ namespace VoxelWorld
 
         public VoxelHierarchy(Vector3 center, VoxelSystemData genData)
         {
-            this.GenData = genData;
+            this.GenData = genData.GetOneDown();
 
             for (int i = 0; i < Grids.Length; i++)
             {
@@ -41,7 +41,7 @@ namespace VoxelWorld
             }
             for (int i = 0; i < SubHierarchies.Length; i++)
             {
-                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter);
+                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter, GenData.GridSize, GenData.VoxelSize);
             }
         }
 
@@ -97,7 +97,7 @@ namespace VoxelWorld
 
         private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(Grids[index].GridCenter, GenData.GetOneDown(), rotatedLookDir));
+            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(Grids[index].GridCenter, GenData, rotatedLookDir));
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
