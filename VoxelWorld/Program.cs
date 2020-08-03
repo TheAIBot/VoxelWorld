@@ -74,10 +74,11 @@ namespace VoxelWorld
 
             PlayerCamera renderFrom = player;
 
+            bool IsRunning = true;
 
             Thread cake = new Thread(() =>
             {
-                while (true)
+                while (IsRunning)
                 {
                     renderFrom = controlDummyCamera ? dummyCamera : player;
                     renderFrom.UpdateCameraDirection(Input.MousePosition);
@@ -156,6 +157,9 @@ namespace VoxelWorld
 
                 Window.SwapBuffers();
             }
+
+            IsRunning = false;
+            cake.Join();
         }
     }
 }
