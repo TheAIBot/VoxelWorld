@@ -24,25 +24,26 @@ namespace VoxelWorld
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float GenerateWeight(Vector3 pos)
         {
-            float noise = Turbulence(pos);
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
+            float noise = Turbulence(pos, sphere);
 
             return noise * NoiseWeight + sphere;
         }
 
-        private float Turbulence(Vector3 pos)
+        private float Turbulence(Vector3 pos, float sphereValue)
         {
+            sphereValue = MathF.Abs(sphereValue);
             float noiseSum = 0.0f;
             float scale = 1.0f;
             for (int i = 0; i < TURBULENCE_COUNT; i++)
             {
-                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, pos * NoiseFrequency);
-                scale *= 0.5f;
-                pos *= 2.0f;
-                if (MathF.Abs(noiseSum) > scale)
+                if (sphereValue > (MathF.Abs(noiseSum) + scale * 2.0f) * NoiseWeight)
                 {
                     break;
                 }
+                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, pos * NoiseFrequency);
+                scale *= 0.5f;
+                pos *= 2.0f;
             }
 
             return noiseSum;
