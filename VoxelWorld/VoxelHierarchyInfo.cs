@@ -5,13 +5,19 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
+    internal enum GenerationStatus : byte
+    {
+        NotGenerated,
+        Generating,
+        HasBeenGenerated
+    }
+
     internal class VoxelHierarchyInfo : IDisposable
     {
         private Vector3 Center;
         private VoxelHierarchy VoxelHir = null;
         public bool IsEmpty = false;
-        public bool HasBeenGenerated { get; private set; } = false;
-        public bool IsBeingGenerated { get; private set; } = false;
+        public GenerationStatus GenStatus { get; private set; } = GenerationStatus.NotGenerated;
         public bool IsHollow { get; private set; } = true;
         private float BoundingCircleRadius;
         private GridNormal Normal;
@@ -27,17 +33,16 @@ namespace VoxelWorld
 
         public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)
         {
-            Debug.Assert(HasBeenGenerated == false);
-            Debug.Assert(IsBeingGenerated == false);
+            Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
 
-            IsBeingGenerated = true;
+            GenStatus = GenerationStatus.Generating;
             IsHollow = false;
             return () =>
             {
                 if (IsHollow)
                 {
-                    IsBeingGenerated = false;
+                    GenStatus = GenerationStatus.NotGenerated;
                     return;
                 }
 
@@ -51,8 +56,7 @@ namespace VoxelWorld
                 {
                     IsEmpty = true;
                     hir.Dispose();
-                    IsBeingGenerated = false;
-                    HasBeenGenerated = true;
+                    GenStatus = GenerationStatus.HasBeenGenerated;
                     return;
                 }
 
@@ -74,20 +78,14 @@ namespace VoxelWorld
                         VoxelHir = hir;
                     }
 
-                    HasBeenGenerated = true;
-                    IsBeingGenerated = false;
+                    GenStatus = GenerationStatus.HasBeenGenerated;
                 }
             };
         }
 
         public bool ShouldGenerate()
         {
-            if (HasBeenGenerated)
-            {
-                return false;
-            }
-
-            if (IsBeingGenerated)
+            if (GenStatus != GenerationStatus.NotGenerated)
             {
                 return false;
             }
@@ -107,7 +105,7 @@ namespace VoxelWorld
                 return false;
             }
 
-            if (HasBeenGenerated && !Normal.CanSee(modelTrans.RotatedLookDir))
+            if (GenStatus == GenerationStatus.HasBeenGenerated && !Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }
@@ -140,11 +138,6 @@ namespace VoxelWorld
 
                 VoxelHir?.MakeHollow();
             }
-        }
-
-        public bool IsReadyToDraw()
-        {
-            return !IsBeingGenerated && VoxelHir != null && !IsHollow;
         }
 
         public void Dispose()

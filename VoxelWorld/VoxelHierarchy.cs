@@ -111,7 +111,7 @@ namespace VoxelWorld
                 {
                     continue;
                 }
-                if (SubHierarchies[i].IsBeingGenerated)
+                if (SubHierarchies[i].GenStatus == GenerationStatus.Generating)
                 {
                     continue;
                 }
