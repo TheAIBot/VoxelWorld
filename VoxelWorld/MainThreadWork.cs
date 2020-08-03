@@ -270,7 +270,7 @@ namespace VoxelWorld
                             {
                                 if (i == indexFirstBufferNotFull)
                                 {
-                                    i++;
+                                    indexFirstBufferNotFull++;
                                 }
                             }
                             else
