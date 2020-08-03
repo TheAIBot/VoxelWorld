@@ -1,5 +1,6 @@
 ﻿using OpenGL;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace VoxelWorld
@@ -167,19 +168,16 @@ namespace VoxelWorld
                 }
                 else
                 {
-                    if (SubHierarchies[i].HasBeenGenerated)
-                    {
-                        if (SubHierarchies[i].CanSee(renderCheck, modelTrans))
-                        {
-                            Grids[i].MakeHollow();
-                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans);
-                        }
-                    }
-                    else
+                    if (SubHierarchies[i].CanSee(renderCheck, modelTrans))
                     {
                         if (SubHierarchies[i].ShouldGenerate())
                         {
                             QueueHierarchyGen(i, modelTrans.RotatedLookDir);
+                        }
+                        else
+                        {
+                            Grids[i].MakeHollow();
+                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans);
                         }
                     }
                 }

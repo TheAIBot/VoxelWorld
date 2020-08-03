@@ -27,6 +27,10 @@ namespace VoxelWorld
 
         public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)
         {
+            Debug.Assert(HasBeenGenerated == false);
+            Debug.Assert(IsBeingGenerated == false);
+            Debug.Assert(VoxelHir == null);
+
             IsBeingGenerated = true;
             IsHollow = false;
             return () =>
@@ -70,8 +74,8 @@ namespace VoxelWorld
                         VoxelHir = hir;
                     }
 
-                    IsBeingGenerated = false;
                     HasBeenGenerated = true;
+                    IsBeingGenerated = false;
                 }
             };
         }
@@ -98,22 +102,12 @@ namespace VoxelWorld
 
         public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
-            if (!HasBeenGenerated)
-            {
-                return false;
-            }
-
-            if (IsBeingGenerated)
-            {
-                return false;
-            }
-
             if (IsEmpty)
             {
                 return false;
             }
 
-            if (!Normal.CanSee(modelTrans.RotatedLookDir))
+            if (HasBeenGenerated && !Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }
