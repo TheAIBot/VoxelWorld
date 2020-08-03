@@ -29,8 +29,6 @@ namespace VoxelWorld
         //keeps track of sub hierarchies
         private readonly VoxelHierarchyInfo[] SubHierarchies = new VoxelHierarchyInfo[GridLocations.Length];
 
-        public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
-        public GridNormal HirNormal = new GridNormal();
         public bool IsHollow = false;
         private readonly int HierarchyDepth;
 
@@ -56,25 +54,22 @@ namespace VoxelWorld
             return Center + GridLocations[index].AsFloatVector3() * 0.5f * (GenData.GridSize - 2) * GenData.VoxelSize;
         }
 
-        public void Generate(Vector3 rotatedLookDir)
+        public (BoundingCircle, GridNormal) Generate(Vector3 rotatedLookDir)
         {
+            BoundingCircle circle = new BoundingCircle(Center, 0);
+            GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
                 Grids[i].GenerateGridAction(GenData, rotatedLookDir)();
                 if (!Grids[i].IsEmpty)
                 {
-                    if (BoundingBox == null)
-                    {
-                        BoundingBox = Grids[i].BoundingBox;
-                    }
-                    else
-                    {
-                        BoundingBox.AddBoundingBox(Grids[i].BoundingBox);
-                    }
+                    circle = circle.AddBoundingCircle(Grids[i].BoundingBox);
 
-                    HirNormal.AddNormal(Grids[i].Normal);
+                    normal.AddNormal(Grids[i].Normal);
                 }
             }
+
+            return (circle, normal);
         }
 
         public bool IsEmpty()

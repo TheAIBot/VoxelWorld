@@ -341,7 +341,7 @@ namespace VoxelWorld
             }
         }
 
-        public AxisAlignedBoundingBox GetBoundingBox()
+        public BoundingCircle GetBoundingCircle()
         {
             Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -357,8 +357,9 @@ namespace VoxelWorld
                 min = Vector3.Min(min, vp);
                 max = Vector3.Max(max, vp);
             }
-
-            return new AxisAlignedBoundingBox(min, max);
+            Vector3 center = (max + min) * 0.5f;
+            float radius = (max - center).Length();
+            return new BoundingCircle(center, radius);
         }
         
         public GridNormal GetGridNormal()

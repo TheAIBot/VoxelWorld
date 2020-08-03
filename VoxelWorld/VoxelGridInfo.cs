@@ -12,9 +12,10 @@ namespace VoxelWorld
         public bool IsBeingGenerated { get; private set; }
         public bool IsEmpty { get; private set; } = false;
         public bool VoxelsAtEdge { get; private set; } = false;
-        public AxisAlignedBoundingBox BoundingBox { get; private set; } = null;
         public GridNormal Normal { get; private set; }
+        public BoundingCircle BoundingBox { get { return new BoundingCircle(GridCenter, BoundingCircleRadius); } }
 
+        private float BoundingCircleRadius = 0.0f;
         private bool MadeDrawable = false;
         private bool IsHollow = true;
         private bool Initialized = false;
@@ -69,7 +70,7 @@ namespace VoxelWorld
                 {
                     Initialized = true;
                     VoxelsAtEdge = grid.EdgePointsUsed();
-                    BoundingBox = grid.GetBoundingBox();
+                    BoundingCircleRadius = grid.GetBoundingCircle().Radius;
                     Normal = grid.GetGridNormal();
                     CompressedGrid = grid.GetCompressed();
                 }
@@ -147,14 +148,11 @@ namespace VoxelWorld
                 return false;
             }
 
-            Vector3 centerOffset = modelTrans.RevRotation * GridCenter - GridCenter + modelTrans.Translation;
-            BoundingBox.Translate(centerOffset);
-            if (!onScreenCheck.Intersects(BoundingBox))
+            Vector3 newCenter = modelTrans.RevRotation * GridCenter + modelTrans.Translation;
+            if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
             {
-                BoundingBox.Translate(-centerOffset);
                 return false;
             }
-            BoundingBox.Translate(-centerOffset);
 
             return true;
         }

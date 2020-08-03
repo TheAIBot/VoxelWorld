@@ -12,7 +12,7 @@ namespace VoxelWorld
         public bool HasBeenGenerated { get; private set; } = false;
         public bool IsBeingGenerated { get; private set; } = false;
         public bool IsHollow { get; private set; } = true;
-        private AxisAlignedBoundingBox BoundingBox = null;
+        private float BoundingCircleRadius;
         private GridNormal Normal;
 
         private readonly object DisposeLock = new object();
@@ -32,7 +32,9 @@ namespace VoxelWorld
 
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData, hirDepth + 1);
-                hir.Generate(rotatedLookDir);
+                var hirData = hir.Generate(rotatedLookDir);
+                BoundingCircleRadius = hirData.Item1.Radius;
+                Normal = hirData.Item2;
 
                 if (hir.IsEmpty())
                 {
@@ -52,9 +54,6 @@ namespace VoxelWorld
                     }
                     else
                     {
-                        BoundingBox = hir.BoundingBox;
-                        Normal = hir.HirNormal;
-
                         if (IsHollow)
                         {
                             hir.MakeHollow();
@@ -112,14 +111,11 @@ namespace VoxelWorld
                 return false;
             }
 
-            Vector3 centerOffset = modelTrans.RevRotation * VoxelHir.Center - VoxelHir.Center + modelTrans.Translation;
-            BoundingBox.Translate(centerOffset);
-            if (!onScreenCheck.Intersects(BoundingBox))
+            Vector3 newCenter = modelTrans.RevRotation * VoxelHir.Center + modelTrans.Translation;
+            if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
             {
-                BoundingBox.Translate(-centerOffset);
                 return false;
             }
-            BoundingBox.Translate(-centerOffset);
 
             return true;
         }
