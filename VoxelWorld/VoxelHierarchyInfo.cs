@@ -31,56 +31,59 @@ namespace VoxelWorld
             this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
         }
 
-        public Action GenerateHierarchyAction(Vector3 gridCenter, VoxelSystemData GenData, Vector3 rotatedLookDir)
+        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
         {
             Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
 
             GenStatus = GenerationStatus.Generating;
             IsHollow = false;
-            return () =>
+
+            WorkLimiter.QueueWork(new WorkInfo(this, genData, rotatedLookDir));
+        }
+
+        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
+        {
+            if (IsHollow)
             {
-                if (IsHollow)
+                GenStatus = GenerationStatus.NotGenerated;
+                return;
+            }
+
+
+            VoxelHierarchy hir = new VoxelHierarchy(Center, genData);
+            var hirData = hir.Generate(Center, rotatedLookDir);
+            BoundingCircleRadius = hirData.Item1.Radius;
+            Normal = hirData.Item2;
+
+            if (hir.IsEmpty())
+            {
+                IsEmpty = true;
+                hir.Dispose();
+                GenStatus = GenerationStatus.HasBeenGenerated;
+                return;
+            }
+
+            lock (DisposeLock)
+            {
+                if (HasBeenDisposed)
                 {
-                    GenStatus = GenerationStatus.NotGenerated;
-                    return;
+                    hir?.Dispose();
+                    hir = null;
                 }
-
-
-                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, GenData);
-                var hirData = hir.Generate(Center, rotatedLookDir);
-                BoundingCircleRadius = hirData.Item1.Radius;
-                Normal = hirData.Item2;
-
-                if (hir.IsEmpty())
+                else
                 {
-                    IsEmpty = true;
-                    hir.Dispose();
-                    GenStatus = GenerationStatus.HasBeenGenerated;
-                    return;
-                }
-
-                lock (DisposeLock)
-                {
-                    if (HasBeenDisposed)
+                    if (IsHollow)
                     {
-                        hir?.Dispose();
-                        hir = null;
-                    }
-                    else
-                    {
-                        if (IsHollow)
-                        {
-                            hir.MakeHollow();
-                        }
-
-                        Debug.Assert(VoxelHir == null);
-                        VoxelHir = hir;
+                        hir.MakeHollow();
                     }
 
-                    GenStatus = GenerationStatus.HasBeenGenerated;
+                    Debug.Assert(VoxelHir == null);
+                    VoxelHir = hir;
                 }
-            };
+
+                GenStatus = GenerationStatus.HasBeenGenerated;
+            }
         }
 
         public bool ShouldGenerate()

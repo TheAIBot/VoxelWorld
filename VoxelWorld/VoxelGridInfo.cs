@@ -30,90 +30,103 @@ namespace VoxelWorld
             this.GridCenter = center;
         }
 
-        public Action GenerateGridAction(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void Generate(VoxelSystemData genData, Vector3 rotatedLookDir)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
-            return () =>
-            {
-                //no need to do the work if it's already hollow again
-                if (IsHollow)
-                {
-                    IsBeingGenerated = false;
-                    return;
-                }
 
-                VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
-                if (!Initialized)
+            EndGenerating(genData, rotatedLookDir);
+        }
+
+        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
+        {
+            Debug.Assert(IsBeingGenerated == false);
+
+            IsBeingGenerated = true;
+            IsHollow = false;
+
+            WorkLimiter.QueueWork(new WorkInfo(this, genData, rotatedLookDir));
+        }
+
+        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
+        {
+            //no need to do the work if it's already hollow again
+            if (IsHollow)
+            {
+                IsBeingGenerated = false;
+                return;
+            }
+
+            VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
+            if (!Initialized)
+            {
+                grid.Randomize();
+            }
+            else
+            {
+                grid.Restore(CompressedGrid);
+            }
+
+            grid.PreCalculateGeometryData();
+            if (grid.IsEmpty())
+            {
+                IsEmpty = true;
+                Initialized = true;
+                IsBeingGenerated = false;
+                VoxelGridStorage.StoreForReuse(grid);
+                return;
+            }
+
+            grid.Interpolate();
+            if (!Initialized)
+            {
+                Initialized = true;
+                VoxelsAtEdge = grid.EdgePointsUsed();
+                BoundingCircleRadius = grid.GetBoundingCircle().Radius;
+                Normal = grid.GetGridNormal();
+                CompressedGrid = grid.GetCompressed();
+            }
+
+            if (!Normal.CanSee(rotatedLookDir))
+            {
+                IsBeingGenerated = false;
+                VoxelGridStorage.StoreForReuse(grid);
+                return;
+            }
+
+            var meshData = grid.Triangulize();
+            //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
+
+            //set grid to null here to make sure it isn't captured in the lambda in the future
+            //as using the grid after storing it would be a problem
+            VoxelGridStorage.StoreForReuse(grid);
+            grid = null;
+
+
+            //no need to make vaos if the grid is already hollow again
+            if (IsHollow)
+            {
+                IsBeingGenerated = false;
+                meshData.Reuse();
+                return;
+            }
+
+            lock (DisposeLock)
+            {
+                if (HasBeenDisposed || IsHollow)
                 {
-                    grid.Randomize();
+                    meshData.Reuse();
                 }
                 else
                 {
-                    grid.Restore(CompressedGrid);
+                    MainThreadWork.MakeGridDrawable(this, meshData);
+                    MadeDrawable = true;
                 }
+            }
 
-                grid.PreCalculateGeometryData();
-                if (grid.IsEmpty())
-                {
-                    IsEmpty = true;
-                    Initialized = true;
-                    IsBeingGenerated = false;
-                    VoxelGridStorage.StoreForReuse(grid);
-                    return;
-                }
-
-                grid.Interpolate();
-                if (!Initialized)
-                {
-                    Initialized = true;
-                    VoxelsAtEdge = grid.EdgePointsUsed();
-                    BoundingCircleRadius = grid.GetBoundingCircle().Radius;
-                    Normal = grid.GetGridNormal();
-                    CompressedGrid = grid.GetCompressed();
-                }
-
-                if (!Normal.CanSee(rotatedLookDir))
-                {
-                    IsBeingGenerated = false;
-                    VoxelGridStorage.StoreForReuse(grid);
-                    return;
-                }
-
-                var meshData = grid.Triangulize();
-                //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
-
-                //set grid to null here to make sure it isn't captured in the lambda in the future
-                //as using the grid after storing it would be a problem
-                VoxelGridStorage.StoreForReuse(grid);
-                grid = null;
-
-
-                //no need to make vaos if the grid is already hollow again
-                if (IsHollow)
-                {
-                    IsBeingGenerated = false;
-                    meshData.Reuse();
-                    return;
-                }
-
-                lock (DisposeLock)
-                {
-                    if (HasBeenDisposed || IsHollow)
-                    {
-                        meshData.Reuse();
-                    }
-                    else
-                    {
-                        MainThreadWork.MakeGridDrawable(this, meshData);
-                        MadeDrawable = true;
-                    }
-                }
-
-                IsBeingGenerated = false;
-            };
+            IsBeingGenerated = false;
         }
 
         public bool ShouldGenerate()

@@ -57,7 +57,7 @@ namespace VoxelWorld
             GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                Grids[i].GenerateGridAction(GenData, rotatedLookDir)();
+                Grids[i].Generate(GenData, rotatedLookDir);
                 if (!Grids[i].IsEmpty)
                 {
                     circle = circle.AddBoundingCircle(Grids[i].BoundingBox);
@@ -93,12 +93,12 @@ namespace VoxelWorld
 
         private void QueueGridGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(Grids[index].GenerateGridAction(GenData, rotatedLookDir));
+            Grids[index].StartGenerating(GenData, rotatedLookDir);
         }
 
         private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
         {
-            WorkLimiter.QueueWork(SubHierarchies[index].GenerateHierarchyAction(Grids[index].GridCenter, GenData, rotatedLookDir));
+            SubHierarchies[index].StartGenerating(GenData, rotatedLookDir);
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)

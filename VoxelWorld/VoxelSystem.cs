@@ -73,7 +73,7 @@ namespace VoxelWorld
                 Vector3 gridCenter = Center + gridPos.AsFloatVector3() * FirstLevelSystemData.GridSize * FirstLevelSystemData.VoxelSize;
                 VoxelGridInfo grid = new VoxelGridInfo(gridCenter);
 
-                grid.GenerateGridAction(FirstLevelSystemData, new Vector3(0, 0, 0))();
+                grid.Generate(FirstLevelSystemData, new Vector3(0, 0, 0));
                 if (grid.IsEmpty)
                 {
                     grid.Dispose();
