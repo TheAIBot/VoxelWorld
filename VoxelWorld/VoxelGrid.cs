@@ -173,18 +173,29 @@ namespace VoxelWorld
 
         public void Interpolate()
         {
-            Vector3 topLeftCorner = GetTopLeftCorner();
+            Vector3 topLeftCorner = GetTopLeftCorner() - (new Vector3(GenData.VoxelSize) * 0.5f);
+
+            Vector3 xIncrement = new Vector3(1, 0, 0) * GenData.VoxelSize;
+            Vector3 yIncrement = new Vector3(0, 1, 0) * GenData.VoxelSize;
+            Vector3 zIncrement = new Vector3(0, 0, 1) * GenData.VoxelSize;
+
+            Vector3 voxelPos = topLeftCorner;
 
             int index = 0;
             for (int vpZ = 0; vpZ < GenData.GridSize - 1; vpZ++)
             {
+                voxelPos.Y = topLeftCorner.Y;
                 for (int vpY = 0; vpY < GenData.GridSize - 1; vpY++)
                 {
+                    voxelPos.X = topLeftCorner.X;
                     for (int vpX = 0; vpX < GenData.GridSize - 1; vpX++)
                     {
-                        VoxelPoints[index++] = topLeftCorner - new Vector3(vpX, vpY, vpZ) * GenData.VoxelSize - (new Vector3(GenData.VoxelSize) * 0.5f);
+                        VoxelPoints[index++] = voxelPos;
+                        voxelPos -= xIncrement;
                     }
+                    voxelPos -= yIncrement;
                 }
+                voxelPos -= zIncrement;
             }
         }
 
