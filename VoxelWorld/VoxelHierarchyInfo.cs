@@ -52,7 +52,7 @@ namespace VoxelWorld
 
 
             VoxelHierarchy hir = new VoxelHierarchy(Center, genData);
-            var hirData = hir.Generate(Center, rotatedLookDir);
+            var hirData = hir.Generate(Center, rotatedLookDir, genData);
             BoundingCircleRadius = hirData.Item1.Radius;
             Normal = hirData.Item2;
 
@@ -122,10 +122,10 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans);
+            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetOneDown());
         }
 
         public void MakeHollow()

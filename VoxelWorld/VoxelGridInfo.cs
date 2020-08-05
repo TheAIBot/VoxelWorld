@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 
 namespace VoxelWorld
 {
@@ -62,31 +63,31 @@ namespace VoxelWorld
             VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
             if (!Initialized)
             {
+                Initialized = true;
+
                 grid.Randomize();
-            }
-            else
-            {
-                grid.Restore(CompressedGrid);
-            }
 
-            grid.PreCalculateGeometryData();
-            if (grid.IsEmpty())
-            {
-                IsEmpty = true;
-                Initialized = true;
-                IsBeingGenerated = false;
-                VoxelGridStorage.StoreForReuse(grid);
-                return;
-            }
+                grid.PreCalculateGeometryData();
+                if (grid.IsEmpty())
+                {
+                    IsEmpty = true;
+                    Initialized = true;
+                    IsBeingGenerated = false;
+                    VoxelGridStorage.StoreForReuse(grid);
+                    return;
+                }
 
-            grid.Interpolate();
-            if (!Initialized)
-            {
-                Initialized = true;
+                grid.Interpolate();
                 VoxelsAtEdge = grid.EdgePointsUsed();
                 BoundingCircleRadius = grid.GetBoundingCircle().Radius;
                 Normal = grid.GetGridNormal();
                 CompressedGrid = grid.GetCompressed();
+            }
+            else
+            {
+                grid.Restore(CompressedGrid);
+                grid.PreCalculateGeometryData();
+                grid.Interpolate();
             }
 
             if (!Normal.CanSee(rotatedLookDir))

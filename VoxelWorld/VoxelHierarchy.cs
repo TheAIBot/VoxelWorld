@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 
 namespace VoxelWorld
 {
@@ -20,9 +21,6 @@ namespace VoxelWorld
             new Vector3I( 1,  1,  1)
         };
 
-        //required to make a grid
-        private readonly VoxelSystemData GenData;
-
         //keeps track of grids
         private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
 
@@ -33,31 +31,29 @@ namespace VoxelWorld
 
         public VoxelHierarchy(Vector3 center, VoxelSystemData genData)
         {
-            this.GenData = genData.GetOneDown();
-
             for (int i = 0; i < Grids.Length; i++)
             {
-                Vector3 gridCenter = GetGridCenter(i, center);
+                Vector3 gridCenter = GetGridCenter(i, center, genData);
                 Grids[i] = new VoxelGridInfo(gridCenter);
             }
             for (int i = 0; i < SubHierarchies.Length; i++)
             {
-                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter, GenData.GridSize, GenData.VoxelSize);
+                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter, genData.GridSize, genData.VoxelSize);
             }
         }
 
-        private Vector3 GetGridCenter(int index, Vector3 center)
+        private Vector3 GetGridCenter(int index, Vector3 center, VoxelSystemData genData)
         {
-            return center + GridLocations[index].AsFloatVector3() * 0.5f * (GenData.GridSize - 2) * GenData.VoxelSize;
+            return center + GridLocations[index].AsFloatVector3() * 0.5f * (genData.GridSize - 2) * genData.VoxelSize;
         }
 
-        public (BoundingCircle, GridNormal) Generate(Vector3 center, Vector3 rotatedLookDir)
+        public (BoundingCircle, GridNormal) Generate(Vector3 center, Vector3 rotatedLookDir, VoxelSystemData genData)
         {
             BoundingCircle circle = new BoundingCircle(center, 0);
             GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                Grids[i].Generate(GenData, rotatedLookDir);
+                Grids[i].Generate(genData, rotatedLookDir);
                 if (!Grids[i].IsEmpty)
                 {
                     circle = circle.AddBoundingCircle(Grids[i].BoundingBox);
@@ -82,26 +78,16 @@ namespace VoxelWorld
             return true;
         }
 
-        private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans)
+        private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
         {
             Vector3 a = modelTrans.Translation + (modelTrans.RevRotation * voxelCenter);
             Vector3 c = modelTrans.CameraPos; // rotate cameraPos instead of center because rotate center need inverse modelRotate
 
-            float resolution = (GenData.VoxelSize * 100.0f) / (a - c).Length();
+            float resolution = (genData.VoxelSize * 100.0f) / (a - c).Length();
             return resolution < 0.3f;
         }
 
-        private void QueueGridGen(int index, Vector3 rotatedLookDir)
-        {
-            Grids[index].StartGenerating(GenData, rotatedLookDir);
-        }
-
-        private void QueueHierarchyGen(int index, Vector3 rotatedLookDir)
-        {
-            SubHierarchies[index].StartGenerating(GenData, rotatedLookDir);
-        }
-
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)
         {
             IsHollow = false;
 
@@ -142,7 +128,7 @@ namespace VoxelWorld
                     continue;
                 }
 
-                if (IsHighEnoughResolution(Grids[i].GridCenter, modelTrans))
+                if (IsHighEnoughResolution(Grids[i].GridCenter, modelTrans, genData))
                 {
                     if (Grids[i].CanSee(renderCheck, modelTrans))
                     {
@@ -157,7 +143,7 @@ namespace VoxelWorld
                         {
                             if (Grids[i].ShouldGenerate())
                             {
-                                QueueGridGen(i, modelTrans.RotatedLookDir);
+                                Grids[i].StartGenerating(genData, modelTrans.RotatedLookDir);
                             }
                         }
                     }
@@ -172,12 +158,12 @@ namespace VoxelWorld
                     {
                         if (SubHierarchies[i].ShouldGenerate())
                         {
-                            QueueHierarchyGen(i, modelTrans.RotatedLookDir);
+                            SubHierarchies[i].StartGenerating(genData.GetOneDown(), modelTrans.RotatedLookDir);
                         }
                         else
                         {
                             Grids[i].MakeHollow();
-                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans);
+                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData);
                         }
                     }
                 }

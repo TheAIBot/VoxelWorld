@@ -88,12 +88,13 @@ namespace VoxelWorld
                     FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
                     continue;
                 }
+                FirstLevelSystemData = FirstLevelSystemData.GetOneDown();
 
 
                 grid.Dispose();
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridCenter, FirstLevelSystemData);
-                hir.Generate(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
+                hir.Generate(new Vector3(0, 0, 0), new Vector3(0, 0, 0), FirstLevelSystemData);
 
                 if (!TryAddGrid(gridPos, hir))
                 {
@@ -138,7 +139,7 @@ namespace VoxelWorld
             {
                 foreach (var grid in Grids.Values)
                 {
-                    grid.CheckAndIncreaseResolution(renderCheck, ModelTrans);
+                    grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData);
                 }
             }
         }
