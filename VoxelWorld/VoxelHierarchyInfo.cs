@@ -22,7 +22,6 @@ namespace VoxelWorld
         private float BoundingCircleRadius;
         private GridNormal Normal;
 
-        private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
 
         public VoxelHierarchyInfo(Vector3 center, int gridSize, float voxelSize)
@@ -64,7 +63,7 @@ namespace VoxelWorld
                 return;
             }
 
-            lock (DisposeLock)
+            lock (this)
             {
                 if (HasBeenDisposed)
                 {
@@ -135,7 +134,7 @@ namespace VoxelWorld
                 return;
             }
 
-            lock (DisposeLock)
+            lock (this)
             {
                 IsHollow = true;
 
@@ -145,7 +144,7 @@ namespace VoxelWorld
 
         public void Dispose()
         {
-            lock (DisposeLock)
+            lock (this)
             {
                 HasBeenDisposed = true;
                 VoxelHir?.Dispose();

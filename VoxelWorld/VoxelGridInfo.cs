@@ -20,7 +20,6 @@ namespace VoxelWorld
         private bool MadeDrawable = false;
         private bool IsHollow = true;
         private bool Initialized = false;
-        private readonly object DisposeLock = new object();
         private bool HasBeenDisposed = false;
         private BitArray CompressedGrid = null;
 
@@ -114,7 +113,7 @@ namespace VoxelWorld
                 return;
             }
 
-            lock (DisposeLock)
+            lock (this)
             {
                 if (HasBeenDisposed || IsHollow)
                 {
@@ -183,7 +182,7 @@ namespace VoxelWorld
                 return;
             }
 
-            lock (DisposeLock)
+            lock (this)
             {
                 IsHollow = true;
 
@@ -197,7 +196,7 @@ namespace VoxelWorld
 
         public void Dispose()
         {
-            lock (DisposeLock)
+            lock (this)
             {
                 HasBeenDisposed = true;
 
