@@ -14,6 +14,8 @@ namespace VoxelWorld
     {
         static void Main(string[] args)
         {
+            WorkLimiter.StartWorkers();
+
             int windowWidth = 1280;
             int windowHeight = 720;
 
@@ -160,6 +162,7 @@ namespace VoxelWorld
 
             IsRunning = false;
             cake.Join();
+            WorkLimiter.StopWorkers();
         }
     }
 }

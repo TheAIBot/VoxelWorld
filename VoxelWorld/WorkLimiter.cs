@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks.Dataflow;
 
 namespace VoxelWorld
@@ -43,12 +46,49 @@ namespace VoxelWorld
 
     internal static class WorkLimiter
     {
-        private static readonly ExecutionDataflowBlockOptions options = new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 6 };
-        private static readonly ActionBlock<WorkInfo> DoWork = new ActionBlock<WorkInfo>(x => x.DoWork(), options);
+        private static readonly BlockingCollection<WorkInfo> Work = new BlockingCollection<WorkInfo>();
+        private static readonly List<Thread> Workers = new List<Thread>();
+        private static CancellationTokenSource CancelSource = new CancellationTokenSource();
 
         public static void QueueWork(WorkInfo work)
         {
-            DoWork.Post(work);
+            Work.Add(work);
+        }
+
+        public static void StartWorkers()
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                Workers.Add(new Thread(() =>
+                {
+                    try
+                    {
+                        while (!CancelSource.Token.IsCancellationRequested)
+                        {
+                            var work = Work.Take(CancelSource.Token);
+                            work.DoWork();
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+
+                }));
+            }
+
+            for (int i = 0; i < Workers.Count; i++)
+            {
+                Workers[i].Start();
+            }
+        }
+
+        public static void StopWorkers()
+        {
+            CancelSource.Cancel();
+            for (int i = 0; i < Workers.Count; i++)
+            {
+                Workers[i].Join();
+            }
         }
     }
 }
