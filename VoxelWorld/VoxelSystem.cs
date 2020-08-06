@@ -71,10 +71,10 @@ namespace VoxelWorld
             {
                 Vector3I gridPos = new Vector3I(0, 0, 0);
                 Vector3 gridCenter = Center + gridPos.AsFloatVector3() * FirstLevelSystemData.GridSize * FirstLevelSystemData.VoxelSize;
-                VoxelGridInfo grid = new VoxelGridInfo(gridCenter);
+                VoxelGridHierarchy grid = new VoxelGridHierarchy(gridCenter, FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize);
 
-                grid.Generate(FirstLevelSystemData, new Vector3(0, 0, 0));
-                if (grid.IsEmpty)
+                grid.GenerateGrid(FirstLevelSystemData, new Vector3(0, 0, 0));
+                if (grid.Grid.IsEmpty)
                 {
                     grid.Dispose();
                     FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
@@ -82,7 +82,7 @@ namespace VoxelWorld
                 }
 
 
-                if (grid.VoxelsAtEdge)
+                if (grid.Grid.VoxelsAtEdge)
                 {
                     grid.Dispose();
                     FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);

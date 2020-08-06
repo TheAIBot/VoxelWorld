@@ -7,35 +7,36 @@ using System.Threading.Tasks.Dataflow;
 
 namespace VoxelWorld
 {
+    internal enum VoxelType
+    {
+        Grid,
+        Hierarchy
+    }
+
     internal readonly struct WorkInfo
     {
-        private readonly object WorkItem;
+        private readonly VoxelGridHierarchy WorkItem;
         private readonly VoxelSystemData GenData;
         private readonly Vector3 RotatedLookDir;
+        private readonly VoxelType VType;
 
-        public WorkInfo(VoxelGridInfo grid, VoxelSystemData genData, Vector3 rotLookDir)
+        public WorkInfo(VoxelGridHierarchy gridHir, VoxelSystemData genData, Vector3 rotLookDir, VoxelType type)
         {
-            this.WorkItem = grid;
+            this.WorkItem = gridHir;
             this.GenData = genData;
             this.RotatedLookDir = rotLookDir;
-        }
-
-        public WorkInfo(VoxelHierarchyInfo hir, VoxelSystemData genData, Vector3 rotLookDir)
-        {
-            this.WorkItem = hir;
-            this.GenData = genData;
-            this.RotatedLookDir = rotLookDir;
+            this.VType = type;
         }
 
         public void DoWork()
         {
-            if (WorkItem is VoxelGridInfo grid)
+            if (VType == VoxelType.Grid)
             {
-                grid.EndGenerating(GenData, RotatedLookDir);
+                WorkItem.EndGeneratingGrid(GenData, RotatedLookDir);
             }
-            else if (WorkItem is VoxelHierarchyInfo hir)
+            else if (VType == VoxelType.Hierarchy)
             {
-                hir.EndGenerating(GenData, RotatedLookDir);
+                WorkItem.EndGeneratingHierarchy(GenData, RotatedLookDir);
             }
             else
             {

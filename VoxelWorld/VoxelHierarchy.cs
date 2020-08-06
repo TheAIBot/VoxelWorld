@@ -21,24 +21,17 @@ namespace VoxelWorld
             new Vector3I( 1,  1,  1)
         };
 
-        //keeps track of grids
-        private readonly VoxelGridInfo[] Grids = new VoxelGridInfo[GridLocations.Length];
-
         //keeps track of sub hierarchies
-        private readonly VoxelHierarchyInfo[] SubHierarchies = new VoxelHierarchyInfo[GridLocations.Length];
+        private readonly VoxelGridHierarchy[] SubHierarchyGrids = new VoxelGridHierarchy[GridLocations.Length];
 
         public bool IsHollow = false;
 
         public VoxelHierarchy(Vector3 center, VoxelSystemData genData)
         {
-            for (int i = 0; i < Grids.Length; i++)
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
                 Vector3 gridCenter = GetGridCenter(i, center, genData);
-                Grids[i] = new VoxelGridInfo(gridCenter);
-            }
-            for (int i = 0; i < SubHierarchies.Length; i++)
-            {
-                SubHierarchies[i] = new VoxelHierarchyInfo(Grids[i].GridCenter, genData.GridSize, genData.VoxelSize);
+                SubHierarchyGrids[i] = new VoxelGridHierarchy(gridCenter, genData.GridSize, genData.VoxelSize);
             }
         }
 
@@ -53,12 +46,12 @@ namespace VoxelWorld
             GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                Grids[i].Generate(genData, rotatedLookDir);
-                if (!Grids[i].IsEmpty)
+                SubHierarchyGrids[i].GenerateGrid(genData, rotatedLookDir);
+                if (!SubHierarchyGrids[i].Grid.IsEmpty)
                 {
-                    circle = circle.AddBoundingCircle(Grids[i].BoundingBox);
+                    circle = circle.AddBoundingCircle(SubHierarchyGrids[i].Grid.BoundingBox);
 
-                    normal.AddNormal(Grids[i].Normal);
+                    normal.AddNormal(SubHierarchyGrids[i].Grid.Normal);
                 }
             }
 
@@ -67,9 +60,9 @@ namespace VoxelWorld
 
         public bool IsEmpty()
         {
-            for (int i = 0; i < Grids.Length; i++)
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                if (!Grids[i].IsEmpty)
+                if (!SubHierarchyGrids[i].Grid.IsEmpty)
                 {
                     return false;
                 }
@@ -93,80 +86,7 @@ namespace VoxelWorld
 
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                if (Grids[i].IsBeingGenerated)
-                {
-                    continue;
-                }
-                if (SubHierarchies[i].GenStatus == GenerationStatus.Generating)
-                {
-                    continue;
-                }
-
-                /*
-                 * 1)   Enough resoltuion
-                 *          if can see grid
-                 *              If grid is available 
-                 *                  make subhir hollow
-                 *              else 
-                 *                  generate grid
-                 *          else
-                 *              make grid hollow
-                 * 2)   else
-                 *          if subhir generated
-                 *              if can see subhir
-                 *                  make grid hollow
-                 *                  recursive subhir
-                 *              else
-                 *                  make subhir hollow
-                 *          else
-                 *              generate subhir
-                */
-
-                if (!SubHierarchies[i].IsHollow && !SubHierarchies[i].CanSee(renderCheck, modelTrans))
-                {
-                    SubHierarchies[i].MakeHollow();
-                    continue;
-                }
-
-                if (IsHighEnoughResolution(Grids[i].GridCenter, modelTrans, genData))
-                {
-                    if (Grids[i].CanSee(renderCheck, modelTrans))
-                    {
-                        if (Grids[i].IsReadyToDraw())
-                        {
-                            if (!SubHierarchies[i].IsHollow)
-                            {
-                                SubHierarchies[i].MakeHollow();
-                            }
-                        }
-                        else
-                        {
-                            if (Grids[i].ShouldGenerate())
-                            {
-                                Grids[i].StartGenerating(genData, modelTrans.RotatedLookDir);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Grids[i].MakeHollow();
-                    }
-                }
-                else
-                {
-                    if (SubHierarchies[i].CanSee(renderCheck, modelTrans))
-                    {
-                        if (SubHierarchies[i].ShouldGenerate())
-                        {
-                            SubHierarchies[i].StartGenerating(genData.GetOneDown(), modelTrans.RotatedLookDir);
-                        }
-                        else
-                        {
-                            Grids[i].MakeHollow();
-                            SubHierarchies[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData);
-                        }
-                    }
-                }
+                SubHierarchyGrids[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData);
             }
         }
 
@@ -178,29 +98,18 @@ namespace VoxelWorld
             }
 
             IsHollow = true;
-            for (int i = 0; i < Grids.Length; i++)
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                Grids[i].MakeHollow();
-            }
-
-            for (int i = 0; i < SubHierarchies.Length; i++)
-            {
-                SubHierarchies[i].MakeHollow();
+                SubHierarchyGrids[i].MakeHollow();
             }
         }
 
         public void Dispose()
         {
-            for (int i = 0; i < Grids.Length; i++)
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                Grids[i].Dispose();
-                Grids[i] = null;
-            }
-
-            for (int i = 0; i < SubHierarchies.Length; i++)
-            {
-                SubHierarchies[i].Dispose();
-                SubHierarchies[i] = null;
+                SubHierarchyGrids[i].Dispose();
+                SubHierarchyGrids[i] = null;
             }
         }
     }

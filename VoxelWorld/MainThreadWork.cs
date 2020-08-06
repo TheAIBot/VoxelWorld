@@ -15,10 +15,10 @@ namespace VoxelWorld
     {
         private readonly struct CommandPair
         {
-            public readonly VoxelGridInfo Grid;
+            public readonly VoxelGridHierarchy Grid;
             public readonly GeometryData Geom;
 
-            public CommandPair(VoxelGridInfo grid, GeometryData geometry)
+            public CommandPair(VoxelGridHierarchy grid, GeometryData geometry)
             {
                 this.Grid = grid;
                 this.Geom = geometry;
@@ -27,7 +27,7 @@ namespace VoxelWorld
 
 
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
-        private readonly Dictionary<VoxelGridInfo, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridInfo, DrawElementsIndirectCommand>();
+        private readonly Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand>();
         private const int VERTEX_BUFFER_SIZE = 20_000;
         private const int INDICE_BUFFER_SIZE = 100_000;
         private const int COMMAND_BUFFER_SIZE = 2_000;
@@ -62,7 +62,7 @@ namespace VoxelWorld
             Vao.DisposeElementArray = true;
         }
 
-        public bool TryAddGeometry(VoxelGridInfo grid, GeometryData geometry)
+        public bool TryAddGeometry(VoxelGridHierarchy grid, GeometryData geometry)
         {
             if (VerticesAvailable >= geometry.Vertices.Length &&
                 IndicesAvailable >= geometry.Indices.Length &&
@@ -77,7 +77,7 @@ namespace VoxelWorld
             return false;
         }
 
-        public void RemoveGeometry(VoxelGridInfo grid)
+        public void RemoveGeometry(VoxelGridHierarchy grid)
         {
             if (!DrawCommands.Remove(grid))
             {
@@ -218,11 +218,11 @@ namespace VoxelWorld
 
         private readonly struct Command
         {
-            public readonly VoxelGridInfo Grid;
+            public readonly VoxelGridHierarchy Grid;
             public readonly GeometryData GeoData;
             public readonly CmdType CType;
 
-            public Command(CmdType cmd, VoxelGridInfo grid, GeometryData data)
+            public Command(CmdType cmd, VoxelGridHierarchy grid, GeometryData data)
             {
                 this.Grid = grid;
                 this.GeoData = data;
@@ -233,15 +233,15 @@ namespace VoxelWorld
         private static ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
 
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
-        private static readonly Dictionary<VoxelGridInfo, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridInfo, IndirectDraw>();
+        private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
 
 
-        public static void MakeGridDrawable(VoxelGridInfo grid, GeometryData geometry)
+        public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
         {
             Commands.Enqueue(new Command(CmdType.Add, grid, geometry));
         }
 
-        public static void RemoveDrawableGrid(VoxelGridInfo grid)
+        public static void RemoveDrawableGrid(VoxelGridHierarchy grid)
         {
             Commands.Enqueue(new Command(CmdType.Remove, grid, null));
         }

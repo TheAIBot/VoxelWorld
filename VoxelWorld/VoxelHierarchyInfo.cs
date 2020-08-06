@@ -12,25 +12,31 @@ namespace VoxelWorld
         HasBeenGenerated
     }
 
-    internal class VoxelHierarchyInfo : IDisposable
+    internal struct VoxelHierarchyInfo
     {
         private Vector3 Center;
-        private VoxelHierarchy VoxelHir = null;
-        public bool IsEmpty = false;
-        public GenerationStatus GenStatus { get; private set; } = GenerationStatus.NotGenerated;
-        public bool IsHollow { get; private set; } = true;
+        private VoxelHierarchy VoxelHir;
+        public bool IsEmpty;
+        public GenerationStatus GenStatus { get; private set; }
+        public bool IsHollow { get; private set; }
         private float BoundingCircleRadius;
         private GridNormal Normal;
 
-        private bool HasBeenDisposed = false;
+        private bool HasBeenDisposed;
 
         public VoxelHierarchyInfo(Vector3 center, int gridSize, float voxelSize)
         {
             this.Center = center;
+            this.VoxelHir = null;
+            this.IsEmpty = false;
+            this.GenStatus = GenerationStatus.NotGenerated;
+            this.IsHollow = true;
             this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
+            this.Normal = new GridNormal();
+            this.HasBeenDisposed = false;
         }
 
-        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
         {
             Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
@@ -38,10 +44,10 @@ namespace VoxelWorld
             GenStatus = GenerationStatus.Generating;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(this, genData, rotatedLookDir));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, rotatedLookDir, VoxelType.Hierarchy));
         }
 
-        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
         {
             if (IsHollow)
             {
@@ -63,7 +69,7 @@ namespace VoxelWorld
                 return;
             }
 
-            lock (this)
+            lock (gridHir)
             {
                 if (HasBeenDisposed)
                 {
@@ -127,14 +133,14 @@ namespace VoxelWorld
             VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetOneDown());
         }
 
-        public void MakeHollow()
+        public void MakeHollow(VoxelGridHierarchy gridHir)
         {
             if (IsHollow)
             {
                 return;
             }
 
-            lock (this)
+            lock (gridHir)
             {
                 IsHollow = true;
 
@@ -142,9 +148,9 @@ namespace VoxelWorld
             }
         }
 
-        public void Dispose()
+        public void Dispose(VoxelGridHierarchy gridHir)
         {
-            lock (this)
+            lock (gridHir)
             {
                 HasBeenDisposed = true;
                 VoxelHir?.Dispose();
