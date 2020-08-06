@@ -18,19 +18,19 @@ namespace VoxelWorld
             this.Hierarchy = new VoxelHierarchyInfo(center, gridSize, voxelSize);
         }
 
-        public void GenerateGrid(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void GenerateGrid(VoxelSystemData genData)
         {
-            Grid.Generate(genData, rotatedLookDir, this);
+            Grid.Generate(genData, this);
         }
 
-        public void EndGeneratingGrid(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void EndGeneratingGrid(VoxelSystemData genData)
         {
-            Grid.EndGenerating(genData, rotatedLookDir, this);
+            Grid.EndGenerating(genData, this);
         }
 
-        public void EndGeneratingHierarchy(VoxelSystemData genData, Vector3 rotatedLookDir)
+        public void EndGeneratingHierarchy(VoxelSystemData genData)
         {
-            Hierarchy.EndGenerating(genData, rotatedLookDir, this);
+            Hierarchy.EndGenerating(genData, this);
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
@@ -74,7 +74,7 @@ namespace VoxelWorld
                     {
                         if (Grid.ShouldGenerate())
                         {
-                            Grid.StartGenerating(genData, modelTrans.RotatedLookDir, this);
+                            Grid.StartGenerating(genData, this);
                         }
                     }
                 }
@@ -89,7 +89,7 @@ namespace VoxelWorld
                 {
                     if (Hierarchy.ShouldGenerate())
                     {
-                        Hierarchy.StartGenerating(genData.GetOneDown(), modelTrans.RotatedLookDir, this);
+                        Hierarchy.StartGenerating(genData.GetOneDown(), this);
                     }
                     else
                     {
@@ -119,7 +119,6 @@ namespace VoxelWorld
         public bool IsBeingGenerated { get; private set; }
         public bool IsEmpty { get; private set; }
         public bool VoxelsAtEdge { get; private set; }
-        public GridNormal Normal { get; private set; }
         public BoundingCircle BoundingBox { get { return new BoundingCircle(GridCenter, BoundingCircleRadius); } }
 
         private float BoundingCircleRadius;
@@ -137,7 +136,6 @@ namespace VoxelWorld
             this.IsBeingGenerated = false;
             this.IsEmpty = false;
             this.VoxelsAtEdge = false;
-            this.Normal = new GridNormal();
             this.BoundingCircleRadius = 0.0f;
             this.MadeDrawable = false;
             this.IsHollow = true;
@@ -146,27 +144,27 @@ namespace VoxelWorld
             this.CompressedGrid = null;
         }
 
-        public void Generate(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
+        public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
 
-            EndGenerating(genData, rotatedLookDir, gridHir);
+            EndGenerating(genData, gridHir);
         }
 
-        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, rotatedLookDir, VoxelType.Grid));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, VoxelType.Grid));
         }
 
-        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
         {
             //no need to do the work if it's already hollow again
             if (IsHollow)
@@ -195,7 +193,6 @@ namespace VoxelWorld
                 grid.Interpolate();
                 VoxelsAtEdge = grid.EdgePointsUsed();
                 BoundingCircleRadius = grid.GetBoundingCircle().Radius;
-                Normal = grid.GetGridNormal();
                 CompressedGrid = grid.GetCompressed();
             }
             else
@@ -203,13 +200,6 @@ namespace VoxelWorld
                 grid.Restore(CompressedGrid);
                 grid.PreCalculateGeometryData();
                 grid.Interpolate();
-            }
-
-            if (!Normal.CanSee(rotatedLookDir))
-            {
-                IsBeingGenerated = false;
-                VoxelGridStorage.StoreForReuse(grid);
-                return;
             }
 
             var meshData = grid.Triangulize();
@@ -268,11 +258,6 @@ namespace VoxelWorld
         public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
             if (IsEmpty)
-            {
-                return false;
-            }
-
-            if (!Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }

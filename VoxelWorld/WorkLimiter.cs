@@ -17,14 +17,12 @@ namespace VoxelWorld
     {
         private readonly VoxelGridHierarchy WorkItem;
         private readonly VoxelSystemData GenData;
-        private readonly Vector3 RotatedLookDir;
         private readonly VoxelType VType;
 
-        public WorkInfo(VoxelGridHierarchy gridHir, VoxelSystemData genData, Vector3 rotLookDir, VoxelType type)
+        public WorkInfo(VoxelGridHierarchy gridHir, VoxelSystemData genData, VoxelType type)
         {
             this.WorkItem = gridHir;
             this.GenData = genData;
-            this.RotatedLookDir = rotLookDir;
             this.VType = type;
         }
 
@@ -32,11 +30,11 @@ namespace VoxelWorld
         {
             if (VType == VoxelType.Grid)
             {
-                WorkItem.EndGeneratingGrid(GenData, RotatedLookDir);
+                WorkItem.EndGeneratingGrid(GenData);
             }
             else if (VType == VoxelType.Hierarchy)
             {
-                WorkItem.EndGeneratingHierarchy(GenData, RotatedLookDir);
+                WorkItem.EndGeneratingHierarchy(GenData);
             }
             else
             {

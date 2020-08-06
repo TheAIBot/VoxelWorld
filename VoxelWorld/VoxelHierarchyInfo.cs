@@ -20,7 +20,6 @@ namespace VoxelWorld
         public GenerationStatus GenStatus { get; private set; }
         public bool IsHollow { get; private set; }
         private float BoundingCircleRadius;
-        private GridNormal Normal;
 
         private bool HasBeenDisposed;
 
@@ -32,11 +31,10 @@ namespace VoxelWorld
             this.GenStatus = GenerationStatus.NotGenerated;
             this.IsHollow = true;
             this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
-            this.Normal = new GridNormal();
             this.HasBeenDisposed = false;
         }
 
-        public void StartGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
         {
             Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
@@ -44,10 +42,10 @@ namespace VoxelWorld
             GenStatus = GenerationStatus.Generating;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, rotatedLookDir, VoxelType.Hierarchy));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, VoxelType.Hierarchy));
         }
 
-        public void EndGenerating(VoxelSystemData genData, Vector3 rotatedLookDir, VoxelGridHierarchy gridHir)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
         {
             if (IsHollow)
             {
@@ -57,9 +55,8 @@ namespace VoxelWorld
 
 
             VoxelHierarchy hir = new VoxelHierarchy(Center, genData);
-            var hirData = hir.Generate(Center, rotatedLookDir, genData);
-            BoundingCircleRadius = hirData.Item1.Radius;
-            Normal = hirData.Item2;
+            var hirData = hir.Generate(Center, genData);
+            BoundingCircleRadius = hirData.Radius;
 
             if (hir.IsEmpty())
             {
@@ -109,11 +106,6 @@ namespace VoxelWorld
         public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
             if (IsEmpty)
-            {
-                return false;
-            }
-
-            if (GenStatus == GenerationStatus.HasBeenGenerated && !Normal.CanSee(modelTrans.RotatedLookDir))
             {
                 return false;
             }

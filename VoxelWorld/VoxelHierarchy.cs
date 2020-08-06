@@ -40,22 +40,19 @@ namespace VoxelWorld
             return center + GridLocations[index].AsFloatVector3() * 0.5f * (genData.GridSize - 2) * genData.VoxelSize;
         }
 
-        public (BoundingCircle, GridNormal) Generate(Vector3 center, Vector3 rotatedLookDir, VoxelSystemData genData)
+        public BoundingCircle Generate(Vector3 center, VoxelSystemData genData)
         {
             BoundingCircle circle = new BoundingCircle(center, 0);
-            GridNormal normal = new GridNormal();
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                SubHierarchyGrids[i].GenerateGrid(genData, rotatedLookDir);
+                SubHierarchyGrids[i].GenerateGrid(genData);
                 if (!SubHierarchyGrids[i].Grid.IsEmpty)
                 {
                     circle = circle.AddBoundingCircle(SubHierarchyGrids[i].Grid.BoundingBox);
-
-                    normal.AddNormal(SubHierarchyGrids[i].Grid.Normal);
                 }
             }
 
-            return (circle, normal);
+            return circle;
         }
 
         public bool IsEmpty()
