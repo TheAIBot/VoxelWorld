@@ -21,7 +21,7 @@ namespace VoxelWorld
 
             Window.CreateWindow("Voxel World", windowWidth, windowHeight);
             Gl.Viewport(0, 0, Window.Width, Window.Height);
-            Window.ApplyVerticalSync(true);
+            SDL2.SDL.SDL_GL_SetSwapInterval(1);
 
             bool renderMesh = true;
             bool renderPoints = false;
