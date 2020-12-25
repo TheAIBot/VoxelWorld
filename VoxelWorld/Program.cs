@@ -118,16 +118,17 @@ namespace VoxelWorld
                 meshShader["P"].SetValue(player.Perspective);
                 meshShader["V"].SetValue(player.View);
                 meshShader["M"].SetValue(system.Model);
-                meshShader["N"].SetValue((system.Model * player.View).Transpose().Inverse());
 
-                meshShader["light_pos"].SetValue(player.View * (system.Model * new Vector4(-3, -3, 0.0f, 0.0f)));
+                meshShader["light_pos"].SetValue((new Vector4(-15, -15, 0.0f, 0.0f)));
+                meshShader["light_amb"].SetValue(new Vector4(0.01f, 0.01f, 0.01f, 0.4f));
                 meshShader["light_diff"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
-                meshShader["light_spec"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
-                meshShader["light_amb"].SetValue(new Vector4(0.3f, 0.4f, 0.6f, 0.4f));
+                meshShader["light_spec"].SetValue(new Vector4(0.3f, 0.3f, 0.1f, 0.3f));
 
                 meshShader["mat_diff"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
                 meshShader["mat_spec"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
-                meshShader["mat_spec_exp"].SetValue(7.0f);
+                meshShader["mat_spec_exp"].SetValue(25.0f);
+
+                meshShader["viewPos"].SetValue(player.CameraPos);
 
                 VoxelGridInfo.DrawCalls = 0;
                 if (renderMesh)

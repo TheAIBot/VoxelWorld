@@ -15,9 +15,6 @@ attribute vec3 vertex_normal;
 uniform mat4 P;
 uniform mat4 V;
 uniform mat4 M;
-uniform mat4 N;
-
-
 
 out vec3 position;
 out vec3 normal;
@@ -25,8 +22,8 @@ out vec3 normal;
 void main(void)
 {
     gl_Position = P * V * M * vec4(vertex_pos, 1.0);
-    position = (V * M * vec4(vertex_pos, 1.0)).xyz;
-    normal = mat3(N) * vertex_normal;
+    position = (M * vec4(vertex_pos, 1.0)).xyz;
+    normal = mat3(M) * vertex_normal;
 }
 ";
 
@@ -37,33 +34,33 @@ in vec3 position;
 in vec3 normal;
 
 uniform vec4 light_pos;
+uniform vec4 light_amb;
 uniform vec4 light_diff;
 uniform vec4 light_spec;
-uniform vec4 light_amb;
 
 uniform vec4 mat_diff;
 uniform vec4 mat_spec;
 uniform float mat_spec_exp;
 
+uniform vec3 viewPos;
+
 void main(void)
 {
-    //vec3 light_dir = normalize(light_pos.a > 0.0 ? light_pos.xyz - position : light_pos.xyz);
-    vec3 light_dir = normalize(light_pos.xyz - position);
-    float cos_theta = max(dot(normalize(normal), light_dir), 0.0);
-    
+    vec3 norm = normalize(normal);
+
     // ambient part
     gl_FragColor = mat_diff * light_amb;
 
-    //diffuse part
+    // diffuse part
+    vec3 light_dir = normalize(light_pos.xyz - position);
+    float cos_theta = max(dot(norm, light_dir), 0.0);
     gl_FragColor += mat_diff * cos_theta * light_diff;
     
     // specular part
-    vec3 refl_dir = reflect(normalize(position), normalize(normal));
-    float r_dot_l = max(dot(refl_dir, light_dir), 0.0);
-    gl_FragColor += mat_spec * pow(r_dot_l, max(mat_spec_exp, 1.0)) * light_spec;
-    //gl_FragColor.a = 0.5;
-
-    //gl_FragColor = gl_FragColor * 0.00001 + vec4(position, 1.0);
+    vec3 viewDir = normalize(viewPos - position);
+    vec3 refl_dir = reflect(-light_dir, norm);
+    float r_dot_l = max(dot(viewDir, refl_dir), 0.0);
+    gl_FragColor += mat_spec * pow(r_dot_l, mat_spec_exp) * light_spec;
 }
 ";
 
