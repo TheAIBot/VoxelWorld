@@ -68,15 +68,6 @@ namespace VoxelWorld
             return true;
         }
 
-        private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
-        {
-            Vector3 a = modelTrans.Translation + (modelTrans.RevRotation * voxelCenter);
-            Vector3 c = modelTrans.CameraPos; // rotate cameraPos instead of center because rotate center need inverse modelRotate
-
-            float resolution = (genData.VoxelSize * 100.0f) / (a - c).Length();
-            return resolution < 0.3f;
-        }
-
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)
         {
             IsHollow = false;
