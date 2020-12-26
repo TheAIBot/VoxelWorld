@@ -12,6 +12,7 @@ namespace VoxelWorld
         public Vector3 Translation = new Vector3(0, 0, 0);
         public Vector3 RotatedLookDir = new Vector3(0, 0, 0);
         public Vector3 CameraPos = new Vector3(0, 0, 0);
+        public float FOV = 0.0f;
 
         public void Update(PlayerCamera camera, float yAngle)
         {
@@ -19,6 +20,7 @@ namespace VoxelWorld
             RevRotation = Matrix4.CreateRotationY(-yAngle);
             RotatedLookDir = Rotation * camera.LookDirection;
             CameraPos = camera.CameraPos;
+            FOV = camera.FieldOfView;
         }
     }
 

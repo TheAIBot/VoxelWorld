@@ -36,10 +36,14 @@ namespace VoxelWorld
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
         {
             Vector3 a = modelTrans.Translation + (modelTrans.RevRotation * voxelCenter);
-            Vector3 c = modelTrans.CameraPos; // rotate cameraPos instead of center because rotate center need inverse modelRotate
+            Vector3 c = modelTrans.CameraPos;
 
-            float resolution = (genData.VoxelSize * 100.0f) / (a - c).Length();
-            return resolution < 0.3f;
+            float distance = (a - c).Length();
+            distance = MathF.Pow(distance, 1.2f);
+
+            float spaceLength = MathF.Tan(modelTrans.FOV) * distance * 2.0f;
+
+            return genData.VoxelSize / spaceLength < 0.0015f;
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)

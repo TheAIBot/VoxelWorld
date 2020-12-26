@@ -18,7 +18,7 @@ namespace VoxelWorld
         private Vector2 CameraAngles;
         private bool FirstLeftClick = true;
 
-        private float FieldOfView = 45.0f * (MathF.PI / 180.0f);
+        public float FieldOfView = 45.0f * (MathF.PI / 180.0f);
 
         public Matrix4 Perspective 
         {
