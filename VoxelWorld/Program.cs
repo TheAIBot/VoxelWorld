@@ -9,6 +9,8 @@ using VoxelWorld.Shaders;
 
 namespace VoxelWorld
 {
+    internal record DirectionalLight(Vector4 Position, Vector4 Ambient, Vector4 Diffuse, Vector4 Specular);
+    internal record Material(Vector4 Diffuse, Vector4 Specular, float Shininess);
 
     class Program
     {
@@ -52,7 +54,18 @@ namespace VoxelWorld
             Input.Subscribe('1', () => renderMesh = !renderMesh);
             Input.Subscribe('2', () => renderPoints = !renderPoints);
 
+            DirectionalLight light = new DirectionalLight(
+                new Vector4(-15, -15, 0.0f, 0.0f),
+                new Vector4(0.01f, 0.01f, 0.01f, 0.4f),
+                new Vector4(0.6f, 0.6f, 0.3f, 0.6f),
+                new Vector4(0.3f, 0.3f, 0.1f, 0.3f)
+            );
 
+            Material material = new Material(
+                new Vector4(0.6f, 0.3f, 0.3f, 0.4f),
+                new Vector4(0.6f, 0.3f, 0.3f, 0.4f),
+                25.0f
+            );
 
             var planetGen = new PlanetGen(3, 8.0f, 3.0f, 3.0f);
             VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
@@ -115,20 +128,10 @@ namespace VoxelWorld
 
                 ShaderProgram meshShader = SimpleShader.GetShader();
                 meshShader.Use();
-                meshShader["P"].SetValue(player.Perspective);
-                meshShader["V"].SetValue(player.View);
-                meshShader["M"].SetValue(system.Model);
 
-                meshShader["light_pos"].SetValue((new Vector4(-15, -15, 0.0f, 0.0f)));
-                meshShader["light_amb"].SetValue(new Vector4(0.01f, 0.01f, 0.01f, 0.4f));
-                meshShader["light_diff"].SetValue(new Vector4(0.6f, 0.6f, 0.3f, 0.6f));
-                meshShader["light_spec"].SetValue(new Vector4(0.3f, 0.3f, 0.1f, 0.3f));
-
-                meshShader["mat_diff"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
-                meshShader["mat_spec"].SetValue(new Vector4(0.6f, 0.3f, 0.3f, 0.4f));
-                meshShader["mat_spec_exp"].SetValue(25.0f);
-
-                meshShader["viewPos"].SetValue(player.CameraPos);
+                SimpleShader.SetPVM(renderFrom.Perspective, renderFrom.View, system.Model);
+                SimpleShader.SetLight(light, renderFrom.CameraPos);
+                SimpleShader.SetMaterial(material);
 
                 VoxelGridInfo.DrawCalls = 0;
                 if (renderMesh)

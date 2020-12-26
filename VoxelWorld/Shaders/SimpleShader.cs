@@ -1,7 +1,5 @@
 ﻿using OpenGL;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Numerics;
 
 namespace VoxelWorld.Shaders
 {
@@ -69,6 +67,30 @@ void main(void)
         internal static ShaderProgram  GetShader()
         {
             return Static_Shader;
+        }
+
+        internal static void SetPVM(Matrix4 perspective, Matrix4 view, Matrix4 model)
+        {
+            Static_Shader["P"].SetValue(perspective);
+            Static_Shader["V"].SetValue(view);
+            Static_Shader["M"].SetValue(model);
+        }
+
+        internal static void SetLight(DirectionalLight light, Vector3 cameraPosition)
+        {
+            Static_Shader["light_pos"].SetValue(light.Position);
+            Static_Shader["light_amb"].SetValue(light.Ambient);
+            Static_Shader["light_diff"].SetValue(light.Diffuse);
+            Static_Shader["light_spec"].SetValue(light.Specular);
+
+            Static_Shader["viewPos"].SetValue(cameraPosition);
+        }
+        
+        internal static void SetMaterial(Material material)
+        {
+            Static_Shader["mat_diff"].SetValue(material.Diffuse);
+            Static_Shader["mat_spec"].SetValue(material.Specular);
+            Static_Shader["mat_spec_exp"].SetValue(material.Shininess);
         }
     }
 }
