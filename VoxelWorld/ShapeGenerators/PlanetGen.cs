@@ -6,7 +6,7 @@ namespace VoxelWorld
 {
     internal readonly struct PlanetGen
     {
-        private readonly SeedsInfo Seeds;
+        internal readonly SeedsInfo Seeds;
         private readonly float PlanetRadius;
         private readonly float NoiseWeight;
         private readonly float NoiseFrequency;
@@ -22,15 +22,15 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float GenerateWeight(Vector4 pos)
+        public unsafe float GenerateWeight(Vector4 pos, float* aa)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
-            float noise = Turbulence(pos, sphere);
+            float noise = Turbulence(pos, aa, sphere);
 
             return noise * NoiseWeight + sphere;
         }
 
-        private float Turbulence(Vector4 pos, float sphereValue)
+        private unsafe float Turbulence(Vector4 pos, float* aa, float sphereValue)
         {
             sphereValue = MathF.Abs(sphereValue);
             float noiseSum = 0.0f;
@@ -41,7 +41,7 @@ namespace VoxelWorld
                 {
                     break;
                 }
-                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, pos * NoiseFrequency);
+                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, aa, pos * NoiseFrequency);
                 scale *= 0.5f;
                 pos *= 2.0f;
             }

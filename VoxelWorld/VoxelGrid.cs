@@ -60,24 +60,27 @@ namespace VoxelWorld
             return new Vector4(GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter), 0.0f);
         }
 
-        public void Randomize()
+        public unsafe void Randomize()
         {
             int IndexFromPos(int x, int y, int z)
             {
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            Vector4 topLeftCorner = GetTopLeftCorner();
-            for (int z = 0; z < GenData.GridSize; z++)
+            fixed (float* aa = GenData.WeightGen.Seeds.Seeds)
             {
-                for (int y = 0; y < GenData.GridSize; y++)
+                Vector4 topLeftCorner = GetTopLeftCorner();
+                for (int z = 0; z < GenData.GridSize; z++)
                 {
-                    for (int x = 0; x < GenData.GridSize; x++)
+                    for (int y = 0; y < GenData.GridSize; y++)
                     {
-                        Vector4 pos = topLeftCorner - new Vector4(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z, 0.0f);
+                        for (int x = 0; x < GenData.GridSize; x++)
+                        {
+                            Vector4 pos = topLeftCorner - new Vector4(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z, 0.0f);
 
-                        float noise = GenData.WeightGen.GenerateWeight(pos);
-                        GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
+                            float noise = GenData.WeightGen.GenerateWeight(pos, aa);
+                            GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
+                        }
                     }
                 }
             }

@@ -62,38 +62,35 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe static float GetNoise(SeedsInfo seeds, Vector4 pos)
+        internal unsafe static float GetNoise(SeedsInfo seeds, float* aa, Vector4 pos)
         {
             if (Avx.IsSupported)
             {
-                fixed (float* aa = seeds.Seeds)
+                Vector128<float> pospos = pos.AsVector128();
+                Vector256<float> pospospos = Vector256.Create(pospos, pospos);
+                Vector256<float> noise = Vector256<float>.Zero;
+                for (int i = 0; i < seeds.Seeds.Length; i += 32)
                 {
-                    Vector128<float> pospos = pos.AsVector128();
-                    Vector256<float> pospospos = Vector256.Create(pospos, pospos);
-                    Vector256<float> noise = Vector256<float>.Zero;
-                    for (int i = 0; i < seeds.Seeds.Length; i += 32)
-                    {
-                        //dotnet core 3.1 makes shit code generation so this temp variable is needed to
-                        //avoid that.
-                        //The problem does not persist in dotnet 5.0
-                        float* core3_1fix = aa + i;
-                        Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 0), 0b1111_1000);
-                        Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 8), 0b1111_0100);
-                        Vector256<float> s1 = Avx.Add(x0, x2);
+                    //dotnet core 3.1 makes shit code generation so this temp variable is needed to
+                    //avoid that.
+                    //The problem does not persist in dotnet 5.0
+                    float* core3_1fix = aa + i;
+                    Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 0), 0b1111_1000);
+                    Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 8), 0b1111_0100);
+                    Vector256<float> s1 = Avx.Add(x0, x2);
 
-                        Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 16), 0b1111_0010);
-                        Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 24), 0b1111_0001);
-                        Vector256<float> s2 = Avx.Add(x4, x6);
+                    Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 16), 0b1111_0010);
+                    Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 24), 0b1111_0001);
+                    Vector256<float> s2 = Avx.Add(x4, x6);
 
-                        noise = Avx.Add(noise, CosApproximationVectorized(Avx.Add(s1, s2)));
-                    }
-
-                    noise = Avx.HorizontalAdd(noise, noise);
-                    Vector128<float> lower = noise.GetLower();
-                    Vector128<float> upper = noise.GetUpper();
-                    Vector128<float> dd = Avx.Add(lower, upper);
-                    return Avx.Multiply(Avx.HorizontalAdd(dd, dd), Vector128.Create(seeds.Reci_SeedsCount)).GetElement(0);
+                    noise = Avx.Add(noise, CosApproximationVectorized(Avx.Add(s1, s2)));
                 }
+
+                noise = Avx.HorizontalAdd(noise, noise);
+                Vector128<float> lower = noise.GetLower();
+                Vector128<float> upper = noise.GetUpper();
+                Vector128<float> dd = Avx.Add(lower, upper);
+                return Avx.Multiply(Avx.HorizontalAdd(dd, dd), Vector128.Create(seeds.Reci_SeedsCount)).GetElement(0);
             }
             else
             {
