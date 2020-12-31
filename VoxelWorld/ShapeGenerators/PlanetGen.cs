@@ -22,7 +22,7 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float GenerateWeight(Vector3 pos)
+        public float GenerateWeight(Vector4 pos)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
             float noise = Turbulence(pos, sphere);
@@ -30,7 +30,7 @@ namespace VoxelWorld
             return noise * NoiseWeight + sphere;
         }
 
-        private float Turbulence(Vector3 pos, float sphereValue)
+        private float Turbulence(Vector4 pos, float sphereValue)
         {
             sphereValue = MathF.Abs(sphereValue);
             float noiseSum = 0.0f;

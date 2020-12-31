@@ -62,13 +62,13 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe static float GetNoise(SeedsInfo seeds, Vector3 pos)
+        internal unsafe static float GetNoise(SeedsInfo seeds, Vector4 pos)
         {
             if (Avx.IsSupported)
             {
                 fixed (float* aa = seeds.Seeds)
                 {
-                    Vector128<float> pospos = Vector128.Create(pos.X, pos.Y, pos.Z, 0.0f);
+                    Vector128<float> pospos = pos.AsVector128();
                     Vector256<float> pospospos = Vector256.Create(pospos, pospos);
                     Vector256<float> noise = Vector256<float>.Zero;
                     for (int i = 0; i < seeds.Seeds.Length; i += 32)

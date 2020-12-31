@@ -54,10 +54,10 @@ namespace VoxelWorld
             }
         }
 
-        private Vector3 GetTopLeftCorner()
+        private Vector4 GetTopLeftCorner()
         {
             float distanceFromCenter = (((float)GenData.GridSize - 1.0f) / 2.0f) * GenData.VoxelSize;
-            return GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter);
+            return new Vector4(GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter), 0.0f);
         }
 
         public void Randomize()
@@ -67,14 +67,14 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            Vector3 topLeftCorner = GetTopLeftCorner();
+            Vector4 topLeftCorner = GetTopLeftCorner();
             for (int z = 0; z < GenData.GridSize; z++)
             {
                 for (int y = 0; y < GenData.GridSize; y++)
                 {
                     for (int x = 0; x < GenData.GridSize; x++)
                     {
-                        Vector3 pos = topLeftCorner - new Vector3(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z);
+                        Vector4 pos = topLeftCorner - new Vector4(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z, 0.0f);
 
                         float noise = GenData.WeightGen.GenerateWeight(pos);
                         GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
@@ -173,7 +173,8 @@ namespace VoxelWorld
 
         public void Interpolate()
         {
-            Vector3 topLeftCorner = GetTopLeftCorner() - (new Vector3(GenData.VoxelSize) * 0.5f);
+            var topLeft = GetTopLeftCorner();
+            Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - (new Vector3(GenData.VoxelSize) * 0.5f);
 
             Vector3 xIncrement = new Vector3(1, 0, 0) * GenData.VoxelSize;
             Vector3 yIncrement = new Vector3(0, 1, 0) * GenData.VoxelSize;
