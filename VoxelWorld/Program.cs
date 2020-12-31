@@ -6,7 +6,9 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using VoxelWorld.Shaders;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleToAttribute("VoxelBench")]
 namespace VoxelWorld
 {
     internal record DirectionalLight(Vector4 Position, Vector4 Ambient, Vector4 Diffuse, Vector4 Specular);
@@ -153,7 +155,7 @@ namespace VoxelWorld
 
 
 
-                angle += 0.2f;
+                angle += 0.0002f;
 
 
 

@@ -5,27 +5,14 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": "Debug",
+            "name": ".NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/VoxelWorld/bin/Debug/net5.0/VoxelWorld.dll",
+            "program": "${workspaceFolder}/bin/Debug/net5.0/VoxelBench.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/VoxelWorld/bin/Debug/net5.0/",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": "Release",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "buildRelease",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/VoxelWorld/bin/Release/net5.0/VoxelWorld.dll",
-            "args": ["-c",  "Release"],
-            "cwd": "${workspaceFolder}/VoxelWorld/bin/Release/net5.0/",
+            "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
