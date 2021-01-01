@@ -71,16 +71,12 @@ namespace VoxelWorld
                 Vector256<float> noise = Vector256<float>.Zero;
                 for (int i = 0; i < seeds.Seeds.Length; i += 32)
                 {
-                    //dotnet core 3.1 makes shit code generation so this temp variable is needed to
-                    //avoid that.
-                    //The problem does not persist in dotnet 5.0
-                    float* core3_1fix = aa + i;
-                    Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 0), 0b1111_1000);
-                    Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 8), 0b1111_0100);
+                    Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 0), 0b1111_1000);
+                    Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 8), 0b1111_0100);
                     Vector256<float> s1 = Avx.Add(x0, x2);
 
-                    Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 16), 0b1111_0010);
-                    Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(core3_1fix + 24), 0b1111_0001);
+                    Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 16), 0b1111_0010);
+                    Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 24), 0b1111_0001);
                     Vector256<float> s2 = Avx.Add(x4, x6);
 
                     noise = Avx.Add(noise, CosApproximationVectorized(Avx.Add(s1, s2)));
