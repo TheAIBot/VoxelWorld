@@ -25,24 +25,24 @@ namespace VoxelWorld
         public unsafe float GenerateWeight(Vector4 pos, float* aa)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
-            float noise = Turbulence(pos, aa, sphere);
+            float noise = Turbulence(pos * NoiseFrequency, aa, sphere);
 
             return noise * NoiseWeight + sphere;
         }
 
         private unsafe float Turbulence(Vector4 pos, float* aa, float sphereValue)
         {
-            sphereValue = MathF.Abs(sphereValue);
+            sphereValue = MathF.Abs(sphereValue) / NoiseWeight;
             float noiseSum = 0.0f;
-            float scale = 1.0f;
+            float scale = 2.0f;
             for (int i = 0; i < TURBULENCE_COUNT; i++)
             {
-                if (sphereValue > (MathF.Abs(noiseSum) + scale * 2.0f) * NoiseWeight)
+                if (sphereValue > (MathF.Abs(noiseSum) + scale))
                 {
                     break;
                 }
-                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, aa, pos * NoiseFrequency);
                 scale *= 0.5f;
+                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, aa, pos);
                 pos *= 2.0f;
             }
 
