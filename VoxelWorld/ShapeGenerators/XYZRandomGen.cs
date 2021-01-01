@@ -63,12 +63,12 @@ namespace VoxelWorld
                 Vector256<float> noise = Vector256<float>.Zero;
                 for (int i = 0; i < seeds.Seeds.Length; i += 32)
                 {
-                    Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 0), 0b1111_1000);
-                    Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 8), 0b1111_0100);
+                    Vector256<float> x0 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 0), 0b0111_1000);
+                    Vector256<float> x2 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 8), 0b0111_0100);
                     Vector256<float> s1 = Avx.Add(x0, x2);
 
-                    Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 16), 0b1111_0010);
-                    Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 24), 0b1111_0001);
+                    Vector256<float> x4 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 16), 0b0111_0010);
+                    Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 24), 0b0111_0001);
                     Vector256<float> s2 = Avx.Add(x4, x6);
 
                     Vector256<float> x = Avx.Add(s1, s2);
