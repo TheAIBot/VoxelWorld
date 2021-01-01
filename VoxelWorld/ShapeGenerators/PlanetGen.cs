@@ -32,12 +32,12 @@ namespace VoxelWorld
 
         private unsafe float Turbulence(Vector4 pos, float* aa, float sphereValue)
         {
-            sphereValue = MathF.Abs(sphereValue) / NoiseWeight;
+            sphereValue = sphereValue / NoiseWeight;
             float noiseSum = 0.0f;
             float scale = 2.0f;
             for (int i = 0; i < TURBULENCE_COUNT; i++)
             {
-                if (sphereValue > (MathF.Abs(noiseSum) + scale))
+                if (MathF.Abs(sphereValue + noiseSum) > scale)
                 {
                     break;
                 }
