@@ -47,25 +47,17 @@ namespace VoxelWorld
     internal static class XYZRandomGen
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> CosApproximationVectorized(Vector256<float> x)
-        {
-            Vector256<float> const0_25 = Vector256.Create(0.25f);
-            Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
-            Vector256<float> const16 = Vector256.Create(16.0f);
-            Vector256<float> const0_5 = Vector256.Create(0.5f);
-            Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-
-            x = Avx.Multiply(x, consttp);
-            x = Avx.Subtract(x, Avx.Add(const0_25, Avx.Floor(Avx.Add(x, const0_25))));
-            x = Avx.Multiply(Avx.Multiply(const16, x), Avx.Subtract(Avx.And(x, const_noSign), const0_5));
-            return x;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal unsafe static float GetNoise(SeedsInfo seeds, float* aa, Vector4 pos)
         {
             if (Avx.IsSupported)
             {
+                //Cos approximation constants
+                Vector256<float> const0_25 = Vector256.Create(0.25f);
+                Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
+                Vector256<float> const16 = Vector256.Create(16.0f);
+                Vector256<float> const0_5 = Vector256.Create(0.5f);
+                Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
+
                 Vector128<float> pospos = pos.AsVector128();
                 Vector256<float> pospospos = Vector256.Create(pospos, pospos);
                 Vector256<float> noise = Vector256<float>.Zero;
@@ -79,7 +71,14 @@ namespace VoxelWorld
                     Vector256<float> x6 = Avx.DotProduct(pospospos, Avx.LoadVector256(aa + i + 24), 0b1111_0001);
                     Vector256<float> s2 = Avx.Add(x4, x6);
 
-                    noise = Avx.Add(noise, CosApproximationVectorized(Avx.Add(s1, s2)));
+                    Vector256<float> x = Avx.Add(s1, s2);
+
+                    //Cos approximation
+                    x = Avx.Multiply(x, consttp);
+                    x = Avx.Subtract(x, Avx.Add(const0_25, Avx.Floor(Avx.Add(x, const0_25))));
+                    x = Avx.Multiply(Avx.Multiply(const16, x), Avx.Subtract(Avx.And(x, const_noSign), const0_5));
+
+                    noise = Avx.Add(noise, x);
                 }
 
                 noise = Avx.HorizontalAdd(noise, noise);
