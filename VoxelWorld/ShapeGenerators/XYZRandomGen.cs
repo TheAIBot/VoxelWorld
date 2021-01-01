@@ -46,15 +46,15 @@ namespace VoxelWorld
 
     internal static class XYZRandomGen
     {
-        private static readonly Vector256<float> const0_25 = Vector256.Create(0.25f);
-        private static readonly Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
-        private static readonly Vector256<float> const16 = Vector256.Create(16.0f);
-        private static readonly Vector256<float> const0_5 = Vector256.Create(0.5f);
-        private static readonly Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe static Vector256<float> CosApproximationVectorized(Vector256<float> x)
+        private static Vector256<float> CosApproximationVectorized(Vector256<float> x)
         {
+            Vector256<float> const0_25 = Vector256.Create(0.25f);
+            Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
+            Vector256<float> const16 = Vector256.Create(16.0f);
+            Vector256<float> const0_5 = Vector256.Create(0.5f);
+            Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
+
             x = Avx.Multiply(x, consttp);
             x = Avx.Subtract(x, Avx.Add(const0_25, Avx.Floor(Avx.Add(x, const0_25))));
             x = Avx.Multiply(Avx.Multiply(const16, x), Avx.Subtract(Avx.And(x, const_noSign), const0_5));
