@@ -62,23 +62,30 @@ namespace VoxelWorld
 
         public unsafe void Randomize()
         {
-            fixed (float* aa = GenData.WeightGen.Seeds.Seeds)
+            if (Avx.IsSupported)
             {
-                Vector4 topLeftCorner = GetTopLeftCorner();
-                int index = 0;
-                for (int z = 0; z < GenData.GridSize; z++)
+                fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
                 {
-                    for (int y = 0; y < GenData.GridSize; y++)
+                    Vector4 topLeftCorner = GetTopLeftCorner();
+                    int index = 0;
+                    for (int z = 0; z < GenData.GridSize; z++)
                     {
-                        for (int x = 0; x < GenData.GridSize; x++)
+                        for (int y = 0; y < GenData.GridSize; y++)
                         {
-                            Vector4 pos = topLeftCorner - new Vector4(x, y, z, 0.0f) * GenData.VoxelSize;
+                            for (int x = 0; x < GenData.GridSize; x++)
+                            {
+                                Vector4 pos = topLeftCorner - new Vector4(x, y, z, 0.0f) * GenData.VoxelSize;
 
-                            float noise = GenData.WeightGen.GenerateWeight(pos, aa);
-                            GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
+                                float noise = GenData.WeightGen.GenerateWeight(pos, seedsPtr);
+                                GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
+                            }
                         }
                     }
                 }
+            }
+            else
+            {
+                throw new Exception("I was too lazy so you need AVX in order to run this program.");
             }
         }
 

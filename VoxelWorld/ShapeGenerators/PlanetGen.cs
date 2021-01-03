@@ -22,15 +22,15 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe float GenerateWeight(Vector4 pos, float* aa)
+        public unsafe float GenerateWeight(Vector4 pos, float* seedsPtr)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
-            float noise = Turbulence(pos * NoiseFrequency, aa, sphere);
+            float noise = Turbulence(pos * NoiseFrequency, seedsPtr, sphere);
 
             return noise * NoiseWeight + sphere;
         }
 
-        private unsafe float Turbulence(Vector4 pos, float* aa, float sphereValue)
+        private unsafe float Turbulence(Vector4 pos, float* seedsPtr, float sphereValue)
         {
             sphereValue = sphereValue / NoiseWeight;
             float noiseSum = 0.0f;
@@ -42,7 +42,7 @@ namespace VoxelWorld
                     break;
                 }
                 scale *= 0.5f;
-                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, aa, pos);
+                noiseSum += scale * XYZRandomGen.GetNoise(Seeds, seedsPtr, pos);
                 pos *= 2.0f;
             }
 
