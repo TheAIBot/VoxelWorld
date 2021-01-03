@@ -14,6 +14,19 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "buildRelease",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "-c", "Release",
+                "${workspaceFolder}/VoxelWorld.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "publish",
             "command": "dotnet",
             "type": "process",

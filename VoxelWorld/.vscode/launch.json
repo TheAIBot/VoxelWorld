@@ -21,7 +21,7 @@
             "name": "Release",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "buildRelease",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Release/net5.0/VoxelWorld.dll",
             "args": ["-c", "Release"],
