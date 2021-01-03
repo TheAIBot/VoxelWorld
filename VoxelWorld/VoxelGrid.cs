@@ -62,24 +62,20 @@ namespace VoxelWorld
 
         public unsafe void Randomize()
         {
-            int IndexFromPos(int x, int y, int z)
-            {
-                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
-            }
-
             fixed (float* aa = GenData.WeightGen.Seeds.Seeds)
             {
                 Vector4 topLeftCorner = GetTopLeftCorner();
+                int index = 0;
                 for (int z = 0; z < GenData.GridSize; z++)
                 {
                     for (int y = 0; y < GenData.GridSize; y++)
                     {
                         for (int x = 0; x < GenData.GridSize; x++)
                         {
-                            Vector4 pos = topLeftCorner - new Vector4(GenData.VoxelSize * x, GenData.VoxelSize * y, GenData.VoxelSize * z, 0.0f);
+                            Vector4 pos = topLeftCorner - new Vector4(x, y, z, 0.0f) * GenData.VoxelSize;
 
                             float noise = GenData.WeightGen.GenerateWeight(pos, aa);
-                            GridSign[IndexFromPos(x, y, z)] = (sbyte)MathF.Sign(noise);
+                            GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
                         }
                     }
                 }
