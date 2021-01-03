@@ -64,6 +64,7 @@ namespace VoxelWorld
         {
             if (Avx.IsSupported)
             {
+                float* prods = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
                 {
                     Vector4 topLeftCorner = GetTopLeftCorner();
@@ -76,7 +77,7 @@ namespace VoxelWorld
                             {
                                 Vector4 pos = topLeftCorner - new Vector4(x, y, z, 0.0f) * GenData.VoxelSize;
 
-                                float noise = GenData.WeightGen.GenerateWeight(pos, seedsPtr);
+                                float noise = GenData.WeightGen.GenerateWeight(pos, seedsPtr, prods);
                                 GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
                             }
                         }
