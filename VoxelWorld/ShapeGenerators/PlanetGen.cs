@@ -67,9 +67,9 @@ namespace VoxelWorld
                         Vector256<float> ps56 = Avx.DotProduct(pos256, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
                         Vector256<float> ps78 = Avx.DotProduct(pos256, s78, 0b0111_0001);//[_,_,_,8,_,_,_,7]
 
-                        Vector256<float> ps1234 = Avx.Add(ps12, ps34);//[2,4,_,_,1,3,_,_]
-                        Vector256<float> ps5678 = Avx.Add(ps56, ps78);//[_,_,6,8,_,_,5,7]
-                        Vector256<float> ps = Avx.Add(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
+                        Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
+                        Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
+                        Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
 
                         Avx.Store(prods + index, ps);
                         index += Vector256<float>.Count;
