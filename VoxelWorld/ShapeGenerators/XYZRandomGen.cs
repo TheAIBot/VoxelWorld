@@ -62,7 +62,7 @@ namespace VoxelWorld
             Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
 
             Vector256<float> noise = Vector256<float>.Zero;
-            for (int i = 0; i < seeds.Seeds.Length / 4; i += Vector256<float>.Count)
+            for (int i = 0; i < seeds.GetSeedsCount(); i += Vector256<float>.Count)
             {
                 Vector256<float> ps = Avx.LoadVector256(seedsPtr + i);
 
@@ -74,11 +74,10 @@ namespace VoxelWorld
                 noise = Avx.Add(noise, cosApprox);
             }
 
-            noise = Avx.HorizontalAdd(noise, noise);
+            noise = Avx.DotProduct(noise, Vector256.Create(seeds.Reci_SeedsCount), 0b1111_0001);
             Vector128<float> lower = noise.GetLower();
             Vector128<float> upper = noise.GetUpper();
-            Vector128<float> dd = Avx.Add(lower, upper);
-            return Avx.HorizontalAdd(dd, dd).GetElement(0) * seeds.Reci_SeedsCount;
+            return Avx.Add(lower, upper).GetElement(0);
         }
     }
 }
