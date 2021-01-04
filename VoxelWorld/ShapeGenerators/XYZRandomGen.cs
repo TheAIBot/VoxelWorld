@@ -19,6 +19,11 @@ namespace VoxelWorld
             this.Reci_SeedsCount = 1.0f / (seedCount);
         }
 
+        internal int GetSeedsCount()
+        {
+            return Seeds.Length / 4;
+        }
+
         private static float[] Initialize(int seed, int seedLength)
         {
             Random rand = new Random(seed);

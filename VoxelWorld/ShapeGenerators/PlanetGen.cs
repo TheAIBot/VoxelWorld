@@ -77,7 +77,7 @@ namespace VoxelWorld
                 }
                 else
                 {
-                    for (int i = 0; i < Seeds.Seeds.Length / 4; i += Vector256<float>.Count)
+                    for (int i = 0; i < Seeds.GetSeedsCount(); i += Vector256<float>.Count)
                     {
                         var fgre = Avx.LoadVector256(prods + i);
                         Avx.Store(prods + i, Avx.Add(fgre, fgre));
@@ -86,7 +86,6 @@ namespace VoxelWorld
 
                 scale *= 0.5f;
                 noiseSum += scale * XYZRandomGen.GetNoise(Seeds, prods);
-                pos *= 2.0f;
             }
 
             return noiseSum;
