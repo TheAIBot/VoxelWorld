@@ -64,17 +64,17 @@ namespace VoxelWorld
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
             float noise = Turbulence(sphere, noiseValues, cosApprox);
 
-            return noise + sphere;
+            return noise;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe float Turbulence(float sphereValue, float* noiseValues, in CosApproxConsts cosApprox)
         {
-            float noiseSum = 0.0f;
+            float noiseSum = sphereValue;
             float scale = 2.0f * NoiseWeight;
             for (int q = 0; q < TURBULENCE_COUNT; q++)
             {
-                if (MathF.Abs(sphereValue + noiseSum) > scale)
+                if (MathF.Abs(noiseSum) > scale)
                 {
                     break;
                 }
