@@ -63,6 +63,11 @@ namespace VoxelWorld
 
         public unsafe void Randomize()
         {
+            Vector128<float> ToFloat128(int x, int y, int z, int w)
+            {
+                return Avx.ConvertToVector128Single(Vector128.Create(x, y, z, w));
+            }
+
             if (Avx.IsSupported)
             {
                 float* noiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
@@ -92,6 +97,8 @@ namespace VoxelWorld
 
                         Avx.Store(xNoiseDeltas + i, ps);
                     } 
+
+                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds);
                       
 
                     Vector4 topLeftCorner = GetTopLeftCorner();
@@ -100,7 +107,7 @@ namespace VoxelWorld
                     {
                         for (int y = 0; y < GenData.GridSize; y++)
                         {
-                            Vector4 posdwa = (topLeftCorner - new Vector4(0.0f, y, z, 0.0f) * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
+                            Vector4 posdwa = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
                             Vector128<float> pos128 = posdwa.AsVector128();
                             Vector256<float> pos256 = Vector256.Create(pos128, pos128);
 
@@ -128,9 +135,9 @@ namespace VoxelWorld
 
                             for (int x = 0; x < GenData.GridSize; x++)
                             {
-                                Vector4 pos = topLeftCorner - new Vector4(x, y, z, 0.0f) * GenData.VoxelSize;
+                                Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
 
-                                float noise = GenData.WeightGen.GenerateWeight(pos, noiseValues);
+                                float noise = GenData.WeightGen.GenerateWeight(pos, noiseValues, cosApprox);
                                 GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
 
                                 for (int i = 0; i < GenData.WeightGen.Seeds.GetSeedsCount(); i += Vector256<float>.Count)

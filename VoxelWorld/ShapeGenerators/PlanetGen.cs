@@ -6,6 +6,41 @@ using System.Runtime.Intrinsics.X86;
 
 namespace VoxelWorld
 {
+    internal readonly struct CosApproxConsts
+    {
+        internal readonly Vector256<float> const0_25;
+        internal readonly Vector256<float> consttp;
+        internal readonly Vector256<float> const16;
+        internal readonly Vector256<float> const0_5;
+        internal readonly Vector256<float> const_noSign;
+        internal readonly Vector256<float> seedsCountReci;
+
+        internal CosApproxConsts(SeedsInfo seeds)
+        {
+            const0_25 = Vector256.Create(0.25f);
+            consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
+            const16 = Vector256.Create(16.0f);
+            const0_5 = Vector256.Create(0.5f);
+            const_noSign = Vector256.Create(0x7fffffff).AsSingle();
+            seedsCountReci = Vector256.Create(seeds.Reci_SeedsCount);
+        }
+
+        internal Vector256<float> Cos(Vector256<float> x)
+        {
+            Vector256<float> cosApprox = Avx.Multiply(x, consttp);
+            cosApprox = Avx.Subtract(cosApprox, Avx.Add(const0_25, Avx.Floor(Avx.Add(cosApprox, const0_25))));
+            return Avx.Multiply(Avx.Multiply(const16, cosApprox), Avx.Subtract(Avx.And(cosApprox, const_noSign), const0_5));
+        }
+
+        internal float HorizontalSum(Vector256<float> x)
+        {
+            Vector256<float> sum = Avx.DotProduct(x, seedsCountReci, 0b1111_0001);
+            Vector128<float> lower = sum.GetLower();
+            Vector128<float> upper = sum.GetUpper();
+            return Avx.Add(lower, upper).GetElement(0);
+        }
+    }
+
     internal readonly struct PlanetGen
     {
         internal readonly SeedsInfo Seeds;
@@ -24,25 +59,17 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe float GenerateWeight(Vector4 pos, float* noiseValues)
+        public unsafe float GenerateWeight(Vector4 pos, float* noiseValues, in CosApproxConsts cosApprox)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
-            float noise = Turbulence(sphere, noiseValues);
+            float noise = Turbulence(sphere, noiseValues, cosApprox);
 
             return noise + sphere;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe float Turbulence(float sphereValue, float* noiseValues)
+        private unsafe float Turbulence(float sphereValue, float* noiseValues, in CosApproxConsts cosApprox)
         {
-            //Cos approximation constants
-            Vector256<float> const0_25 = Vector256.Create(0.25f);
-            Vector256<float> consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
-            Vector256<float> const16 = Vector256.Create(16.0f);
-            Vector256<float> const0_5 = Vector256.Create(0.5f);
-            Vector256<float> const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-            Vector256<float> seedsCountReci = Vector256.Create(Seeds.Reci_SeedsCount);
-
             float noiseSum = 0.0f;
             float scale = 2.0f * NoiseWeight;
             for (int q = 0; q < TURBULENCE_COUNT; q++)
@@ -60,22 +87,17 @@ namespace VoxelWorld
                     Vector256<float> noises = Avx.LoadVector256(noiseValues + i);
 
                     //Cos approximation
-                    Vector256<float> cosApprox = Avx.Multiply(noises, consttp);
-                    cosApprox = Avx.Subtract(cosApprox, Avx.Add(const0_25, Avx.Floor(Avx.Add(cosApprox, const0_25))));
-                    cosApprox = Avx.Multiply(Avx.Multiply(const16, cosApprox), Avx.Subtract(Avx.And(cosApprox, const_noSign), const0_5));
+                    Vector256<float> cosNoise = cosApprox.Cos(noises);
 
                     //Sum cos approximations
-                    noise = Avx.Add(noise, cosApprox);
+                    noise = Avx.Add(noise, cosNoise);
 
                     //Modify noise so the turbulence noise looks random
                     Vector256<float> turbulentNoise = Avx.Add(noises, noises);
                     Avx.Store(noiseValues + i, turbulentNoise);
                 }
 
-                noise = Avx.DotProduct(noise, seedsCountReci, 0b1111_0001);
-                Vector128<float> lower = noise.GetLower();
-                Vector128<float> upper = noise.GetUpper();
-                noiseSum += scale * Avx.Add(lower, upper).GetElement(0);
+                noiseSum += scale * cosApprox.HorizontalSum(noise);
             }
 
             return noiseSum;
