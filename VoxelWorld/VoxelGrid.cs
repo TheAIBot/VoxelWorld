@@ -622,15 +622,15 @@ namespace VoxelWorld
 
             int indiceIndex = 0;
 
-            void AddRectangleTriangles(Span<uint> indices, uint a, uint b, uint c, uint d)
+            void AddRectangleTriangles(Span<uint> indices, uint a, uint b, uint c, uint d, uint diff)
             {
-                indices[indiceIndex++] = c;
-                indices[indiceIndex++] = a;
-                indices[indiceIndex++] = b;
+                indices[indiceIndex++] = c + diff;
+                indices[indiceIndex++] = a + diff;
+                indices[indiceIndex++] = b + diff;
 
-                indices[indiceIndex++] = b;
-                indices[indiceIndex++] = d;
-                indices[indiceIndex++] = c;
+                indices[indiceIndex++] = b + diff;
+                indices[indiceIndex++] = d + diff;
+                indices[indiceIndex++] = c + diff;
             }
 
 
@@ -638,48 +638,57 @@ namespace VoxelWorld
             {
                 for (int y = 1; y < GenData.GridSize - 1; y++)
                 {
-                    for (int x = 1; x < GenData.GridSize - 1; x++)
+                    int x = 1;
+
+                    uint x0y0z0 = (uint)GridToVP(x + 0, y + 0, z + 0);
+                    uint x0y0z1 = (uint)GridToVP(x + 0, y + 0, z + 1);
+                    uint x0y1z0 = (uint)GridToVP(x + 0, y + 1, z + 0);
+                    uint x0y1z1 = (uint)GridToVP(x + 0, y + 1, z + 1);
+                    uint x1y0z0 = (uint)GridToVP(x + 1, y + 0, z + 0);
+                    uint x1y0z1 = (uint)GridToVP(x + 1, y + 0, z + 1);
+                    uint x1y1z0 = (uint)GridToVP(x + 1, y + 1, z + 0);
+                    uint x1y1z1 = (uint)GridToVP(x + 1, y + 1, z + 1);
+
+                    int gridIdxCenter = PosToGridIndex(x, y, z);
+                    int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
+                    int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
+                    int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
+                    int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
+                    int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
+                    int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
+
+                    for (int i = 0; i < GenData.GridSize - 2; i++)
                     {
-                        int centerSign = GridSign[PosToGridIndex(x, y, z)];
+                        int centerSign = GridSign[gridIdxCenter + i];
                         if (centerSign < 0)
                         {
                             continue;
                         }
 
-                        uint x0y0z0 = (uint)GridToVP(x + 0, y + 0, z + 0);
-                        uint x0y0z1 = (uint)GridToVP(x + 0, y + 0, z + 1);
-                        uint x0y1z0 = (uint)GridToVP(x + 0, y + 1, z + 0);
-                        uint x0y1z1 = (uint)GridToVP(x + 0, y + 1, z + 1);
-                        uint x1y0z0 = (uint)GridToVP(x + 1, y + 0, z + 0);
-                        uint x1y0z1 = (uint)GridToVP(x + 1, y + 0, z + 1);
-                        uint x1y1z0 = (uint)GridToVP(x + 1, y + 1, z + 0);
-                        uint x1y1z1 = (uint)GridToVP(x + 1, y + 1, z + 1);
-
-
-                        if (centerSign > GridSign[PosToGridIndex(x - 1, y, z)])
+                        if (centerSign > GridSign[gridIdxxn1 + i])
                         {
-                            AddRectangleTriangles(indices, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                            AddRectangleTriangles(indices, x0y0z1, x0y0z0, x0y1z1, x0y1z0, (uint)i);
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y - 1, z)])
+                        if (centerSign > GridSign[gridIdxyn1 + i])
                         {
-                            AddRectangleTriangles(indices, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                            AddRectangleTriangles(indices, x0y0z0, x0y0z1, x1y0z0, x1y0z1, (uint)i);
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y, z - 1)])
+                        if (centerSign > GridSign[gridIdxzn1 + i])
                         {
-                            AddRectangleTriangles(indices, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                            AddRectangleTriangles(indices, x0y1z0, x0y0z0, x1y1z0, x1y0z0, (uint)i);
                         }
 
-                        if (centerSign > GridSign[PosToGridIndex(x + 1, y, z)])
+                        if (centerSign > GridSign[gridIdxxp1 + i])
                         {
-                            AddRectangleTriangles(indices, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                            AddRectangleTriangles(indices, x1y0z0, x1y0z1, x1y1z0, x1y1z1, (uint)i);
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y + 1, z)])
+                        if (centerSign > GridSign[gridIdxyp1 + i])
                         {
-                            AddRectangleTriangles(indices, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                            AddRectangleTriangles(indices, x0y1z1, x0y1z0, x1y1z1, x1y1z0, (uint)i);
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y, z + 1)])
+                        if (centerSign > GridSign[gridIdxzp1 + i])
                         {
-                            AddRectangleTriangles(indices, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                            AddRectangleTriangles(indices, x0y0z1, x0y1z1, x1y0z1, x1y1z1, (uint)i);
                         }
                     }
                 }
