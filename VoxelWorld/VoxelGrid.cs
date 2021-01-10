@@ -488,20 +488,34 @@ namespace VoxelWorld
 
         private static int CountTruesWithPopCnt(bool[] bools)
         {
-            ReadOnlySpan<ulong> longs = MemoryMarshal.Cast<bool, ulong>(bools);
-            int sum = 0;
-            for (int i = 0; i < longs.Length; i++)
+            if (Popcnt.X64.IsSupported)
             {
-                sum += (int)Popcnt.X64.PopCount(longs[i]);
-            }
+                ReadOnlySpan<ulong> longs = MemoryMarshal.Cast<bool, ulong>(bools);
+                int sum = 0;
+                for (int i = 0; i < longs.Length; i++)
+                {
+                    sum += (int)Popcnt.X64.PopCount(longs[i]);
+                }
 
-            ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<bool, byte>(bools);
-            for (int i = longs.Length * sizeof(ulong); i < bytes.Length; i++)
+                ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<bool, byte>(bools);
+                for (int i = longs.Length * sizeof(ulong); i < bytes.Length; i++)
+                {
+                    sum += bytes[i];
+                }
+
+                return sum;   
+            }
+            else
             {
-                sum += bytes[i];
-            }
+                int sum = 0;
+                ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<bool, byte>(bools);
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    sum += bytes[i];
+                }
 
-            return sum;
+                return sum;   
+            }
         }
 
 
