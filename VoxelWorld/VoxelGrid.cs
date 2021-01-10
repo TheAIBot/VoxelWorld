@@ -343,7 +343,7 @@ namespace VoxelWorld
             }
         }
 
-        public void PreCalculateGeometryData()
+        public unsafe void PreCalculateGeometryData()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -355,86 +355,158 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            TriangleCount = 0;
-            for (int z = 1; z < GenData.GridSize - 1; z++)
+            fixed(sbyte* gridSignPtr = GridSign)
             {
-                for (int y = 1; y < GenData.GridSize - 1; y++)
+                fixed(bool* isUsingVoxelBoolPtr = IsUsingVoxelPoint)
                 {
-                    int x = 1;
-
-                    int x0y0z0 = GridToVP(x + 0, y + 0, z + 0);
-                    int x0y0z1 = GridToVP(x + 0, y + 0, z + 1);
-                    int x0y1z0 = GridToVP(x + 0, y + 1, z + 0);
-                    int x0y1z1 = GridToVP(x + 0, y + 1, z + 1);
-                    int x1y0z0 = GridToVP(x + 1, y + 0, z + 0);
-                    int x1y0z1 = GridToVP(x + 1, y + 0, z + 1);
-                    int x1y1z0 = GridToVP(x + 1, y + 1, z + 0);
-                    int x1y1z1 = GridToVP(x + 1, y + 1, z + 1);
-
-                    int gridIdxCenter = PosToGridIndex(x, y, z);
-                    int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
-                    int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
-                    int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
-                    int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
-                    int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
-                    int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
-
-                    for (int i = 0; i < GenData.GridSize - 2; i++)
+                    sbyte* isUsingVoxelPtr = (sbyte*)isUsingVoxelBoolPtr;
+                    TriangleCount = 0;
+                    for (int z = 1; z < GenData.GridSize - 1; z++)
                     {
-                        int centerSign = GridSign[gridIdxCenter + i];
-                        if (centerSign < 0)
+                        for (int y = 1; y < GenData.GridSize - 1; y++)
                         {
-                            continue;
-                        }
+                            int x = 1;
 
-                        if (centerSign > GridSign[gridIdxxn1 + i])
-                        {
-                            IsUsingVoxelPoint[x0y0z0 + i] = true;
-                            IsUsingVoxelPoint[x0y0z1 + i] = true;
-                            IsUsingVoxelPoint[x0y1z0 + i] = true;
-                            IsUsingVoxelPoint[x0y1z1 + i] = true;
-                            TriangleCount += 2;
-                        }
-                        if (centerSign > GridSign[gridIdxyn1 + i])
-                        {
-                            IsUsingVoxelPoint[x1y0z1 + i] = true;
-                            IsUsingVoxelPoint[x1y0z0 + i] = true;
-                            IsUsingVoxelPoint[x0y0z1 + i] = true;
-                            IsUsingVoxelPoint[x0y0z0 + i] = true;
-                            TriangleCount += 2;
-                        }
-                        if (centerSign > GridSign[gridIdxzn1 + i])
-                        {
-                            IsUsingVoxelPoint[x0y0z0 + i] = true;
-                            IsUsingVoxelPoint[x0y1z0 + i] = true;
-                            IsUsingVoxelPoint[x1y0z0 + i] = true;
-                            IsUsingVoxelPoint[x1y1z0 + i] = true;
-                            TriangleCount += 2;
-                        }
+                            int x0y0z0 = GridToVP(x + 0, y + 0, z + 0);
+                            int x0y0z1 = GridToVP(x + 0, y + 0, z + 1);
+                            int x0y1z0 = GridToVP(x + 0, y + 1, z + 0);
+                            int x0y1z1 = GridToVP(x + 0, y + 1, z + 1);
+                            int x1y0z0 = GridToVP(x + 1, y + 0, z + 0);
+                            int x1y0z1 = GridToVP(x + 1, y + 0, z + 1);
+                            int x1y1z0 = GridToVP(x + 1, y + 1, z + 0);
+                            int x1y1z1 = GridToVP(x + 1, y + 1, z + 1);
 
-                        if (centerSign > GridSign[gridIdxxp1 + i])
-                        {
-                            IsUsingVoxelPoint[x1y0z0 + i] = true;
-                            IsUsingVoxelPoint[x1y0z1 + i] = true;
-                            IsUsingVoxelPoint[x1y1z0 + i] = true;
-                            IsUsingVoxelPoint[x1y1z1 + i] = true;
-                            TriangleCount += 2;
-                        }
-                        if (centerSign > GridSign[gridIdxyp1 + i])
-                        {
-                            IsUsingVoxelPoint[x1y1z1 + i] = true;
-                            IsUsingVoxelPoint[x1y1z0 + i] = true;
-                            IsUsingVoxelPoint[x0y1z1 + i] = true;
-                            IsUsingVoxelPoint[x0y1z0 + i] = true;
-                            TriangleCount += 2;
-                        }
-                        if (centerSign > GridSign[gridIdxzp1 + i])
-                        {
-                            IsUsingVoxelPoint[x0y0z1 + i] = true;
-                            IsUsingVoxelPoint[x0y1z1 + i] = true;
-                            IsUsingVoxelPoint[x1y0z1 + i] = true;
-                            IsUsingVoxelPoint[x1y1z1 + i] = true;
-                            TriangleCount += 2;
+                            int gridIdxCenter = PosToGridIndex(x, y, z);
+                            int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
+                            int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
+                            int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
+                            int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
+                            int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
+                            int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
+
+                            int i = 0;
+                            if (Avx.IsSupported && Popcnt.X64.IsSupported)
+                            {
+                                //Does the same as the non vectorized version but does it 16 points at a time
+                                for (; i + Vector128<sbyte>.Count <= GenData.GridSize - 2; i += Vector128<sbyte>.Count)
+                                {
+                                    Vector128<sbyte> centerSigns = Avx.LoadVector128(gridSignPtr + gridIdxCenter + i);
+
+                                    Vector128<sbyte> gsXNeg = Avx.LoadVector128(gridSignPtr + gridIdxxn1 + i);
+                                    Vector128<sbyte> gsYNeg = Avx.LoadVector128(gridSignPtr + gridIdxyn1 + i);
+                                    Vector128<sbyte> gsZNeg = Avx.LoadVector128(gridSignPtr + gridIdxzn1 + i);
+                                    Vector128<sbyte> gsXPos = Avx.LoadVector128(gridSignPtr + gridIdxxp1 + i);
+                                    Vector128<sbyte> gsYPos = Avx.LoadVector128(gridSignPtr + gridIdxyp1 + i);
+                                    Vector128<sbyte> gsZPos = Avx.LoadVector128(gridSignPtr + gridIdxzp1 + i);
+
+                                    Vector128<sbyte> faceXNeg = Avx.CompareGreaterThan(centerSigns, gsXNeg);
+                                    Vector128<sbyte> faceYNeg = Avx.CompareGreaterThan(centerSigns, gsYNeg);
+                                    Vector128<sbyte> faceZNeg = Avx.CompareGreaterThan(centerSigns, gsZNeg);
+                                    Vector128<sbyte> faceXPos = Avx.CompareGreaterThan(centerSigns, gsXPos);
+                                    Vector128<sbyte> faceYPos = Avx.CompareGreaterThan(centerSigns, gsYPos);
+                                    Vector128<sbyte> faceZPos = Avx.CompareGreaterThan(centerSigns, gsZPos);
+
+                                    //Avx.CompareGreaterThan gives 0xff if true but a bool in C# has value 1.
+                                    //And with 1 so true is represented as 1 so the C# assumption is kept.
+                                    Vector128<sbyte> ones = Vector128.Create((sbyte)1);
+                                    faceXNeg = Avx.And(faceXNeg, ones);
+                                    faceYNeg = Avx.And(faceYNeg, ones);
+                                    faceZNeg = Avx.And(faceZNeg, ones);
+                                    faceXPos = Avx.And(faceXPos, ones);
+                                    faceYPos = Avx.And(faceYPos, ones);
+                                    faceZPos = Avx.And(faceZPos, ones);
+
+                                    //From the non vectorized version one can infer what face directions must be true
+                                    //in order for the voxel being used. 
+                                    //Pseudo: IsUsingVoxel[x] |= faceA | faceB | faceC
+                                    Avx.Store(isUsingVoxelPtr + x0y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Avx.Or(Avx.Or(faceXNeg, faceYNeg), faceZNeg)));
+                                    Avx.Store(isUsingVoxelPtr + x0y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Avx.Or(Avx.Or(faceXNeg, faceYNeg), faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x0y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Avx.Or(Avx.Or(faceXNeg, faceZNeg), faceYPos)));
+                                    Avx.Store(isUsingVoxelPtr + x0y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Avx.Or(Avx.Or(faceXNeg, faceYPos), faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Avx.Or(Avx.Or(faceYNeg, faceZNeg), faceXPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Avx.Or(Avx.Or(faceYNeg, faceXPos), faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Avx.Or(Avx.Or(faceZNeg, faceXPos), faceYPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Avx.Or(Avx.Or(faceXPos, faceYPos), faceZPos)));
+
+                                    //Need to count the number of faces so the triangle count can be updated.
+                                    //Each face is represented as a bit here. The idea is the shift the bits
+                                    //in the 6 xmm registers so no bits overlap. Or the registers together
+                                    //and use popcnt instruction in order to count the number of bits.
+                                    Vector128<sbyte> faceXNegShift = Avx.ShiftLeftLogical(faceXNeg.AsInt16(), 0).AsSByte();
+                                    Vector128<sbyte> faceYNegShift = Avx.ShiftLeftLogical(faceYNeg.AsInt16(), 1).AsSByte();
+                                    Vector128<sbyte> faceZNegShift = Avx.ShiftLeftLogical(faceZNeg.AsInt16(), 2).AsSByte();
+                                    Vector128<sbyte> faceXPosShift = Avx.ShiftLeftLogical(faceXPos.AsInt16(), 3).AsSByte();
+                                    Vector128<sbyte> faceYPosShift = Avx.ShiftLeftLogical(faceYPos.AsInt16(), 4).AsSByte();
+                                    Vector128<sbyte> faceZPosShift = Avx.ShiftLeftLogical(faceZPos.AsInt16(), 5).AsSByte();
+
+                                    //Or the registers together
+                                    Vector128<sbyte> bitPerFace = Avx.Or(Avx.Or(Avx.Or(faceXNegShift, faceYNegShift), Avx.Or(faceZNegShift, faceXPosShift)), Avx.Or(faceYPosShift, faceZPosShift));
+
+                                    //Use popcnt on the two ulongs to count the bits.
+                                    //Each face consists of two triangles.
+                                    int faces = (int)(Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(0)) + Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(1)));
+                                    TriangleCount += faces * 2;
+                                }   
+                            }
+                            
+                            for (; i < GenData.GridSize - 2; i++)
+                            {
+                                int centerSign = GridSign[gridIdxCenter + i];
+                                if (centerSign < 0)
+                                {
+                                    continue;
+                                }
+
+                                if (centerSign > GridSign[gridIdxxn1 + i])
+                                {
+                                    IsUsingVoxelPoint[x0y0z0 + i] = true;
+                                    IsUsingVoxelPoint[x0y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z0 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z1 + i] = true;
+                                    TriangleCount += 2;
+                                }
+                                if (centerSign > GridSign[gridIdxyn1 + i])
+                                {
+                                    IsUsingVoxelPoint[x1y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x1y0z0 + i] = true;
+                                    IsUsingVoxelPoint[x0y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x0y0z0 + i] = true;
+                                    TriangleCount += 2;
+                                }
+                                if (centerSign > GridSign[gridIdxzn1 + i])
+                                {
+                                    IsUsingVoxelPoint[x0y0z0 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z0 + i] = true;
+                                    IsUsingVoxelPoint[x1y0z0 + i] = true;
+                                    IsUsingVoxelPoint[x1y1z0 + i] = true;
+                                    TriangleCount += 2;
+                                }
+
+                                if (centerSign > GridSign[gridIdxxp1 + i])
+                                {
+                                    IsUsingVoxelPoint[x1y0z0 + i] = true;
+                                    IsUsingVoxelPoint[x1y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x1y1z0 + i] = true;
+                                    IsUsingVoxelPoint[x1y1z1 + i] = true;
+                                    TriangleCount += 2;
+                                }
+                                if (centerSign > GridSign[gridIdxyp1 + i])
+                                {
+                                    IsUsingVoxelPoint[x1y1z1 + i] = true;
+                                    IsUsingVoxelPoint[x1y1z0 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z1 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z0 + i] = true;
+                                    TriangleCount += 2;
+                                }
+                                if (centerSign > GridSign[gridIdxzp1 + i])
+                                {
+                                    IsUsingVoxelPoint[x0y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x0y1z1 + i] = true;
+                                    IsUsingVoxelPoint[x1y0z1 + i] = true;
+                                    IsUsingVoxelPoint[x1y1z1 + i] = true;
+                                    TriangleCount += 2;
+                                }
+                            }
                         }
                     }
                 }
