@@ -622,73 +622,107 @@ namespace VoxelWorld
 
             int indiceIndex = 0;
 
-            void AddRectangleTriangles(Span<uint> indices, uint a, uint b, uint c, uint d, uint diff)
+            unsafe
             {
-                indices[indiceIndex++] = c + diff;
-                indices[indiceIndex++] = a + diff;
-                indices[indiceIndex++] = b + diff;
-
-                indices[indiceIndex++] = b + diff;
-                indices[indiceIndex++] = d + diff;
-                indices[indiceIndex++] = c + diff;
-            }
-
-
-            for (int z = 1; z < GenData.GridSize - 1; z++)
-            {
-                for (int y = 1; y < GenData.GridSize - 1; y++)
+                void MakeFaceVectors(out Vector128<uint> face128, out Vector128<uint> face64, uint a, uint b, uint c, uint d)
                 {
-                    int x = 1;
+                    face128 = Vector128.Create(c, a, b, b);
+                    face64 = Vector128.Create(d, c, 0, 0);
+                }
 
-                    uint x0y0z0 = (uint)GridToVP(x + 0, y + 0, z + 0);
-                    uint x0y0z1 = (uint)GridToVP(x + 0, y + 0, z + 1);
-                    uint x0y1z0 = (uint)GridToVP(x + 0, y + 1, z + 0);
-                    uint x0y1z1 = (uint)GridToVP(x + 0, y + 1, z + 1);
-                    uint x1y0z0 = (uint)GridToVP(x + 1, y + 0, z + 0);
-                    uint x1y0z1 = (uint)GridToVP(x + 1, y + 0, z + 1);
-                    uint x1y1z0 = (uint)GridToVP(x + 1, y + 1, z + 0);
-                    uint x1y1z1 = (uint)GridToVP(x + 1, y + 1, z + 1);
+                Vector128<uint> faceXNeg128;
+                Vector128<uint> faceXNeg64;
+                Vector128<uint> faceYNeg128;
+                Vector128<uint> faceYNeg64;
+                Vector128<uint> faceZNeg128;
+                Vector128<uint> faceZNeg64;
+                Vector128<uint> faceXPos128;
+                Vector128<uint> faceXPos64;
+                Vector128<uint> faceYPos128;
+                Vector128<uint> faceYPos64;
+                Vector128<uint> faceZPos128;
+                Vector128<uint> faceZPos64;
+                {
+                    uint x0y0z0 = (uint)GridToVP(1, 1, 1);
+                    uint x0y0z1 = (uint)GridToVP(1, 1, 2);
+                    uint x0y1z0 = (uint)GridToVP(1, 2, 1);
+                    uint x0y1z1 = (uint)GridToVP(1, 2, 2);
+                    uint x1y0z0 = (uint)GridToVP(2, 1, 1);
+                    uint x1y0z1 = (uint)GridToVP(2, 1, 2);
+                    uint x1y1z0 = (uint)GridToVP(2, 2, 1);
+                    uint x1y1z1 = (uint)GridToVP(2, 2, 2);
 
-                    int gridIdxCenter = PosToGridIndex(x, y, z);
-                    int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
-                    int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
-                    int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
-                    int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
-                    int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
-                    int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
+                    MakeFaceVectors(out faceXNeg128, out faceXNeg64, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                    MakeFaceVectors(out faceYNeg128, out faceYNeg64, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                    MakeFaceVectors(out faceZNeg128, out faceZNeg64, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                    MakeFaceVectors(out faceXPos128, out faceXPos64, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                    MakeFaceVectors(out faceYPos128, out faceYPos64, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                    MakeFaceVectors(out faceZPos128, out faceZPos64, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                }
 
-                    for (int i = 0; i < GenData.GridSize - 2; i++)
+                fixed(uint* indicesPtr = indices)
+                {
+                    void AddRectangleTriangles(uint* indices, Vector128<uint> firstFourFaceVertices, Vector128<uint> lastTwoFaceVertices)
                     {
-                        int centerSign = GridSign[gridIdxCenter + i];
-                        if (centerSign < 0)
-                        {
-                            continue;
-                        }
+                        Avx.Store(indices + indiceIndex, firstFourFaceVertices);
+                        Avx.StoreLow((float*)(indices + indiceIndex + Vector128<uint>.Count), lastTwoFaceVertices.AsSingle());
+                        indiceIndex += 6;
+                    }
 
-                        if (centerSign > GridSign[gridIdxxn1 + i])
-                        {
-                            AddRectangleTriangles(indices, x0y0z1, x0y0z0, x0y1z1, x0y1z0, (uint)i);
-                        }
-                        if (centerSign > GridSign[gridIdxyn1 + i])
-                        {
-                            AddRectangleTriangles(indices, x0y0z0, x0y0z1, x1y0z0, x1y0z1, (uint)i);
-                        }
-                        if (centerSign > GridSign[gridIdxzn1 + i])
-                        {
-                            AddRectangleTriangles(indices, x0y1z0, x0y0z0, x1y1z0, x1y0z0, (uint)i);
-                        }
 
-                        if (centerSign > GridSign[gridIdxxp1 + i])
+
+                    for (int z = 1; z < GenData.GridSize - 1; z++)
+                    {
+                        for (int y = 1; y < GenData.GridSize - 1; y++)
                         {
-                            AddRectangleTriangles(indices, x1y0z0, x1y0z1, x1y1z0, x1y1z1, (uint)i);
-                        }
-                        if (centerSign > GridSign[gridIdxyp1 + i])
-                        {
-                            AddRectangleTriangles(indices, x0y1z1, x0y1z0, x1y1z1, x1y1z0, (uint)i);
-                        }
-                        if (centerSign > GridSign[gridIdxzp1 + i])
-                        {
-                            AddRectangleTriangles(indices, x0y0z1, x0y1z1, x1y0z1, x1y1z1, (uint)i);
+                            int x = 1;
+
+                            uint x0y0z0 = (uint)GridToVP(x + 0, y + 0, z + 0);
+
+                            int gridIdxCenter = PosToGridIndex(x, y, z);
+                            int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
+                            int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
+                            int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
+                            int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
+                            int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
+                            int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
+
+                            for (int i = 0; i < GenData.GridSize - 2; i++)
+                            {
+                                int centerSign = GridSign[gridIdxCenter + i];
+                                if (centerSign < 0)
+                                {
+                                    continue;
+                                }
+
+                                Vector128<uint> baseFaceIndex = Vector128.Create(x0y0z0 + (uint)i);
+
+                                if (centerSign > GridSign[gridIdxxn1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceXNeg128, baseFaceIndex), Avx.Add(faceXNeg64, baseFaceIndex));
+                                }
+                                if (centerSign > GridSign[gridIdxyn1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceYNeg128, baseFaceIndex), Avx.Add(faceYNeg64, baseFaceIndex));
+                                }
+                                if (centerSign > GridSign[gridIdxzn1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceZNeg128, baseFaceIndex), Avx.Add(faceZNeg64, baseFaceIndex));
+                                }
+
+                                if (centerSign > GridSign[gridIdxxp1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceXPos128, baseFaceIndex), Avx.Add(faceXPos64, baseFaceIndex));
+                                }
+                                if (centerSign > GridSign[gridIdxyp1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceYPos128, baseFaceIndex), Avx.Add(faceYPos64, baseFaceIndex));
+                                }
+                                if (centerSign > GridSign[gridIdxzp1 + i])
+                                {
+                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceZPos128, baseFaceIndex), Avx.Add(faceZPos64, baseFaceIndex));
+                                }
+                            }
                         }
                     }
                 }
