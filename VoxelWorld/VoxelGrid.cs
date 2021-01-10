@@ -360,70 +360,80 @@ namespace VoxelWorld
             {
                 for (int y = 1; y < GenData.GridSize - 1; y++)
                 {
-                    for (int x = 1; x < GenData.GridSize - 1; x++)
+                    int x = 1;
+
+                    int x0y0z0 = GridToVP(x + 0, y + 0, z + 0);
+                    int x0y0z1 = GridToVP(x + 0, y + 0, z + 1);
+                    int x0y1z0 = GridToVP(x + 0, y + 1, z + 0);
+                    int x0y1z1 = GridToVP(x + 0, y + 1, z + 1);
+                    int x1y0z0 = GridToVP(x + 1, y + 0, z + 0);
+                    int x1y0z1 = GridToVP(x + 1, y + 0, z + 1);
+                    int x1y1z0 = GridToVP(x + 1, y + 1, z + 0);
+                    int x1y1z1 = GridToVP(x + 1, y + 1, z + 1);
+
+                    int gridIdxCenter = PosToGridIndex(x, y, z);
+                    int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
+                    int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
+                    int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
+                    int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
+                    int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
+                    int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
+
+                    for (int i = 0; i < GenData.GridSize - 2; i++)
                     {
-                        int centerSign = GridSign[PosToGridIndex(x, y, z)];
+                        int centerSign = GridSign[gridIdxCenter + i];
                         if (centerSign < 0)
                         {
                             continue;
                         }
 
-                        int x0y0z0 = GridToVP(x + 0, y + 0, z + 0);
-                        int x0y0z1 = GridToVP(x + 0, y + 0, z + 1);
-                        int x0y1z0 = GridToVP(x + 0, y + 1, z + 0);
-                        int x0y1z1 = GridToVP(x + 0, y + 1, z + 1);
-                        int x1y0z0 = GridToVP(x + 1, y + 0, z + 0);
-                        int x1y0z1 = GridToVP(x + 1, y + 0, z + 1);
-                        int x1y1z0 = GridToVP(x + 1, y + 1, z + 0);
-                        int x1y1z1 = GridToVP(x + 1, y + 1, z + 1);
-
-                        if (centerSign > GridSign[PosToGridIndex(x - 1, y, z)])
+                        if (centerSign > GridSign[gridIdxxn1 + i])
                         {
-                            IsUsingVoxelPoint[x0y0z0] = true;
-                            IsUsingVoxelPoint[x0y0z1] = true;
-                            IsUsingVoxelPoint[x0y1z0] = true;
-                            IsUsingVoxelPoint[x0y1z1] = true;
+                            IsUsingVoxelPoint[x0y0z0 + i] = true;
+                            IsUsingVoxelPoint[x0y0z1 + i] = true;
+                            IsUsingVoxelPoint[x0y1z0 + i] = true;
+                            IsUsingVoxelPoint[x0y1z1 + i] = true;
                             TriangleCount += 2;
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y - 1, z)])
+                        if (centerSign > GridSign[gridIdxyn1 + i])
                         {
-                            IsUsingVoxelPoint[x1y0z1] = true;
-                            IsUsingVoxelPoint[x1y0z0] = true;
-                            IsUsingVoxelPoint[x0y0z1] = true;
-                            IsUsingVoxelPoint[x0y0z0] = true;
+                            IsUsingVoxelPoint[x1y0z1 + i] = true;
+                            IsUsingVoxelPoint[x1y0z0 + i] = true;
+                            IsUsingVoxelPoint[x0y0z1 + i] = true;
+                            IsUsingVoxelPoint[x0y0z0 + i] = true;
                             TriangleCount += 2;
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y, z - 1)])
+                        if (centerSign > GridSign[gridIdxzn1 + i])
                         {
-                            IsUsingVoxelPoint[x0y0z0] = true;
-                            IsUsingVoxelPoint[x0y1z0] = true;
-                            IsUsingVoxelPoint[x1y0z0] = true;
-                            IsUsingVoxelPoint[x1y1z0] = true;
+                            IsUsingVoxelPoint[x0y0z0 + i] = true;
+                            IsUsingVoxelPoint[x0y1z0 + i] = true;
+                            IsUsingVoxelPoint[x1y0z0 + i] = true;
+                            IsUsingVoxelPoint[x1y1z0 + i] = true;
                             TriangleCount += 2;
                         }
 
-                        if (centerSign > GridSign[PosToGridIndex(x + 1, y, z)])
+                        if (centerSign > GridSign[gridIdxxp1 + i])
                         {
-                            IsUsingVoxelPoint[x1y0z0] = true;
-                            IsUsingVoxelPoint[x1y0z1] = true;
-                            IsUsingVoxelPoint[x1y1z0] = true;
-                            IsUsingVoxelPoint[x1y1z1] = true;
+                            IsUsingVoxelPoint[x1y0z0 + i] = true;
+                            IsUsingVoxelPoint[x1y0z1 + i] = true;
+                            IsUsingVoxelPoint[x1y1z0 + i] = true;
+                            IsUsingVoxelPoint[x1y1z1 + i] = true;
                             TriangleCount += 2;
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y + 1, z)])
+                        if (centerSign > GridSign[gridIdxyp1 + i])
                         {
-                            IsUsingVoxelPoint[x1y1z1] = true;
-                            IsUsingVoxelPoint[x1y1z0] = true;
-                            IsUsingVoxelPoint[x0y1z1] = true;
-                            IsUsingVoxelPoint[x0y1z0] = true;
+                            IsUsingVoxelPoint[x1y1z1 + i] = true;
+                            IsUsingVoxelPoint[x1y1z0 + i] = true;
+                            IsUsingVoxelPoint[x0y1z1 + i] = true;
+                            IsUsingVoxelPoint[x0y1z0 + i] = true;
                             TriangleCount += 2;
                         }
-                        if (centerSign > GridSign[PosToGridIndex(x, y, z + 1)])
+                        if (centerSign > GridSign[gridIdxzp1 + i])
                         {
-                            IsUsingVoxelPoint[x0y0z1] = true;
-                            IsUsingVoxelPoint[x0y1z1] = true;
-                            IsUsingVoxelPoint[x1y0z1] = true;
-                            IsUsingVoxelPoint[x1y1z1] = true;
+                            IsUsingVoxelPoint[x0y0z1 + i] = true;
+                            IsUsingVoxelPoint[x0y1z1 + i] = true;
+                            IsUsingVoxelPoint[x1y0z1 + i] = true;
+                            IsUsingVoxelPoint[x1y1z1 + i] = true;
                             TriangleCount += 2;
                         }
                     }
