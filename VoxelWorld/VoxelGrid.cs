@@ -391,22 +391,12 @@ namespace VoxelWorld
                                     Vector128<sbyte> gsYPos = Avx.LoadVector128(gridSignPtr + gridIdxyp1 + i);
                                     Vector128<sbyte> gsZPos = Avx.LoadVector128(gridSignPtr + gridIdxzp1 + i);
 
-                                    Vector128<sbyte> faceXNeg = Avx.CompareGreaterThan(centerSigns, gsXNeg);
-                                    Vector128<sbyte> faceYNeg = Avx.CompareGreaterThan(centerSigns, gsYNeg);
-                                    Vector128<sbyte> faceZNeg = Avx.CompareGreaterThan(centerSigns, gsZNeg);
-                                    Vector128<sbyte> faceXPos = Avx.CompareGreaterThan(centerSigns, gsXPos);
-                                    Vector128<sbyte> faceYPos = Avx.CompareGreaterThan(centerSigns, gsYPos);
-                                    Vector128<sbyte> faceZPos = Avx.CompareGreaterThan(centerSigns, gsZPos);
-
-                                    //Avx.CompareGreaterThan gives 0xff if true but a bool in C# has value 1.
-                                    //And with 1 so true is represented as 1 so the C# assumption is kept.
-                                    Vector128<sbyte> ones = Vector128.Create((sbyte)1);
-                                    faceXNeg = Avx.And(faceXNeg, ones);
-                                    faceYNeg = Avx.And(faceYNeg, ones);
-                                    faceZNeg = Avx.And(faceZNeg, ones);
-                                    faceXPos = Avx.And(faceXPos, ones);
-                                    faceYPos = Avx.And(faceYPos, ones);
-                                    faceZPos = Avx.And(faceZPos, ones);
+                                    Vector128<sbyte> faceXNeg = Avx.AndNot(gsXNeg, centerSigns);
+                                    Vector128<sbyte> faceYNeg = Avx.AndNot(gsYNeg, centerSigns);
+                                    Vector128<sbyte> faceZNeg = Avx.AndNot(gsZNeg, centerSigns);
+                                    Vector128<sbyte> faceXPos = Avx.AndNot(gsXPos, centerSigns);
+                                    Vector128<sbyte> faceYPos = Avx.AndNot(gsYPos, centerSigns);
+                                    Vector128<sbyte> faceZPos = Avx.AndNot(gsZPos, centerSigns);
 
                                     //From the non vectorized version one can infer what face directions must be true
                                     //in order for the voxel being used. 
