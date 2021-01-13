@@ -1,4 +1,4 @@
-using OpenGL;
+﻿using OpenGL;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -14,7 +14,7 @@ namespace VoxelWorld
     {
         private Vector3 GridCenter;
         VoxelSystemData GenData;
-        private readonly sbyte[] GridSign;
+        private readonly bool[] GridSign;
         private readonly Vector3[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
         private int TriangleCount = 0;
@@ -24,7 +24,7 @@ namespace VoxelWorld
             this.GenData = voxelSystemData;
             this.GridCenter = center;
 
-            this.GridSign = new sbyte[GenData.GridSize * GenData.GridSize * GenData.GridSize];
+            this.GridSign = new bool[GenData.GridSize * GenData.GridSize * GenData.GridSize];
             this.VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
             this.IsUsingVoxelPoint = new bool[VoxelPoints.Length];
         }
@@ -38,21 +38,12 @@ namespace VoxelWorld
 
         public BitArray GetCompressed()
         {
-            BitArray signs = new BitArray(GridSign.Length);
-            for (int i = 0; i < GridSign.Length; i++)
-            {
-                signs[i] = GridSign[i] > 0;
-            }
-
-            return signs;
+            return new BitArray(GridSign);
         }
 
         public void Restore(BitArray compressedGrid)
         {
-            for (int i = 0; i < compressedGrid.Length; i++)
-            {
-                GridSign[i] = (sbyte)(compressedGrid[i] ? 1 : -1);
-            }
+            compressedGrid.CopyTo(GridSign, 0);
         }
 
         private Vector4 GetTopLeftCorner()
@@ -138,7 +129,7 @@ namespace VoxelWorld
                                 Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
 
                                 float noise = GenData.WeightGen.GenerateWeight(pos, noiseValues, cosApprox);
-                                GridSign[index++] = (sbyte)(noise > 0.0f ? 1 : -1);
+                                GridSign[index++] = noise > 0.0f;
 
                                 for (int i = 0; i < GenData.WeightGen.Seeds.GetSeedsCount(); i += Vector256<float>.Count)
                                 {
@@ -355,8 +346,9 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            fixed(sbyte* gridSignPtr = GridSign)
+            fixed(bool* gridSifsgnPtr = GridSign)
             {
+                sbyte* gridSignPtr = (sbyte*)gridSifsgnPtr;
                 fixed(bool* isUsingVoxelBoolPtr = IsUsingVoxelPoint)
                 {
                     sbyte* isUsingVoxelPtr = (sbyte*)isUsingVoxelBoolPtr;
@@ -451,13 +443,13 @@ namespace VoxelWorld
                             
                             for (; i < GenData.GridSize - 2; i++)
                             {
-                                int centerSign = GridSign[gridIdxCenter + i];
-                                if (centerSign < 0)
+                                bool centerSign = GridSign[gridIdxCenter + i];
+                                if (!centerSign)
                                 {
                                     continue;
                                 }
 
-                                if (centerSign > GridSign[gridIdxxn1 + i])
+                                if (centerSign && !GridSign[gridIdxxn1 + i])
                                 {
                                     IsUsingVoxelPoint[x0y0z0 + i] = true;
                                     IsUsingVoxelPoint[x0y0z1 + i] = true;
@@ -465,7 +457,7 @@ namespace VoxelWorld
                                     IsUsingVoxelPoint[x0y1z1 + i] = true;
                                     TriangleCount += 2;
                                 }
-                                if (centerSign > GridSign[gridIdxyn1 + i])
+                                if (centerSign && !GridSign[gridIdxyn1 + i])
                                 {
                                     IsUsingVoxelPoint[x1y0z1 + i] = true;
                                     IsUsingVoxelPoint[x1y0z0 + i] = true;
@@ -473,7 +465,7 @@ namespace VoxelWorld
                                     IsUsingVoxelPoint[x0y0z0 + i] = true;
                                     TriangleCount += 2;
                                 }
-                                if (centerSign > GridSign[gridIdxzn1 + i])
+                                if (centerSign && !GridSign[gridIdxzn1 + i])
                                 {
                                     IsUsingVoxelPoint[x0y0z0 + i] = true;
                                     IsUsingVoxelPoint[x0y1z0 + i] = true;
@@ -482,7 +474,7 @@ namespace VoxelWorld
                                     TriangleCount += 2;
                                 }
 
-                                if (centerSign > GridSign[gridIdxxp1 + i])
+                                if (centerSign && !GridSign[gridIdxxp1 + i])
                                 {
                                     IsUsingVoxelPoint[x1y0z0 + i] = true;
                                     IsUsingVoxelPoint[x1y0z1 + i] = true;
@@ -490,7 +482,7 @@ namespace VoxelWorld
                                     IsUsingVoxelPoint[x1y1z1 + i] = true;
                                     TriangleCount += 2;
                                 }
-                                if (centerSign > GridSign[gridIdxyp1 + i])
+                                if (centerSign && !GridSign[gridIdxyp1 + i])
                                 {
                                     IsUsingVoxelPoint[x1y1z1 + i] = true;
                                     IsUsingVoxelPoint[x1y1z0 + i] = true;
@@ -498,7 +490,7 @@ namespace VoxelWorld
                                     IsUsingVoxelPoint[x0y1z0 + i] = true;
                                     TriangleCount += 2;
                                 }
-                                if (centerSign > GridSign[gridIdxzp1 + i])
+                                if (centerSign && !GridSign[gridIdxzp1 + i])
                                 {
                                     IsUsingVoxelPoint[x0y0z1 + i] = true;
                                     IsUsingVoxelPoint[x0y1z1 + i] = true;
@@ -655,36 +647,36 @@ namespace VoxelWorld
 
                             for (int i = 0; i < GenData.GridSize - 2; i++)
                             {
-                                int centerSign = GridSign[gridIdxCenter + i];
-                                if (centerSign < 0)
+                                bool centerSign = GridSign[gridIdxCenter + i];
+                                if (!centerSign)
                                 {
                                     continue;
                                 }
 
                                 Vector128<uint> baseFaceIndex = Vector128.Create(x0y0z0 + (uint)i);
 
-                                if (centerSign > GridSign[gridIdxxn1 + i])
+                                if (centerSign && !GridSign[gridIdxxn1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceXNeg128, baseFaceIndex), Avx.Add(faceXNeg64, baseFaceIndex));
                                 }
-                                if (centerSign > GridSign[gridIdxyn1 + i])
+                                if (centerSign && !GridSign[gridIdxyn1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceYNeg128, baseFaceIndex), Avx.Add(faceYNeg64, baseFaceIndex));
                                 }
-                                if (centerSign > GridSign[gridIdxzn1 + i])
+                                if (centerSign && !GridSign[gridIdxzn1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceZNeg128, baseFaceIndex), Avx.Add(faceZNeg64, baseFaceIndex));
                                 }
 
-                                if (centerSign > GridSign[gridIdxxp1 + i])
+                                if (centerSign && !GridSign[gridIdxxp1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceXPos128, baseFaceIndex), Avx.Add(faceXPos64, baseFaceIndex));
                                 }
-                                if (centerSign > GridSign[gridIdxyp1 + i])
+                                if (centerSign && !GridSign[gridIdxyp1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceYPos128, baseFaceIndex), Avx.Add(faceYPos64, baseFaceIndex));
                                 }
-                                if (centerSign > GridSign[gridIdxzp1 + i])
+                                if (centerSign && !GridSign[gridIdxzp1 + i])
                                 {
                                     AddRectangleTriangles(indicesPtr, Avx.Add(faceZPos128, baseFaceIndex), Avx.Add(faceZPos64, baseFaceIndex));
                                 }
