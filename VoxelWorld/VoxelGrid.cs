@@ -1,4 +1,4 @@
-﻿using OpenGL;
+using OpenGL;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -532,40 +532,6 @@ namespace VoxelWorld
             Vector3 center = (max + min) * 0.5f;
             float radius = (max - center).Length();
             return new BoundingCircle(center, radius);
-        }
-        
-        public GridNormal GetGridNormal()
-        {
-            int PosToGridIndex(int x, int y, int z)
-            {
-                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
-            }
-
-            GridNormal normal = new GridNormal();
-
-            for (int z = 1; z < GenData.GridSize - 1; z++)
-            {
-                for (int y = 1; y < GenData.GridSize - 1; y++)
-                {
-                    for (int x = 1; x < GenData.GridSize - 1; x++)
-                    {
-                        int centerSign = GridSign[PosToGridIndex(x, y, z)];
-                        if (centerSign < 0)
-                        {
-                            continue;
-                        }
-
-                        normal.Xp |= centerSign > GridSign[PosToGridIndex(x + 1, y, z)];
-                        normal.Xm |= centerSign > GridSign[PosToGridIndex(x - 1, y, z)];
-                        normal.Yp |= centerSign > GridSign[PosToGridIndex(x, y + 1, z)];
-                        normal.Ym |= centerSign > GridSign[PosToGridIndex(x, y - 1, z)];
-                        normal.Zp |= centerSign > GridSign[PosToGridIndex(x, y, z + 1)];
-                        normal.Zm |= centerSign > GridSign[PosToGridIndex(x, y, z - 1)];
-                    }
-                }
-            }
-
-            return normal;
         }
 
         private static int CountTruesWithPopCnt(bool[] bools)
