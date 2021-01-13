@@ -1,4 +1,4 @@
-﻿using OpenGL;
+using OpenGL;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -400,15 +400,19 @@ namespace VoxelWorld
 
                                     //From the non vectorized version one can infer what face directions must be true
                                     //in order for the voxel being used. 
+                                    Vector128<sbyte> orXNegYNeg = Avx.Or(faceXNeg, faceYNeg);
+                                    Vector128<sbyte> orXNegYPos = Avx.Or(faceXNeg, faceYPos);
+                                    Vector128<sbyte> orXPosYNeg = Avx.Or(faceXPos, faceYNeg);
+                                    Vector128<sbyte> orXPosYPos = Avx.Or(faceXPos, faceYPos);
                                     //Pseudo: IsUsingVoxel[x] |= faceA | faceB | faceC
-                                    Avx.Store(isUsingVoxelPtr + x0y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Avx.Or(Avx.Or(faceXNeg, faceYNeg), faceZNeg)));
-                                    Avx.Store(isUsingVoxelPtr + x0y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Avx.Or(Avx.Or(faceXNeg, faceYNeg), faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x0y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Avx.Or(Avx.Or(faceXNeg, faceZNeg), faceYPos)));
-                                    Avx.Store(isUsingVoxelPtr + x0y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Avx.Or(Avx.Or(faceXNeg, faceYPos), faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Avx.Or(Avx.Or(faceYNeg, faceZNeg), faceXPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Avx.Or(Avx.Or(faceYNeg, faceXPos), faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Avx.Or(Avx.Or(faceZNeg, faceXPos), faceYPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Avx.Or(Avx.Or(faceXPos, faceYPos), faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x0y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Avx.Or(orXNegYNeg, faceZNeg)));
+                                    Avx.Store(isUsingVoxelPtr + x0y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Avx.Or(orXNegYNeg, faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x0y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Avx.Or(orXNegYPos, faceZNeg)));
+                                    Avx.Store(isUsingVoxelPtr + x0y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Avx.Or(orXNegYPos, faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Avx.Or(orXPosYNeg, faceZNeg)));
+                                    Avx.Store(isUsingVoxelPtr + x1y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Avx.Or(orXPosYNeg, faceZPos)));
+                                    Avx.Store(isUsingVoxelPtr + x1y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Avx.Or(orXPosYPos, faceZNeg)));
+                                    Avx.Store(isUsingVoxelPtr + x1y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Avx.Or(orXPosYPos, faceZPos)));
 
                                     //Need to count the number of faces so the triangle count can be updated.
                                     //Each face is represented as a bit here. The idea is the shift the bits
