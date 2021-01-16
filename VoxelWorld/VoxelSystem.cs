@@ -56,7 +56,7 @@ namespace VoxelWorld
     {
         private readonly Dictionary<Vector3I, VoxelHierarchy> Grids = new Dictionary<Vector3I, VoxelHierarchy>();
         private readonly Vector3 Center;
-        private VoxelSystemData FirstLevelSystemData;
+        internal VoxelSystemData FirstLevelSystemData;
         private readonly ModelTransformations ModelTrans = new ModelTransformations();
 
         public Matrix4 Model { get { return ModelTrans.Rotation; } }
@@ -69,13 +69,16 @@ namespace VoxelWorld
 
         public void TestResizeToFindFirstGrid()
         {
+            VoxelGrid vGrid = new VoxelGrid(new Vector3(0, 0, 0), FirstLevelSystemData);
             while (true)
             {
                 Vector3I gridPos = new Vector3I(0, 0, 0);
                 Vector3 gridCenter = Center + gridPos.AsFloatVector3() * FirstLevelSystemData.GridSize * FirstLevelSystemData.VoxelSize;
                 VoxelGridHierarchy grid = new VoxelGridHierarchy(gridCenter, FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize);
+                
+                vGrid.Repurpose(gridCenter, FirstLevelSystemData);
 
-                grid.GenerateGrid(FirstLevelSystemData);
+                grid.GenerateGrid(FirstLevelSystemData, vGrid);
                 if (grid.Grid.IsEmpty)
                 {
                     grid.Dispose();
@@ -96,7 +99,7 @@ namespace VoxelWorld
                 grid.Dispose();
 
                 VoxelHierarchy hir = new VoxelHierarchy(gridCenter, FirstLevelSystemData);
-                hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData);
+                hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData, vGrid);
 
                 if (!TryAddGrid(gridPos, hir))
                 {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
@@ -26,15 +26,15 @@ namespace VoxelWorld
             this.VType = type;
         }
 
-        public void DoWork()
+        public void DoWork(VoxelGrid grid)
         {
             if (VType == VoxelType.Grid)
             {
-                WorkItem.EndGeneratingGrid(GenData);
+                WorkItem.EndGeneratingGrid(GenData, grid);
             }
             else if (VType == VoxelType.Hierarchy)
             {
-                WorkItem.EndGeneratingHierarchy(GenData);
+                WorkItem.EndGeneratingHierarchy(GenData, grid);
             }
             else
             {
@@ -54,18 +54,19 @@ namespace VoxelWorld
             Work.Add(work);
         }
 
-        public static void StartWorkers()
+        public static void StartWorkers(VoxelSystemData voxelgenData)
         {
             for (int i = 0; i < 4; i++)
             {
                 Workers.Add(new Thread(() =>
                 {
+                    VoxelGrid grid = new VoxelGrid(new Vector3(0, 0, 0), voxelgenData);
                     try
                     {
                         while (!CancelSource.Token.IsCancellationRequested)
                         {
                             var work = Work.Take(CancelSource.Token);
-                            work.DoWork();
+                            work.DoWork(grid);
                         }
                     }
                     catch (OperationCanceledException)

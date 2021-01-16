@@ -1,4 +1,4 @@
-﻿using OpenGL;
+using OpenGL;
 using System;
 using System.Collections;
 using System.Diagnostics;
@@ -18,19 +18,19 @@ namespace VoxelWorld
             this.Hierarchy = new VoxelHierarchyInfo(center, gridSize, voxelSize);
         }
 
-        public void GenerateGrid(VoxelSystemData genData)
+        public void GenerateGrid(VoxelSystemData genData, VoxelGrid grid)
         {
-            Grid.Generate(genData, this);
+            Grid.Generate(genData, this, grid);
         }
 
-        public void EndGeneratingGrid(VoxelSystemData genData)
+        public void EndGeneratingGrid(VoxelSystemData genData, VoxelGrid grid)
         {
-            Grid.EndGenerating(genData, this);
+            Grid.EndGenerating(genData, this, grid);
         }
 
-        public void EndGeneratingHierarchy(VoxelSystemData genData)
+        public void EndGeneratingHierarchy(VoxelSystemData genData, VoxelGrid grid)
         {
-            Hierarchy.EndGenerating(genData, this);
+            Hierarchy.EndGenerating(genData, this, grid);
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
@@ -148,14 +148,14 @@ namespace VoxelWorld
             this.CompressedGrid = null;
         }
 
-        public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir)
+        public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
 
-            EndGenerating(genData, gridHir);
+            EndGenerating(genData, gridHir, grid);
         }
 
         public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
@@ -168,7 +168,7 @@ namespace VoxelWorld
             WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, VoxelType.Grid));
         }
 
-        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid)
         {
             //no need to do the work if it's already hollow again
             if (IsHollow)
@@ -177,7 +177,8 @@ namespace VoxelWorld
                 return;
             }
 
-            VoxelGrid grid = VoxelGridStorage.GetGrid(GridCenter, genData);
+            grid.Repurpose(GridCenter, genData);
+
             if (!Initialized)
             {
                 Initialized = true;
@@ -190,7 +191,6 @@ namespace VoxelWorld
                     IsEmpty = true;
                     Initialized = true;
                     IsBeingGenerated = false;
-                    VoxelGridStorage.StoreForReuse(grid);
                     return;
                 }
 
@@ -208,12 +208,6 @@ namespace VoxelWorld
 
             var meshData = grid.Triangulize();
             //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
-
-            //set grid to null here to make sure it isn't captured in the lambda in the future
-            //as using the grid after storing it would be a problem
-            VoxelGridStorage.StoreForReuse(grid);
-            grid = null;
-
 
             //no need to make vaos if the grid is already hollow again
             if (IsHollow)

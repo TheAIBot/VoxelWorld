@@ -40,12 +40,12 @@ namespace VoxelWorld
             return center + GridLocations[index].AsFloatVector3() * 0.5f * (genData.GridSize - 2) * genData.VoxelSize;
         }
 
-        public BoundingCircle Generate(Vector3 center, VoxelSystemData genData)
+        public BoundingCircle Generate(Vector3 center, VoxelSystemData genData, VoxelGrid grid)
         {
             BoundingCircle circle = new BoundingCircle(center, 0);
             for (int i = 0; i < GridLocations.Length; i++)
             {
-                SubHierarchyGrids[i].GenerateGrid(genData);
+                SubHierarchyGrids[i].GenerateGrid(genData, grid);
                 if (!SubHierarchyGrids[i].Grid.IsEmpty)
                 {
                     circle = circle.AddBoundingCircle(SubHierarchyGrids[i].Grid.BoundingBox);
