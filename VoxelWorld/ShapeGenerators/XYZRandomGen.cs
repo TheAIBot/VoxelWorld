@@ -8,6 +8,89 @@ using System.Runtime.Intrinsics.X86;
 
 namespace VoxelWorld
 {
+    internal unsafe readonly ref struct SeededNoiseStorage
+    {
+        private readonly float* Seeds;
+        private readonly float* BaseNoises;
+        private readonly float* XNoiseDiffs;
+        internal readonly float* TurbulentNoises;
+        internal readonly int SeedsCount;
+
+        internal SeededNoiseStorage(SeedsInfo seedsInfo, float* seeds, float* baseNoises, float* xNoiseDiffs, float* turbulentNoises)
+        {
+            this.Seeds = seeds;
+            this.BaseNoises = baseNoises;
+            this.XNoiseDiffs = xNoiseDiffs;
+            this.TurbulentNoises = turbulentNoises;
+            this.SeedsCount = seedsInfo.GetSeedsCount();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal unsafe void MakeSeededBaseNoise(Vector256<float> dotWith)
+        {
+            for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
+            {
+                //Load 8 seed vectors
+                Vector256<float> s12 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 0);
+                Vector256<float> s34 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 1);
+                Vector256<float> s56 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 2);
+                Vector256<float> s78 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 3);
+                
+                
+                Vector256<float> ps12 = Avx.DotProduct(dotWith, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
+                Vector256<float> ps34 = Avx.DotProduct(dotWith, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
+                Vector256<float> ps56 = Avx.DotProduct(dotWith, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
+                Vector256<float> ps78 = Avx.DotProduct(dotWith, s78, 0b0111_0001);//[_,_,_,8,_,_,_,7]
+
+                Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
+                Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
+                Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
+
+                Avx.Store(BaseNoises + i, ps);
+                Avx.Store(TurbulentNoises + i, ps);
+            } 
+        }
+
+        internal unsafe void BaseSeededXDiff(Vector256<float> dotWith)
+        {
+            for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
+            {
+                //Load 8 seed vectors
+                Vector256<float> s12 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 0);
+                Vector256<float> s34 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 1);
+                Vector256<float> s56 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 2);
+                Vector256<float> s78 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 3);
+                
+                
+                Vector256<float> ps12 = Avx.DotProduct(dotWith, s12, 0b0001_1000);//[2,_,_,_,1,_,_,_]
+                Vector256<float> ps34 = Avx.DotProduct(dotWith, s34, 0b0001_0100);//[_,4,_,_,_,3,_,_]
+                Vector256<float> ps56 = Avx.DotProduct(dotWith, s56, 0b0001_0010);//[_,_,6,_,_,_,5,_]
+                Vector256<float> ps78 = Avx.DotProduct(dotWith, s78, 0b0001_0001);//[_,_,_,8,_,_,_,7]
+
+                Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
+                Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
+                Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
+
+                Avx.Store(XNoiseDiffs + i, ps);
+            } 
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal unsafe void UpdateSeededNoiseWithXPosChange()
+        {
+            for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
+            {
+                Vector256<float> baseNoises = Avx.LoadVector256(BaseNoises + i);
+                Vector256<float> xDeltas = Avx.LoadVector256(XNoiseDiffs + i);
+
+                Vector256<float> correctedNoise = Avx.Subtract(baseNoises, xDeltas);
+                
+                Avx.Store(TurbulentNoises + i, correctedNoise);
+                Avx.Store(BaseNoises + i, correctedNoise);
+            }
+        }
+    }
+
     internal readonly struct SeedsInfo
     {
         public readonly float[] Seeds;

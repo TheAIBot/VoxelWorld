@@ -61,33 +61,16 @@ namespace VoxelWorld
 
             if (Avx.IsSupported)
             {
-                float* noiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
                 float* baseNoiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
                 float* xNoiseDeltas = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
+                float* noiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
 
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
-                {                    
+                {     
+                    SeededNoiseStorage seedStorage = new SeededNoiseStorage(GenData.WeightGen.Seeds, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
+
                     Vector256<float> voxelSize = Vector256.Create(GenData.VoxelSize * GenData.WeightGen.NoiseFrequency);
-                    for (int i = 0; i < GenData.WeightGen.Seeds.GetSeedsCount(); i += Vector256<float>.Count)
-                    {
-                        //Load 8 seed vectors
-                        Vector256<float> s12 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 0);
-                        Vector256<float> s34 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 1);
-                        Vector256<float> s56 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 2);
-                        Vector256<float> s78 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 3);
-                        
-                        
-                        Vector256<float> ps12 = Avx.DotProduct(voxelSize, s12, 0b0001_1000);//[2,_,_,_,1,_,_,_]
-                        Vector256<float> ps34 = Avx.DotProduct(voxelSize, s34, 0b0001_0100);//[_,4,_,_,_,3,_,_]
-                        Vector256<float> ps56 = Avx.DotProduct(voxelSize, s56, 0b0001_0010);//[_,_,6,_,_,_,5,_]
-                        Vector256<float> ps78 = Avx.DotProduct(voxelSize, s78, 0b0001_0001);//[_,_,_,8,_,_,_,7]
-
-                        Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
-                        Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
-                        Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
-
-                        Avx.Store(xNoiseDeltas + i, ps);
-                    } 
+                    seedStorage.BaseSeededXDiff(voxelSize);
 
                     CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds);
                       
@@ -98,49 +81,19 @@ namespace VoxelWorld
                     {
                         for (int y = 0; y < GenData.GridSize; y++)
                         {
-                            Vector4 posdwa = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
-                            Vector128<float> pos128 = posdwa.AsVector128();
-                            Vector256<float> pos256 = Vector256.Create(pos128, pos128);
-
-                            for (int i = 0; i < GenData.WeightGen.Seeds.GetSeedsCount(); i += Vector256<float>.Count)
-                            {
-                                //Load 8 seed vectors
-                                Vector256<float> s12 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 0);
-                                Vector256<float> s34 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 1);
-                                Vector256<float> s56 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 2);
-                                Vector256<float> s78 = Avx.LoadVector256(seedsPtr + i * 4 + Vector256<float>.Count * 3);
-                                
-                                
-                                Vector256<float> ps12 = Avx.DotProduct(pos256, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
-                                Vector256<float> ps34 = Avx.DotProduct(pos256, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
-                                Vector256<float> ps56 = Avx.DotProduct(pos256, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
-                                Vector256<float> ps78 = Avx.DotProduct(pos256, s78, 0b0111_0001);//[_,_,_,8,_,_,_,7]
-
-                                Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
-                                Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
-                                Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
-
-                                Avx.Store(noiseValues + i, ps);
-                                Avx.Store(baseNoiseValues + i, ps);
-                            }   
+                            Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
+                            Vector128<float> voxelPos128 = voxelPos.AsVector128();
+                            Vector256<float> voxelPos256 = Vector256.Create(voxelPos128, voxelPos128);
+                            seedStorage.MakeSeededBaseNoise(voxelPos256);
 
                             for (int x = 0; x < GenData.GridSize; x++)
                             {
                                 Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
 
-                                float noise = GenData.WeightGen.GenerateWeight(pos, noiseValues, cosApprox);
+                                float noise = GenData.WeightGen.GenerateWeight(pos, seedStorage, cosApprox);
                                 GridSign[index++] = noise > 0.0f;
 
-                                for (int i = 0; i < GenData.WeightGen.Seeds.GetSeedsCount(); i += Vector256<float>.Count)
-                                {
-                                    Vector256<float> baseNoises = Avx.LoadVector256(baseNoiseValues + i);
-                                    Vector256<float> xDeltas = Avx.LoadVector256(xNoiseDeltas + i);
-
-                                    Vector256<float> correctedNoise = Avx.Subtract(baseNoises, xDeltas);
-                                    
-                                    Avx.Store(noiseValues + i, correctedNoise);
-                                    Avx.Store(baseNoiseValues + i, correctedNoise);
-                                }
+                                seedStorage.UpdateSeededNoiseWithXPosChange();
                             }
                         }
                     }

@@ -59,16 +59,16 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe float GenerateWeight(Vector4 pos, float* noiseValues, in CosApproxConsts cosApprox)
+        public unsafe float GenerateWeight(Vector4 pos, SeededNoiseStorage seedStorage, in CosApproxConsts cosApprox)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
-            float noise = Turbulence(sphere, noiseValues, cosApprox);
+            float noise = Turbulence(sphere, seedStorage, cosApprox);
 
             return noise;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe float Turbulence(float sphereValue, float* noiseValues, in CosApproxConsts cosApprox)
+        private unsafe float Turbulence(float sphereValue, SeededNoiseStorage seedStorage, in CosApproxConsts cosApprox)
         {
             float noiseSum = sphereValue;
             float scale = 2.0f * NoiseWeight;
@@ -81,10 +81,10 @@ namespace VoxelWorld
                 scale *= 0.5f;
 
                 Vector256<float> noise = Vector256<float>.Zero;
-                for (int i = 0; i < Seeds.GetSeedsCount(); i += Vector256<float>.Count)
+                for (int i = 0; i < seedStorage.SeedsCount; i += Vector256<float>.Count)
                 {
                     //Load noise values
-                    Vector256<float> noises = Avx.LoadVector256(noiseValues + i);
+                    Vector256<float> noises = Avx.LoadVector256(seedStorage.TurbulentNoises + i);
 
                     //Cos approximation
                     Vector256<float> cosNoise = cosApprox.Cos(noises);
@@ -94,7 +94,7 @@ namespace VoxelWorld
 
                     //Modify noise so the turbulence noise looks random
                     Vector256<float> turbulentNoise = Avx.Add(noises, noises);
-                    Avx.Store(noiseValues + i, turbulentNoise);
+                    Avx.Store(seedStorage.TurbulentNoises + i, turbulentNoise);
                 }
 
                 noiseSum += scale * cosApprox.HorizontalSum(noise);
