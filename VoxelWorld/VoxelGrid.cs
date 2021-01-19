@@ -1,4 +1,4 @@
-using OpenGL;
+﻿using OpenGL;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -552,8 +552,7 @@ namespace VoxelWorld
             }
         }
 
-
-        public GeometryData Triangulize()
+        private void FillWithFaceIndices(Span<uint> indices)
         {
             int GridToVP(int x, int y, int z)
             {
@@ -565,63 +564,69 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            int vertexCount = CountTruesWithPopCnt(IsUsingVoxelPoint);
+            void MakeFaceVectorIndices(out Vector128<uint> first4FaceIndices, out Vector128<uint> last2FaceIndices, uint a, uint b, uint c, uint d)
+            {
+                first4FaceIndices = Vector128.Create(c, a, b, b);
+                last2FaceIndices = Vector128.Create(d, c, 0, 0);
+            }
 
-            int triangleIndiceCount = TriangleCount * 3;
-            GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
-            Span<uint> indices = geoData.Indices;
 
+            /*
+            Each face consists of 6 indices which creates two triangles that
+            together form a rectangle representing the face. Calculaing the
+            6 different vertex indices for each face is slow. For a given face
+            direction, the face indices are always a constant value different
+            from a given indice. Therefore The 6 indices can be calculated 
+            by only knowing the base vertex indice and the offsets to the
+            other indices.
+            The code below makes these offsets for each of the 6 indices
+            and stores them in two vectors so calculating/storing the indices
+            can be vectorized. The base indice that these offsets are
+            calculated from is x0y0z0.
+            */
+            Vector128<uint> faceXNegVecIndice1234;
+            Vector128<uint> faceXNegVecIndice56;
+            Vector128<uint> faceYNegVecIndice1234;
+            Vector128<uint> faceYNegVecIndice56;
+            Vector128<uint> faceZNegVecIndice1234;
+            Vector128<uint> faceZNegVecIndice56;
+            Vector128<uint> faceXPosVecIndice1234;
+            Vector128<uint> faceXPosVecIndice56;
+            Vector128<uint> faceYPosVecIndice1234;
+            Vector128<uint> faceYPosVecIndice56;
+            Vector128<uint> faceZPosVecIndice1234;
+            Vector128<uint> faceZPosVecIndice56;
+            {
+                uint x0y0z0 = (uint)GridToVP(1, 1, 1);
+                uint x0y0z1 = (uint)GridToVP(1, 1, 2);
+                uint x0y1z0 = (uint)GridToVP(1, 2, 1);
+                uint x0y1z1 = (uint)GridToVP(1, 2, 2);
+                uint x1y0z0 = (uint)GridToVP(2, 1, 1);
+                uint x1y0z1 = (uint)GridToVP(2, 1, 2);
+                uint x1y1z0 = (uint)GridToVP(2, 2, 1);
+                uint x1y1z1 = (uint)GridToVP(2, 2, 2);
+
+                MakeFaceVectorIndices(out faceXNegVecIndice1234, out faceXNegVecIndice56, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                MakeFaceVectorIndices(out faceYNegVecIndice1234, out faceYNegVecIndice56, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                MakeFaceVectorIndices(out faceZNegVecIndice1234, out faceZNegVecIndice56, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                MakeFaceVectorIndices(out faceXPosVecIndice1234, out faceXPosVecIndice56, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                MakeFaceVectorIndices(out faceYPosVecIndice1234, out faceYPosVecIndice56, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                MakeFaceVectorIndices(out faceZPosVecIndice1234, out faceZPosVecIndice56, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+            }
 
             int indiceIndex = 0;
-
             unsafe
             {
-                void MakeFaceVectors(out Vector128<uint> face128, out Vector128<uint> face64, uint a, uint b, uint c, uint d)
-                {
-                    face128 = Vector128.Create(c, a, b, b);
-                    face64 = Vector128.Create(d, c, 0, 0);
-                }
-
-                Vector128<uint> faceXNeg128;
-                Vector128<uint> faceXNeg64;
-                Vector128<uint> faceYNeg128;
-                Vector128<uint> faceYNeg64;
-                Vector128<uint> faceZNeg128;
-                Vector128<uint> faceZNeg64;
-                Vector128<uint> faceXPos128;
-                Vector128<uint> faceXPos64;
-                Vector128<uint> faceYPos128;
-                Vector128<uint> faceYPos64;
-                Vector128<uint> faceZPos128;
-                Vector128<uint> faceZPos64;
-                {
-                    uint x0y0z0 = (uint)GridToVP(1, 1, 1);
-                    uint x0y0z1 = (uint)GridToVP(1, 1, 2);
-                    uint x0y1z0 = (uint)GridToVP(1, 2, 1);
-                    uint x0y1z1 = (uint)GridToVP(1, 2, 2);
-                    uint x1y0z0 = (uint)GridToVP(2, 1, 1);
-                    uint x1y0z1 = (uint)GridToVP(2, 1, 2);
-                    uint x1y1z0 = (uint)GridToVP(2, 2, 1);
-                    uint x1y1z1 = (uint)GridToVP(2, 2, 2);
-
-                    MakeFaceVectors(out faceXNeg128, out faceXNeg64, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
-                    MakeFaceVectors(out faceYNeg128, out faceYNeg64, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
-                    MakeFaceVectors(out faceZNeg128, out faceZNeg64, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
-                    MakeFaceVectors(out faceXPos128, out faceXPos64, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
-                    MakeFaceVectors(out faceYPos128, out faceYPos64, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
-                    MakeFaceVectors(out faceZPos128, out faceZPos64, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
-                }
-
                 fixed(uint* indicesPtr = indices)
                 {
-                    void AddRectangleTriangles(uint* indices, Vector128<uint> firstFourFaceVertices, Vector128<uint> lastTwoFaceVertices)
+                    void AddFaceIndices(uint* indices, Vector128<uint> firstFourFaceVertices, Vector128<uint> lastTwoFaceVertices)
                     {
                         Avx.Store(indices + indiceIndex, firstFourFaceVertices);
                         Avx.StoreLow((float*)(indices + indiceIndex + Vector128<uint>.Count), lastTwoFaceVertices.AsSingle());
-                        indiceIndex += 6;
+
+                        const int indicesPerFace = 6;
+                        indiceIndex += indicesPerFace;
                     }
-
-
 
                     for (int z = 1; z < GenData.GridSize - 1; z++)
                     {
@@ -651,43 +656,44 @@ namespace VoxelWorld
 
                                 if (centerSign && !GridSign[gridIdxxn1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceXNeg128, baseFaceIndex), Avx.Add(faceXNeg64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceXNegVecIndice1234, baseFaceIndex), Avx.Add(faceXNegVecIndice56, baseFaceIndex));
                                 }
                                 if (centerSign && !GridSign[gridIdxyn1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceYNeg128, baseFaceIndex), Avx.Add(faceYNeg64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceYNegVecIndice1234, baseFaceIndex), Avx.Add(faceYNegVecIndice56, baseFaceIndex));
                                 }
                                 if (centerSign && !GridSign[gridIdxzn1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceZNeg128, baseFaceIndex), Avx.Add(faceZNeg64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceZNegVecIndice1234, baseFaceIndex), Avx.Add(faceZNegVecIndice56, baseFaceIndex));
                                 }
 
                                 if (centerSign && !GridSign[gridIdxxp1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceXPos128, baseFaceIndex), Avx.Add(faceXPos64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceXPosVecIndice1234, baseFaceIndex), Avx.Add(faceXPosVecIndice56, baseFaceIndex));
                                 }
                                 if (centerSign && !GridSign[gridIdxyp1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceYPos128, baseFaceIndex), Avx.Add(faceYPos64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceYPosVecIndice1234, baseFaceIndex), Avx.Add(faceYPosVecIndice56, baseFaceIndex));
                                 }
                                 if (centerSign && !GridSign[gridIdxzp1 + i])
                                 {
-                                    AddRectangleTriangles(indicesPtr, Avx.Add(faceZPos128, baseFaceIndex), Avx.Add(faceZPos64, baseFaceIndex));
+                                    AddFaceIndices(indicesPtr, Avx.Add(faceZPosVecIndice1234, baseFaceIndex), Avx.Add(faceZPosVecIndice56, baseFaceIndex));
                                 }
                             }
                         }
                     }
                 }
             }
+        }
 
+        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<uint> indices, Span<Vector3> vertices)
+        {
             using (var indexConverterArr = new RentedArray<uint>(VoxelPoints.Length))
             {
                 Span<uint> indexConverter = indexConverterArr.AsSpan();
                 indexConverter.Fill(uint.MaxValue);
 
-                Span<Vector3> vertices = geoData.Vertices;
                 int vpIndex = 0;
-
                 for (int i = 0; i < indices.Length; i++)
                 {
                     int oldIndex = (int)indices[i];
@@ -701,8 +707,18 @@ namespace VoxelWorld
                     indices[i] = newIndex;
                 }
             }
+        }
 
-            Geometry.CalculateNormals(geoData.Vertices, indices, geoData.Normals);
+        public GeometryData Triangulize()
+        {
+            int vertexCount = CountTruesWithPopCnt(IsUsingVoxelPoint);
+            const int indicesPerTriangle = 3;
+            int triangleIndiceCount = TriangleCount * indicesPerTriangle;
+            GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
+
+            FillWithFaceIndices(geoData.Indices);
+            FillWithFaceVerticesAndRemoveDuplicateIndices(geoData.Indices, geoData.Vertices);
+            Geometry.CalculateNormals(geoData.Vertices, geoData.Indices, geoData.Normals);
 
             return geoData;
         }
