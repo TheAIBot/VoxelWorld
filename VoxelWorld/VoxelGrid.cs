@@ -77,16 +77,17 @@ namespace VoxelWorld
 
                     Vector4 topLeftCorner = GetTopLeftCorner();
                     int index = 0;
-                    for (int z = 0; z < GenData.GridSize; z++)
+                    int gridSize = GenData.GridSize;
+                    for (int z = 0; z < gridSize; z++)
                     {
-                        for (int y = 0; y < GenData.GridSize; y++)
+                        for (int y = 0; y < gridSize; y++)
                         {
                             Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
                             Vector128<float> voxelPos128 = voxelPos.AsVector128();
                             Vector256<float> voxelPos256 = Vector256.Create(voxelPos128, voxelPos128);
                             seedStorage.MakeSeededBaseNoise(voxelPos256);
 
-                            for (int x = 0; x < GenData.GridSize; x++)
+                            for (int x = 0; x < gridSize; x++)
                             {
                                 Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
 
