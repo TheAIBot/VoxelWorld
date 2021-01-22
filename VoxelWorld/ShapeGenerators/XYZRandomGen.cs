@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -91,7 +91,7 @@ namespace VoxelWorld
         }
     }
 
-    internal readonly struct SeedsInfo
+    internal class SeedsInfo
     {
         public readonly float[] Seeds;
         public readonly float Reci_SeedsCount;
