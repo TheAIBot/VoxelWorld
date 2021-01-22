@@ -59,7 +59,7 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe float GenerateWeight(Vector4 pos, SeededNoiseStorage seedStorage, in CosApproxConsts cosApprox)
+        public unsafe float GenerateWeight(Vector4 pos, in SeededNoiseStorage seedStorage, in CosApproxConsts cosApprox)
         {
             float sphere = SphereGen.GetValue(pos, PlanetRadius);
             float noise = Turbulence(sphere, seedStorage, cosApprox);
