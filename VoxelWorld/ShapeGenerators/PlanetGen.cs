@@ -9,8 +9,9 @@ namespace VoxelWorld
     internal readonly struct CosApproxConsts
     {
         internal readonly Vector256<float> const0_25;
-        internal readonly Vector256<float> consttp;
-        internal readonly Vector256<float> const16;
+        //internal readonly Vector256<float> consttp;
+        internal const float consttp = 1.0f / (2.0f * MathF.PI);
+        private const float const16 = 16.0f;
         internal readonly Vector256<float> const0_5;
         internal readonly Vector256<float> const_noSign;
         internal readonly Vector256<float> seedsCountReci;
@@ -18,8 +19,8 @@ namespace VoxelWorld
         internal CosApproxConsts(SeedsInfo seeds)
         {
             const0_25 = Vector256.Create(0.25f);
-            consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
-            const16 = Vector256.Create(16.0f);
+            //consttp = Vector256.Create(1.0f / (2.0f * MathF.PI));
+            //const16 = Vector256.Create(16.0f);
             const0_5 = Vector256.Create(0.5f);
             const_noSign = Vector256.Create(0x7fffffff).AsSingle();
             seedsCountReci = Vector256.Create(seeds.Reci_SeedsCount);
@@ -27,9 +28,9 @@ namespace VoxelWorld
 
         internal Vector256<float> Cos(Vector256<float> x)
         {
-            Vector256<float> cosApprox = Avx.Multiply(x, consttp);
+            Vector256<float> cosApprox = x;
             cosApprox = Avx.Subtract(cosApprox, Avx.Add(const0_25, Avx.Floor(Avx.Add(cosApprox, const0_25))));
-            return Avx.Multiply(Avx.Multiply(const16, cosApprox), Avx.Subtract(Avx.And(cosApprox, const_noSign), const0_5));
+            return Avx.Multiply(cosApprox, Avx.Subtract(Avx.And(cosApprox, const_noSign), const0_5));
         }
 
         internal float HorizontalSum(Vector256<float> x)
@@ -37,7 +38,7 @@ namespace VoxelWorld
             Vector256<float> sum = Avx.DotProduct(x, seedsCountReci, 0b1111_0001);
             Vector128<float> lower = sum.GetLower();
             Vector128<float> upper = sum.GetUpper();
-            return Avx.Add(lower, upper).GetElement(0);
+            return Avx.Add(lower, upper).GetElement(0) * const16;
         }
     }
 

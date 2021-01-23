@@ -69,7 +69,7 @@ namespace VoxelWorld
                 {     
                     SeededNoiseStorage seedStorage = new SeededNoiseStorage(GenData.WeightGen.Seeds, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
 
-                    Vector256<float> voxelSize = Vector256.Create(GenData.VoxelSize * GenData.WeightGen.NoiseFrequency);
+                    Vector256<float> voxelSize = Vector256.Create(GenData.VoxelSize * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp);
                     seedStorage.BaseSeededXDiff(voxelSize);
 
                     CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds);
@@ -82,7 +82,7 @@ namespace VoxelWorld
                     {
                         for (int y = 0; y < gridSize; y++)
                         {
-                            Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency;
+                            Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp;
                             Vector128<float> voxelPos128 = voxelPos.AsVector128();
                             Vector256<float> voxelPos256 = Vector256.Create(voxelPos128, voxelPos128);
                             seedStorage.MakeSeededBaseNoise(voxelPos256);
