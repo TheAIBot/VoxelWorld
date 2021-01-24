@@ -85,12 +85,12 @@ namespace VoxelWorld
 
                             for (int x = 0; x < gridSize; x++)
                             {
-                                Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
-
-                                float noise = GenData.WeightGen.GenerateWeight(pos, cosApprox);
+                                float noise = GenData.WeightGen.GenerateWeight(voxelPos, cosApprox);
                                 GridSign[index++] = noise > 0.0f;
 
                                 cosApprox.UpdateSeededNoiseWithXPosChange();
+
+                                voxelPos = voxelPos - voxelSizeX;
                             }
                         }
                     }
