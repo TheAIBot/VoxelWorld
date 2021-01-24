@@ -102,14 +102,16 @@ namespace VoxelWorld
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void UpdateSeededNoiseWithXPosChange()
         {
+            float* baseNoises = BaseNoises;
+            float* xDiff = XNoiseDiffs;
             for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
             {
-                Vector256<float> baseNoises = Avx.LoadVector256(BaseNoises + i);
-                Vector256<float> xDeltas = Avx.LoadVector256(XNoiseDiffs + i);
+                Vector256<float> baseNoise = Avx.LoadVector256(baseNoises + i);
+                Vector256<float> xDelta = Avx.LoadVector256(xDiff + i);
 
-                Vector256<float> correctedNoise = Avx.Subtract(baseNoises, xDeltas);
+                Vector256<float> correctedNoise = Avx.Subtract(baseNoise, xDelta);
                 
-                Avx.Store(BaseNoises + i, correctedNoise);
+                Avx.Store(baseNoises + i, correctedNoise);
             }
         }
 
