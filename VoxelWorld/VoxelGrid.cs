@@ -64,13 +64,11 @@ namespace VoxelWorld
 
             if (Avx.IsSupported)
             {
-                float* baseNoiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
-                float* xNoiseDeltas = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
-                float* noiseValues = stackalloc float[GenData.WeightGen.Seeds.GetSeedsCount()];
+                float* stackSpace = stackalloc float[CosApproxConsts.StackSpaceNeeded(GenData.WeightGen.Seeds)];
 
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
                 {     
-                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, GenData.WeightGen.NoiseFrequency, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
+                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, GenData.WeightGen.NoiseFrequency, seedsPtr, stackSpace);
 
                     Vector4 voxelSizeX = Vector4.Zero;
                     voxelSizeX.X = GenData.VoxelSize;

@@ -22,7 +22,7 @@ namespace VoxelWorld
         private readonly Vector256<float> const_noSign;
         private readonly Vector256<float> seedsCountReci;
 
-        internal CosApproxConsts(SeedsInfo seedsInfo, float noiseFrequency, float* seeds, float* baseNoises, float* xNoiseDiffs, float* turbulentNoises)
+        internal CosApproxConsts(SeedsInfo seedsInfo, float noiseFrequency, float* seeds, float* stackSpace)
         {
             this.const0_25 = Vector256.Create(0.25f);
             this.const0_5 = Vector256.Create(0.5f);
@@ -31,10 +31,16 @@ namespace VoxelWorld
             this.PosMultiplier = new Vector4(noiseFrequency * consttp);
 
             this.Seeds = seeds;
-            this.BaseNoises = baseNoises;
-            this.XNoiseDiffs = xNoiseDiffs;
-            this.TurbulentNoises = turbulentNoises;
             this.SeedsCount = seedsInfo.GetSeedsCount();
+            this.BaseNoises = stackSpace + SeedsCount * 0;
+            this.XNoiseDiffs = stackSpace + SeedsCount * 1;
+            this.TurbulentNoises = stackSpace + SeedsCount * 2;
+            
+        }
+
+        internal static int StackSpaceNeeded(SeedsInfo seedsInfo)
+        {
+            return seedsInfo.GetSeedsCount() * 3;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
