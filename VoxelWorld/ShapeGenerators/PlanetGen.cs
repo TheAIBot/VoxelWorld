@@ -46,8 +46,7 @@ namespace VoxelWorld
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Vector256<float> Cos(Vector256<float> x)
         {
-            Vector256<float> cosApprox = x;
-            cosApprox = Avx.Subtract(cosApprox, Avx.Add(const0_25, Avx.Floor(Avx.Add(cosApprox, const0_25))));
+            Vector256<float> cosApprox = Avx.Subtract(Avx.Subtract(x, const0_25), Avx.Floor(Avx.Add(x, const0_25)));
             return Avx.Multiply(cosApprox, Avx.Subtract(Avx.And(cosApprox, const_noSign), const0_5));
         }
 
