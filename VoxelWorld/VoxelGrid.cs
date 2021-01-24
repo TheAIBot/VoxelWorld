@@ -54,9 +54,12 @@ namespace VoxelWorld
 
         public unsafe void Randomize()
         {
-            Vector128<float> ToFloat128(int x, int y, int z, int w)
+            Vector128<float> YZToFloat128(int y, int z)
             {
-                return Avx.ConvertToVector128Single(Vector128.Create(x, y, z, w));
+                Vector128<int> zero = Vector128<int>.Zero;
+                Vector128<int> yPos = Avx.Insert(zero, y, 1);
+                Vector128<int> yzPos = Avx.Insert(yPos, z, 2);
+                return Avx.ConvertToVector128Single(yzPos);
             }
 
             if (Avx.IsSupported)
@@ -80,7 +83,7 @@ namespace VoxelWorld
                     {
                         for (int y = 0; y < gridSize; y++)
                         {
-                            Vector4 voxelPos = topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize;
+                            Vector4 voxelPos = topLeftCorner - YZToFloat128(y, z).AsVector4() * GenData.VoxelSize;
                             cosApprox.MakeSeededBaseNoise(voxelPos);
 
                             for (int x = 0; x < gridSize; x++)
