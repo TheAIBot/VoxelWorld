@@ -67,13 +67,11 @@ namespace VoxelWorld
 
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
                 {     
-                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
+                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, GenData.WeightGen.NoiseFrequency, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
 
-                    Vector256<float> voxelSize = Vector256.Create(GenData.VoxelSize * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp);
-                    cosApprox.BaseSeededXDiff(voxelSize);
-
-
-                      
+                    Vector4 voxelSizeX = Vector4.Zero;
+                    voxelSizeX.X = GenData.VoxelSize;
+                    cosApprox.BaseSeededXDiff(voxelSizeX);                      
 
                     Vector4 topLeftCorner = GetTopLeftCorner();
                     int index = 0;
@@ -82,10 +80,8 @@ namespace VoxelWorld
                     {
                         for (int y = 0; y < gridSize; y++)
                         {
-                            Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp;
-                            Vector128<float> voxelPos128 = voxelPos.AsVector128();
-                            Vector256<float> voxelPos256 = Vector256.Create(voxelPos128, voxelPos128);
-                            cosApprox.MakeSeededBaseNoise(voxelPos256);
+                            Vector4 voxelPos = topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize;
+                            cosApprox.MakeSeededBaseNoise(voxelPos);
 
                             for (int x = 0; x < gridSize; x++)
                             {

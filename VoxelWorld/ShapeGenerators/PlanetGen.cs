@@ -11,22 +11,24 @@ namespace VoxelWorld
         private readonly float* Seeds;
         private readonly float* BaseNoises;
         private readonly float* XNoiseDiffs;
-        internal readonly float* TurbulentNoises;
-        internal readonly int SeedsCount;
+        private readonly float* TurbulentNoises;
+        private readonly int SeedsCount;
+        private readonly float PosMultiplier;
 
-        internal readonly Vector256<float> const0_25;
-        internal const float consttp = 1.0f / (2.0f * MathF.PI);
+        private readonly Vector256<float> const0_25;
+        private const float consttp = 1.0f / (2.0f * MathF.PI);
         private const float const16 = 16.0f;
-        internal readonly Vector256<float> const0_5;
-        internal readonly Vector256<float> const_noSign;
-        internal readonly Vector256<float> seedsCountReci;
+        private readonly Vector256<float> const0_5;
+        private readonly Vector256<float> const_noSign;
+        private readonly Vector256<float> seedsCountReci;
 
-        internal CosApproxConsts(SeedsInfo seedsInfo, float* seeds, float* baseNoises, float* xNoiseDiffs, float* turbulentNoises)
+        internal CosApproxConsts(SeedsInfo seedsInfo, float noiseFrequency, float* seeds, float* baseNoises, float* xNoiseDiffs, float* turbulentNoises)
         {
             this.const0_25 = Vector256.Create(0.25f);
             this.const0_5 = Vector256.Create(0.5f);
             this.const_noSign = Vector256.Create(0x7fffffff).AsSingle();
             this.seedsCountReci = Vector256.Create(seedsInfo.Reci_SeedsCount);
+            this.PosMultiplier = noiseFrequency * consttp;
 
             this.Seeds = seeds;
             this.BaseNoises = baseNoises;
@@ -53,32 +55,21 @@ namespace VoxelWorld
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void MakeSeededBaseNoise(Vector256<float> dotWith)
+        internal void MakeSeededBaseNoise(Vector4 dotWith)
         {
-            for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
-            {
-                //Load 8 seed vectors
-                Vector256<float> s12 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 0);
-                Vector256<float> s34 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 1);
-                Vector256<float> s56 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 2);
-                Vector256<float> s78 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 3);
-                
-                
-                Vector256<float> ps12 = Avx.DotProduct(dotWith, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
-                Vector256<float> ps34 = Avx.DotProduct(dotWith, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
-                Vector256<float> ps56 = Avx.DotProduct(dotWith, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
-                Vector256<float> ps78 = Avx.DotProduct(dotWith, s78, 0b0111_0001);//[_,_,_,8,_,_,_,7]
-
-                Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
-                Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
-                Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
-
-                Avx.Store(BaseNoises + i, ps);
-            } 
+            CalculateSeedsDotProducts(dotWith, BaseNoises);
         }
 
-        internal void BaseSeededXDiff(Vector256<float> dotWith)
+        internal void BaseSeededXDiff(Vector4 dotWith)
         {
+            CalculateSeedsDotProducts(dotWith, XNoiseDiffs);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CalculateSeedsDotProducts(Vector4 dotWith, float* storeDots)
+        {
+            Vector128<float> dotWith128 = (dotWith * PosMultiplier).AsVector128();
+            Vector256<float> dotWith256 = Vector256.Create(dotWith128, dotWith128);
             for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
             {
                 //Load 8 seed vectors
@@ -88,16 +79,16 @@ namespace VoxelWorld
                 Vector256<float> s78 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 3);
                 
                 
-                Vector256<float> ps12 = Avx.DotProduct(dotWith, s12, 0b0001_1000);//[2,_,_,_,1,_,_,_]
-                Vector256<float> ps34 = Avx.DotProduct(dotWith, s34, 0b0001_0100);//[_,4,_,_,_,3,_,_]
-                Vector256<float> ps56 = Avx.DotProduct(dotWith, s56, 0b0001_0010);//[_,_,6,_,_,_,5,_]
-                Vector256<float> ps78 = Avx.DotProduct(dotWith, s78, 0b0001_0001);//[_,_,_,8,_,_,_,7]
+                Vector256<float> ps12 = Avx.DotProduct(dotWith256, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
+                Vector256<float> ps34 = Avx.DotProduct(dotWith256, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
+                Vector256<float> ps56 = Avx.DotProduct(dotWith256, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
+                Vector256<float> ps78 = Avx.DotProduct(dotWith256, s78, 0b0111_0001);//[_,_,_,8,_,_,_,7]
 
                 Vector256<float> ps1234 = Avx.Or(ps12, ps34);//[2,4,_,_,1,3,_,_]
                 Vector256<float> ps5678 = Avx.Or(ps56, ps78);//[_,_,6,8,_,_,5,7]
                 Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
 
-                Avx.Store(XNoiseDiffs + i, ps);
+                Avx.Store(storeDots + i, ps);
             } 
         }
 
