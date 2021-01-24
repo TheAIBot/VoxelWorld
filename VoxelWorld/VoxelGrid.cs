@@ -67,12 +67,12 @@ namespace VoxelWorld
 
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
                 {     
-                    SeededNoiseStorage seedStorage = new SeededNoiseStorage(GenData.WeightGen.Seeds, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
+                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, seedsPtr, baseNoiseValues, xNoiseDeltas, noiseValues);
 
                     Vector256<float> voxelSize = Vector256.Create(GenData.VoxelSize * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp);
-                    seedStorage.BaseSeededXDiff(voxelSize);
+                    cosApprox.BaseSeededXDiff(voxelSize);
 
-                    CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds);
+
                       
 
                     Vector4 topLeftCorner = GetTopLeftCorner();
@@ -85,16 +85,16 @@ namespace VoxelWorld
                             Vector4 voxelPos = (topLeftCorner - ToFloat128(0, y, z, 0).AsVector4() * GenData.VoxelSize) * GenData.WeightGen.NoiseFrequency * CosApproxConsts.consttp;
                             Vector128<float> voxelPos128 = voxelPos.AsVector128();
                             Vector256<float> voxelPos256 = Vector256.Create(voxelPos128, voxelPos128);
-                            seedStorage.MakeSeededBaseNoise(voxelPos256);
+                            cosApprox.MakeSeededBaseNoise(voxelPos256);
 
                             for (int x = 0; x < gridSize; x++)
                             {
                                 Vector4 pos = topLeftCorner - ToFloat128(x, y, z, 0).AsVector4() * GenData.VoxelSize;
 
-                                float noise = GenData.WeightGen.GenerateWeight(pos, seedStorage, cosApprox);
+                                float noise = GenData.WeightGen.GenerateWeight(pos, cosApprox);
                                 GridSign[index++] = noise > 0.0f;
 
-                                seedStorage.UpdateSeededNoiseWithXPosChange();
+                                cosApprox.UpdateSeededNoiseWithXPosChange();
                             }
                         }
                     }
