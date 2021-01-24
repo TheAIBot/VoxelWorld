@@ -27,7 +27,7 @@ namespace VoxelWorld
             this.const0_25 = Vector256.Create(0.25f);
             this.const0_5 = Vector256.Create(0.5f);
             this.const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-            this.seedsCountReci = Vector256.Create(seedsInfo.Reci_SeedsCount);
+            this.seedsCountReci = Vector256.Create(seedsInfo.Reci_SeedsCount * const16);
             this.PosMultiplier = new Vector4(noiseFrequency * consttp);
 
             this.Seeds = seeds;
@@ -51,7 +51,7 @@ namespace VoxelWorld
             Vector256<float> sum = Avx.DotProduct(x, seedsCountReci, 0b1111_0001);
             Vector128<float> lower = sum.GetLower();
             Vector128<float> upper = sum.GetUpper();
-            return Avx.Add(lower, upper).GetElement(0) * const16;
+            return Avx.Add(lower, upper).GetElement(0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
