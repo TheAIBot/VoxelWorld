@@ -20,14 +20,14 @@ namespace VoxelWorld
         private const float const16 = 16.0f;
         private readonly Vector256<float> const0_5;
         private readonly Vector256<float> const_noSign;
-        private readonly Vector256<float> seedsCountReci;
+        private readonly Vector128<float> seedsCountReci;
 
         internal CosApproxConsts(SeedsInfo seedsInfo, float noiseFrequency, float* seeds, float* stackSpace)
         {
             this.const0_25 = Vector256.Create(0.25f);
             this.const0_5 = Vector256.Create(0.5f);
             this.const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-            this.seedsCountReci = Vector256.Create(seedsInfo.Reci_SeedsCount * const16);
+            this.seedsCountReci = Vector128.Create(seedsInfo.Reci_SeedsCount * const16);
             this.PosMultiplier = new Vector4(noiseFrequency * consttp);
 
             this.Seeds = seeds;
@@ -54,10 +54,11 @@ namespace VoxelWorld
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal float HorizontalSum(Vector256<float> x)
         {
-            Vector256<float> sum = Avx.DotProduct(x, seedsCountReci, 0b1111_0001);
-            Vector128<float> lower = sum.GetLower();
-            Vector128<float> upper = sum.GetUpper();
-            return Avx.Add(lower, upper).GetElement(0);
+            Vector128<float> lower = x.GetLower();
+            Vector128<float> upper = x.GetUpper();
+            Vector128<float> sum = Avx.Add(lower, upper);
+
+            return Avx.DotProduct(sum, seedsCountReci, 0b1111_0001).GetElement(0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
