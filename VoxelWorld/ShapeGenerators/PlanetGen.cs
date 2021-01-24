@@ -74,16 +74,16 @@ namespace VoxelWorld
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CalculateSeedsDotProducts(Vector4 dotWith, float* storeDots)
         {
+            float* seedsPtr = Seeds;
             Vector128<float> dotWith128 = (dotWith * PosMultiplier).AsVector128();
             Vector256<float> dotWith256 = Vector256.Create(dotWith128, dotWith128);
             for (int i = 0; i < SeedsCount; i += Vector256<float>.Count)
             {
                 //Load 8 seed vectors
-                Vector256<float> s12 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 0);
-                Vector256<float> s34 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 1);
-                Vector256<float> s56 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 2);
-                Vector256<float> s78 = Avx.LoadVector256(Seeds + i * 4 + Vector256<float>.Count * 3);
-                
+                Vector256<float> s12 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 0);
+                Vector256<float> s34 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 1);
+                Vector256<float> s56 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 2);
+                Vector256<float> s78 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 3);
                 
                 Vector256<float> ps12 = Avx.DotProduct(dotWith256, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
                 Vector256<float> ps34 = Avx.DotProduct(dotWith256, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
@@ -95,6 +95,7 @@ namespace VoxelWorld
                 Vector256<float> ps = Avx.Or(ps1234, ps5678);//[2,4,6,8,1,3,5,7]
 
                 Avx.Store(storeDots + i, ps);
+                seedsPtr += Vector256<float>.Count * 4;
             } 
         }
 
