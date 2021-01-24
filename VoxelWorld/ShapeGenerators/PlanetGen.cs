@@ -13,7 +13,7 @@ namespace VoxelWorld
         private readonly float* XNoiseDiffs;
         private readonly float* TurbulentNoises;
         private readonly int SeedsCount;
-        private readonly float PosMultiplier;
+        private readonly Vector4 PosMultiplier;
 
         private readonly Vector256<float> const0_25;
         private const float consttp = 1.0f / (2.0f * MathF.PI);
@@ -28,7 +28,7 @@ namespace VoxelWorld
             this.const0_5 = Vector256.Create(0.5f);
             this.const_noSign = Vector256.Create(0x7fffffff).AsSingle();
             this.seedsCountReci = Vector256.Create(seedsInfo.Reci_SeedsCount);
-            this.PosMultiplier = noiseFrequency * consttp;
+            this.PosMultiplier = new Vector4(noiseFrequency * consttp);
 
             this.Seeds = seeds;
             this.BaseNoises = baseNoises;
