@@ -18,8 +18,6 @@ namespace VoxelWorld
     {
         static void Main(string[] args)
         {
-            WorkLimiter.StartWorkers();
-
             int windowWidth = 1280;
             int windowHeight = 720;
 
@@ -72,6 +70,8 @@ namespace VoxelWorld
             var planetGen = new PlanetGen(3, 8.0f, 3.0f, 3.0f);
             VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
             system.TestResizeToFindFirstGrid();
+
+            WorkLimiter.StartWorkers(system.FirstLevelSystemData);
 
             Frustum renderCheck = new Frustum();
 

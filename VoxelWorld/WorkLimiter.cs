@@ -56,7 +56,7 @@ namespace VoxelWorld
 
         public static void StartWorkers(VoxelSystemData voxelgenData)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 14; i++)
             {
                 Workers.Add(new Thread(() =>
                 {
