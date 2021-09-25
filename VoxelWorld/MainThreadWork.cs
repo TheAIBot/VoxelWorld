@@ -244,43 +244,11 @@ namespace VoxelWorld
 
                 if (cmd.CType == CmdType.Add)
                 {
-                    bool allocatedGrid = false;
-                    while (!allocatedGrid)
-                    {
-                        for (int i = indexFirstBufferNotFull; i < GridDrawBuffers.Count; i++)
-                        {
-                            if (!GridDrawBuffers[i].TryAddGeometry(cmd.Grid, cmd.GeoData))
-                            {
-                                if (i == indexFirstBufferNotFull)
-                                {
-                                    indexFirstBufferNotFull++;
-                                }
-                            }
-                            else
-                            {
-                                GridsToBuffer.Add(cmd.Grid, GridDrawBuffers[i]);
-                                allocatedGrid = true;
-                                break;
-                            }
-                        }
-
-                        if (!allocatedGrid)
-                        {
-                            GridDrawBuffers.Add(new IndirectDraw());
-                        }
-                    }
+                    AddGrid(cmd, ref indexFirstBufferNotFull);
                 }
                 else if (cmd.CType == CmdType.Remove)
                 {
-                    if (GridsToBuffer.TryGetValue(cmd.Grid, out var buffer) && 
-                        GridsToBuffer.Remove(cmd.Grid))
-                    {
-                        buffer.RemoveGeometry(cmd.Grid);
-                    }
-                    else
-                    {
-                        throw new Exception("Failed to find and remove a grid.");
-                    }
+                    RemoveGrid(cmd);
                 }
                 else
                 {
@@ -307,6 +275,45 @@ namespace VoxelWorld
             }
 
             //Console.WriteLine(GridDrawBuffers.Count);
+        }
+
+        private static void AddGrid(Command cmd, ref int indexFirstBufferNotFull)
+        {
+            while (true)
+            {
+                for (int i = indexFirstBufferNotFull; i < GridDrawBuffers.Count; i++)
+                {
+                    if (!GridDrawBuffers[i].TryAddGeometry(cmd.Grid, cmd.GeoData))
+                    {
+                        if (i == indexFirstBufferNotFull)
+                        {
+                            indexFirstBufferNotFull++;
+                        }
+                    }
+                    else
+                    {
+                        GridsToBuffer.Add(cmd.Grid, GridDrawBuffers[i]);
+                        return;
+                    }
+                }
+
+                //No space in any buffer for the geometry so make a
+                //new one and try ágain
+                GridDrawBuffers.Add(new IndirectDraw());
+            }
+        }
+
+        private static void RemoveGrid(Command cmd)
+        {
+            if (GridsToBuffer.TryGetValue(cmd.Grid, out var buffer) &&
+                GridsToBuffer.Remove(cmd.Grid))
+            {
+                buffer.RemoveGeometry(cmd.Grid);
+            }
+            else
+            {
+                throw new Exception("Failed to find and remove a grid.");
+            }
         }
     }
 }
