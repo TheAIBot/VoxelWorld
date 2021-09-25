@@ -125,16 +125,11 @@ namespace VoxelWorld
 
             if (DrawCommands.Count > 0 && CommandsChangeSinceLastPrepareDraw)
             {
-                using (var commandsArr = new RentedArray<DrawElementsIndirectCommand>(DrawCommands.Count))
-                {
-                    int index = 0;
-                    foreach (var keyValue in DrawCommands)
-                    {
-                        commandsArr.Arr[index++] = keyValue.Value;
-                    }
-                    CommandBuffer.BufferSubData(commandsArr.Arr, commandsArr.Length * Marshal.SizeOf<DrawElementsIndirectCommand>());
-                    CommandsChangeSinceLastPrepareDraw = false;
-                }
+                using var commandsArr = new RentedArray<DrawElementsIndirectCommand>(DrawCommands.Count);
+                DrawCommands.Values.CopyTo(commandsArr.Arr, 0);
+
+                CommandBuffer.BufferSubData(commandsArr.Arr, commandsArr.Length * Marshal.SizeOf<DrawElementsIndirectCommand>());
+                CommandsChangeSinceLastPrepareDraw = false;
             }
         }
 
