@@ -105,41 +105,9 @@ namespace VoxelWorld
                     indices += TransferToBuffers[i].Geom.Indices.Length;
                 }
 
-                using (var verticesTempArr = new RentedArray<Vector3>(vertices))
-                using (var indicesTempArr = new RentedArray<uint>(indices))
-                {
-                    Span<Vector3> verticesTemp = verticesTempArr.AsSpan();
-                    Span<uint> indicesTemp = indicesTempArr.AsSpan();
-
-                    {
-                        Span<Vector3> availableSpace = verticesTemp;
-                        for (int i = 0; i < TransferToBuffers.Count; i++)
-                        {
-                            TransferToBuffers[i].Geom.Vertices.CopyTo(availableSpace);
-                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Vertices.Length);
-                        }
-                        VertexBuffer.BufferSubData(verticesTempArr.Arr, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
-                    }
-                    {
-                        Span<Vector3> availableSpace = verticesTemp;
-                        for (int i = 0; i < TransferToBuffers.Count; i++)
-                        {
-                            TransferToBuffers[i].Geom.Normals.CopyTo(availableSpace);
-                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Normals.Length);
-                        }
-                        NormalBuffer.BufferSubData(verticesTempArr.Arr, verticesTemp.Length * Marshal.SizeOf<Vector3>(), FirstAvailableVertexIndex * Marshal.SizeOf<Vector3>());
-                    }
-
-                    {
-                        Span<uint> availableSpace = indicesTemp;
-                        for (int i = 0; i < TransferToBuffers.Count; i++)
-                        {
-                            TransferToBuffers[i].Geom.Indices.CopyTo(availableSpace);
-                            availableSpace = availableSpace.Slice(TransferToBuffers[i].Geom.Indices.Length);
-                        }
-                        IndiceBuffer.BufferSubData(indicesTempArr.Arr, indicesTemp.Length * Marshal.SizeOf<uint>(), FirstAvailableIndiceIndex * Marshal.SizeOf<uint>());
-                    }
-                }
+                CopyCommandsGeomIntoBuffer(TransferToBuffers, vertices, VertexBuffer, FirstAvailableVertexIndex, static x => x.Geom.VerticesAsMemSpan);
+                CopyCommandsGeomIntoBuffer(TransferToBuffers, vertices, NormalBuffer, FirstAvailableVertexIndex, static x => x.Geom.NormalsAsMemSpan);
+                CopyCommandsGeomIntoBuffer(TransferToBuffers, indices, IndiceBuffer, FirstAvailableIndiceIndex, static x => x.Geom.IndicesAsMemSpan);
 
                 for (int i = 0; i < TransferToBuffers.Count; i++)
                 {
@@ -168,6 +136,21 @@ namespace VoxelWorld
                     CommandsChangeSinceLastPrepareDraw = false;
                 }
             }
+        }
+
+        private void CopyCommandsGeomIntoBuffer<T>(List<CommandPair> commands, int bufferSize, VBO<T> buffer, int bufferOffset, Func<CommandPair, Memory<T>> GeomSelector) where T : struct
+        {
+            using var tempBufferArr = new RentedArray<T>(bufferSize);
+            var tempBuffer = tempBufferArr.AsSpan();
+
+            for (int i = 0; i < commands.Count; i++)
+            {
+                Span<T> geomData = GeomSelector(commands[i]).Span;
+                geomData.CopyTo(tempBuffer);
+                tempBuffer = tempBuffer.Slice(geomData.Length);
+            }
+
+            buffer.BufferSubData(tempBufferArr.Arr, bufferSize * Marshal.SizeOf<T>(), bufferOffset * Marshal.SizeOf<T>());
         }
 
         public void Draw()

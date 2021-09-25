@@ -16,6 +16,10 @@ namespace VoxelWorld
         public Span<Vector3> Normals { get { return normals.AsSpan(0, VertexCount); } }
         public Span<uint> Indices { get { return indices.AsSpan(0, IndiceCount); } }
 
+        public Memory<Vector3> VerticesAsMemSpan { get { return new Memory<Vector3>(vertices, 0, VertexCount); } }
+        public Memory<Vector3> NormalsAsMemSpan { get { return new Memory<Vector3>(normals, 0, VertexCount); } }
+        public Memory<uint> IndicesAsMemSpan { get { return new Memory<uint>(indices, 0, IndiceCount); } }
+
         public GeometryData(Vector3[] vertices, Vector3[] normals, uint[] indices)
         {
             this.vertices = vertices;
