@@ -111,11 +111,15 @@ namespace VoxelWorld
             cake.Start();
 
             // handle events and render the frame
-            while (Window.Open)
+            while (true)
             {
                 watch.Restart();
 
-                Window.HandleEvents();     
+                Window.HandleEvents();
+                if (!Window.Open)
+                {
+                    break;
+                }
 
                 if (renderFrom.UpdateCameraDimensions(Window.Width, Window.Height))
                 {
