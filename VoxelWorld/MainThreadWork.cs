@@ -8,27 +8,7 @@ namespace VoxelWorld
 
     internal static class MainThreadWork
     {
-        private enum CmdType
-        {
-            Add,
-            Remove
-        }
-
-        private readonly struct Command
-        {
-            public readonly VoxelGridHierarchy Grid;
-            public readonly GeometryData GeoData;
-            public readonly CmdType CType;
-
-            public Command(CmdType cmd, VoxelGridHierarchy grid, GeometryData data)
-            {
-                this.Grid = grid;
-                this.GeoData = data;
-                this.CType = cmd;
-            }
-        }
-
-        private static ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
+        private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
@@ -36,12 +16,12 @@ namespace VoxelWorld
 
         public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
         {
-            Commands.Enqueue(new Command(CmdType.Add, grid, geometry));
+            Commands.Enqueue(new GridRenderCommand(GridRenderCommandType.Add, grid, geometry));
         }
 
         public static void RemoveDrawableGrid(VoxelGridHierarchy grid)
         {
-            Commands.Enqueue(new Command(CmdType.Remove, grid, null));
+            Commands.Enqueue(new GridRenderCommand(GridRenderCommandType.Remove, grid, null));
         }
 
         public static void DrawGrids()
@@ -51,17 +31,17 @@ namespace VoxelWorld
             int indexFirstBufferNotFull = 0;
             for (int cmdCounter = 0; cmdCounter < cmdCount; cmdCounter++)
             {
-                Command cmd;
+                GridRenderCommand cmd;
                 if (!Commands.TryDequeue(out cmd))
                 {
                     throw new Exception("Expected to dequeue a command but no command was found.");
                 }
 
-                if (cmd.CType == CmdType.Add)
+                if (cmd.CType == GridRenderCommandType.Add)
                 {
                     AddGrid(cmd, ref indexFirstBufferNotFull);
                 }
-                else if (cmd.CType == CmdType.Remove)
+                else if (cmd.CType == GridRenderCommandType.Remove)
                 {
                     RemoveGrid(cmd);
                 }
@@ -92,7 +72,7 @@ namespace VoxelWorld
             //Console.WriteLine(GridDrawBuffers.Count);
         }
 
-        private static void AddGrid(Command cmd, ref int indexFirstBufferNotFull)
+        private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
         {
             while (true)
             {
@@ -118,7 +98,7 @@ namespace VoxelWorld
             }
         }
 
-        private static void RemoveGrid(Command cmd)
+        private static void RemoveGrid(GridRenderCommand cmd)
         {
             if (GridsToBuffer.TryGetValue(cmd.Grid, out var buffer) &&
                 GridsToBuffer.Remove(cmd.Grid))
