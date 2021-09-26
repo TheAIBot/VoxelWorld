@@ -36,17 +36,15 @@ namespace VoxelWorld
                 bufferSize += GeomSelector(cmd).Length;
             }
 
-            using var tempBufferArr = new RentedArray<T>(bufferSize);
-            var tempBuffer = tempBufferArr.AsSpan();
+            using var mappedRange = Buffer.MapBufferRange(FirstAvailableIndex, bufferSize, BufferAccessMask.MapWriteBit | BufferAccessMask.MapUnsynchronizedBit);
+            Span<T> range = mappedRange.Range;
 
             for (int i = 0; i < commands.Count; i++)
             {
                 Span<T> geomData = GeomSelector(commands[i]).Span;
-                geomData.CopyTo(tempBuffer);
-                tempBuffer = tempBuffer.Slice(geomData.Length);
+                geomData.CopyTo(range);
+                range = range.Slice(geomData.Length);
             }
-
-            Buffer.BufferSubData(tempBufferArr.Arr, bufferSize * Marshal.SizeOf<T>(), FirstAvailableIndex * Marshal.SizeOf<T>());
         }
 
         public void Reset()
