@@ -16,13 +16,12 @@ namespace VoxelWorld
         private const int VERTEX_BUFFER_SIZE = 20_000;
         private const int INDICE_BUFFER_SIZE = 100_000;
         private const int COMMAND_BUFFER_SIZE = 2_000;
-        private int CommandsAvailable = COMMAND_BUFFER_SIZE;
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
         private readonly SlidingVBO<Vector3> NormalBuffer;
         private readonly SlidingVBO<uint> IndiceBuffer;
-        private readonly VBO<DrawElementsIndirectCommand> CommandBuffer;
+        private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
 
         public IndirectDraw()
@@ -30,13 +29,13 @@ namespace VoxelWorld
             VertexBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(VERTEX_BUFFER_SIZE, BufferTarget.ArrayBuffer));
             NormalBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(VERTEX_BUFFER_SIZE, BufferTarget.ArrayBuffer));
             IndiceBuffer = new SlidingVBO<uint>(new VBO<uint>(INDICE_BUFFER_SIZE, BufferTarget.ElementArrayBuffer));
-            CommandBuffer = new VBO<DrawElementsIndirectCommand>(COMMAND_BUFFER_SIZE, BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw);
+            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(new VBO<DrawElementsIndirectCommand>(COMMAND_BUFFER_SIZE, BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
                 new GenericVBO<Vector3>(NormalBuffer.Buffer, "vertex_normal"),
                 new GenericVBO<uint>(IndiceBuffer.Buffer),
-                new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer),
+                new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer.Buffer),
             };
             Vao = new VAO(SimpleShader.GetShader(), vbos);
             Vao.DisposeChildren = false;
@@ -47,12 +46,12 @@ namespace VoxelWorld
         {
             if (VertexBuffer.SpaceAvailable >= geometry.Vertices.Length &&
                 IndiceBuffer.SpaceAvailable >= geometry.Indices.Length &&
-                CommandsAvailable >= 1)
+                CommandBuffer.SpaceAvailable >= 1)
             {
                 VertexBuffer.ReserveSpace(geometry.Vertices.Length);
                 NormalBuffer.ReserveSpace(geometry.Normals.Length);
                 IndiceBuffer.ReserveSpace(geometry.Indices.Length);
-                CommandsAvailable--;
+                CommandBuffer.ReserveSpace(1);
                 TransferToBuffers.Add(new CommandPair(grid, geometry));
                 return true;
             }
@@ -79,27 +78,21 @@ namespace VoxelWorld
         {
             if (TransferToBuffers.Count > 0)
             {
-                int vertices = 0;
-                int indices = 0;
-                for (int i = 0; i < TransferToBuffers.Count; i++)
+                using var vertexRange = VertexBuffer.MapReservedRange();
+                using var normalRange = NormalBuffer.MapReservedRange();
+                using var indiceRange = IndiceBuffer.MapReservedRange();
+
+                foreach (var transfer in TransferToBuffers)
                 {
-                    vertices += TransferToBuffers[i].Geom.Vertices.Length;
-                    indices += TransferToBuffers[i].Geom.Indices.Length;
-                }
+                    GeometryData geometry = transfer.Geom;
 
-                VertexBuffer.AddCommandsGeom(TransferToBuffers, static x => x.Geom.VerticesAsMemSpan);
-                NormalBuffer.AddCommandsGeom(TransferToBuffers, static x => x.Geom.NormalsAsMemSpan);
-                IndiceBuffer.AddCommandsGeom(TransferToBuffers, static x => x.Geom.IndicesAsMemSpan);
+                    DrawCommands.Add(transfer.Grid, new DrawElementsIndirectCommand(geometry.Indices.Length, 1, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex, 0));
 
-                for (int i = 0; i < TransferToBuffers.Count; i++)
-                {
-                    GeometryData geom = TransferToBuffers[i].Geom;
-                    DrawCommands.Add(TransferToBuffers[i].Grid, new DrawElementsIndirectCommand(geom.Indices.Length, 1, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex, 0));
-                    VertexBuffer.UseSpace(geom.Vertices.Length);
-                    NormalBuffer.UseSpace(geom.Normals.Length);
-                    IndiceBuffer.UseSpace(geom.Indices.Length);
+                    vertexRange.AddRange(geometry.Vertices);
+                    normalRange.AddRange(geometry.Normals);
+                    indiceRange.AddRange(geometry.Indices);
 
-                    TransferToBuffers[i].Geom.Reuse();
+                    geometry.Reuse();
                 }
 
                 TransferToBuffers.Clear();
@@ -108,10 +101,15 @@ namespace VoxelWorld
 
             if (DrawCommands.Count > 0 && CommandsChangeSinceLastPrepareDraw)
             {
-                using var commandsArr = new RentedArray<DrawElementsIndirectCommand>(DrawCommands.Count);
-                DrawCommands.Values.CopyTo(commandsArr.Arr, 0);
+                CommandBuffer.Reset();
+                CommandBuffer.ReserveSpace(DrawCommands.Count);
 
-                CommandBuffer.BufferSubData(commandsArr.Arr, commandsArr.Length * Marshal.SizeOf<DrawElementsIndirectCommand>());
+                using var commandRange = CommandBuffer.MapReservedRange();
+                foreach (var drawCmd in DrawCommands.Values)
+                {
+                    commandRange.Add(drawCmd);
+                }
+
                 CommandsChangeSinceLastPrepareDraw = false;
             }
         }
@@ -120,7 +118,7 @@ namespace VoxelWorld
         {
             if (DrawCommands.Count > 0)
             {
-                Vao.MultiDrawElementsIndirect(CommandBuffer, DrawCommands.Count);
+                Vao.MultiDrawElementsIndirect(CommandBuffer.Buffer, DrawCommands.Count);
             }
         }
 

@@ -28,23 +28,10 @@ namespace VoxelWorld
             FirstAvailableIndex += sizeToUse;
         }
 
-        public void AddCommandsGeom(List<CommandPair> commands, Func<CommandPair, Memory<T>> GeomSelector)
+        public SlidingRange MapReservedRange(BufferAccessMask mappingMask = BufferAccessMask.MapWriteBit | BufferAccessMask.MapUnsynchronizedBit)
         {
-            int bufferSize = 0;
-            foreach (var cmd in commands)
-            {
-                bufferSize += GeomSelector(cmd).Length;
-            }
-
-            using var mappedRange = Buffer.MapBufferRange(FirstAvailableIndex, bufferSize, BufferAccessMask.MapWriteBit | BufferAccessMask.MapUnsynchronizedBit);
-            Span<T> range = mappedRange.Range;
-
-            for (int i = 0; i < commands.Count; i++)
-            {
-                Span<T> geomData = GeomSelector(commands[i]).Span;
-                geomData.CopyTo(range);
-                range = range.Slice(geomData.Length);
-            }
+            int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
+            return new SlidingRange(this, Buffer.MapBufferRange(FirstAvailableIndex, reserved, mappingMask));
         }
 
         public void Reset()
@@ -56,6 +43,43 @@ namespace VoxelWorld
         public void Dispose()
         {
             Buffer.Dispose();
+        }
+
+        internal readonly ref struct SlidingRange
+        {
+            private readonly SlidingVBO<T> Sliding;
+            private readonly MappedRange<T> MappedRange;
+            private readonly int StartIndex;
+
+            internal SlidingRange(SlidingVBO<T> sliding, MappedRange<T> mapped)
+            {
+                Sliding = sliding;
+                MappedRange = mapped;
+                StartIndex = Sliding.FirstAvailableIndex;
+            }
+
+            public void Add(T value)
+            {
+                int offset = Sliding.FirstAvailableIndex - StartIndex;
+                MappedRange.Range[offset] = value;
+
+                Sliding.FirstAvailableIndex++;
+            }
+
+            public void AddRange(Span<T> values)
+            {
+                int offset = Sliding.FirstAvailableIndex - StartIndex;
+                Span<T> offsetRange = MappedRange.Range.Slice(offset);
+                values.CopyTo(offsetRange);
+
+                Sliding.FirstAvailableIndex += values.Length;
+            }
+
+            public void Dispose()
+            {
+                Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
+                MappedRange.Dispose();            
+            }
         }
     }
 }
