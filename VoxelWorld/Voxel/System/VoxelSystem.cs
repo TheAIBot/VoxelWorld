@@ -7,7 +7,7 @@ namespace VoxelWorld
 {
     internal class VoxelSystem
     {
-        private readonly Dictionary<Vector3I, VoxelHierarchy> Grids = new Dictionary<Vector3I, VoxelHierarchy>();
+        private VoxelHierarchy Grid = null;
         private readonly Vector3 Center;
         internal VoxelSystemData FirstLevelSystemData;
         private readonly ModelTransformations ModelTrans = new ModelTransformations();
@@ -20,21 +20,22 @@ namespace VoxelWorld
             this.FirstLevelSystemData = new VoxelSystemData(gridSize, voxelSize, generator);
         }
 
+        /// <summary>
+        /// Initializes the system with a root grid hierarchy with a voxel size
+        /// that encompasses the whole model in the root grid hierarchy.
+        /// </summary>
         public void TestResizeToFindFirstGrid()
         {
             VoxelGrid vGrid = new VoxelGrid(new Vector3(0, 0, 0), FirstLevelSystemData);
             while (true)
             {
-                Vector3I gridPos = new Vector3I(0, 0, 0);
-                Vector3 gridCenter = Center + gridPos.AsFloatVector3() * FirstLevelSystemData.GridSize * FirstLevelSystemData.VoxelSize;
-                VoxelGridHierarchy grid = new VoxelGridHierarchy(gridCenter, FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize);
+                using VoxelGridHierarchy grid = new VoxelGridHierarchy(Center, FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize);
                 
-                vGrid.Repurpose(gridCenter, FirstLevelSystemData);
+                vGrid.Repurpose(Center, FirstLevelSystemData);
 
                 grid.GenerateGrid(FirstLevelSystemData, vGrid);
                 if (grid.Grid.IsEmpty)
                 {
-                    grid.Dispose();
                     FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
                     continue;
                 }
@@ -42,47 +43,22 @@ namespace VoxelWorld
 
                 if (grid.Grid.VoxelsAtEdge)
                 {
-                    grid.Dispose();
                     FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
                     continue;
                 }
+
+                /* So at this point it has found a grid size that contains the whole grid within it
+                 * without any of it touching the sides. The hierarchy is a 2x2x2 box of grids meaning
+                 * that the grid size in a hierarchy only has to be halfthe size. That's why the system
+                 * data is halved here.
+                 */
                 FirstLevelSystemData = FirstLevelSystemData.GetOneDown();
 
-
-                grid.Dispose();
-
-                VoxelHierarchy hir = new VoxelHierarchy(gridCenter, FirstLevelSystemData);
+                VoxelHierarchy hir = new VoxelHierarchy(Center, FirstLevelSystemData);
                 hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData, vGrid);
-
-                if (!TryAddGrid(gridPos, hir))
-                {
-                    Console.Error.WriteLine("failed to add hirearchy to system.");
-                }
-
-
+                Grid = hir;
 
                 break;
-            }
-        }
-
-        private bool TryAddGrid(Vector3I gridPos, VoxelHierarchy grid)
-        {
-            lock (Grids)
-            {
-                if (!Grids.TryAdd(gridPos, grid))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private bool TryRemoveGrid(Vector3I gridPos)
-        {
-            lock (Grids)
-            {
-                return Grids.Remove(gridPos);
             }
         }
 
@@ -93,13 +69,7 @@ namespace VoxelWorld
 
         public void CheckVoxelResolution(Frustum renderCheck)
         {
-            lock (Grids)
-            {
-                foreach (var grid in Grids.Values)
-                {
-                    grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData);
-                }
-            }
+            Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData);
         }
     }
 }

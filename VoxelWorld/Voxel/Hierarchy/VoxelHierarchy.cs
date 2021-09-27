@@ -9,16 +9,16 @@ namespace VoxelWorld
 
     internal class VoxelHierarchy : IDisposable
     {
-        private static readonly Vector3I[] GridLocations = new Vector3I[]
+        private static readonly Vector3[] GridLocations = new Vector3[]
         {
-            new Vector3I(-1, -1, -1),
-            new Vector3I( 1, -1, -1),
-            new Vector3I(-1,  1, -1),
-            new Vector3I( 1,  1, -1),
-            new Vector3I(-1, -1,  1),
-            new Vector3I( 1, -1,  1),
-            new Vector3I(-1,  1,  1),
-            new Vector3I( 1,  1,  1)
+            new Vector3(-1, -1, -1),
+            new Vector3( 1, -1, -1),
+            new Vector3(-1,  1, -1),
+            new Vector3( 1,  1, -1),
+            new Vector3(-1, -1,  1),
+            new Vector3( 1, -1,  1),
+            new Vector3(-1,  1,  1),
+            new Vector3( 1,  1,  1)
         };
 
         //keeps track of sub hierarchies
@@ -37,7 +37,7 @@ namespace VoxelWorld
 
         private Vector3 GetGridCenter(int index, Vector3 center, VoxelSystemData genData)
         {
-            return center + GridLocations[index].AsFloatVector3() * 0.5f * (genData.GridSize - 2) * genData.VoxelSize;
+            return center + GridLocations[index] * 0.5f * (genData.GridSize - 2) * genData.VoxelSize;
         }
 
         public BoundingCircle Generate(Vector3 center, VoxelSystemData genData, VoxelGrid grid)
