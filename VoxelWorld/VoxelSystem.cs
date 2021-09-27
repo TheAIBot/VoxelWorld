@@ -5,53 +5,6 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
-    internal class ModelTransformations
-    {
-        public Matrix4 Rotation = Matrix4.Identity;
-        public Matrix4 RevRotation = Matrix4.Identity;
-        public Vector3 Translation = new Vector3(0, 0, 0);
-        public Vector3 RotatedLookDir = new Vector3(0, 0, 0);
-        public Vector3 CameraPos = new Vector3(0, 0, 0);
-        public float FOV = 0.0f;
-
-        public void Update(PlayerCamera camera, float yAngle)
-        {
-            Rotation = Matrix4.CreateRotationY(yAngle);
-            RevRotation = Matrix4.CreateRotationY(-yAngle);
-            RotatedLookDir = Rotation * camera.LookDirection;
-            CameraPos = camera.CameraPos;
-            FOV = camera.FieldOfView;
-        }
-    }
-
-    internal class VoxelSystemData
-    {
-        public readonly int GridSize;
-        public readonly float VoxelSize;
-        public readonly PlanetGen WeightGen;
-        private VoxelSystemData OneDown = null;
-
-        private const int MaxDepth = 10;
-
-        public VoxelSystemData(int gridSize, float voxelSize, PlanetGen generator)
-        {
-            this.GridSize = gridSize;
-            this.VoxelSize = voxelSize;
-            this.WeightGen = generator;
-        }
-
-        public VoxelSystemData GetOneDown()
-        {
-            if (OneDown == null)
-            {
-                OneDown = new VoxelSystemData(GridSize, VoxelSize / 2.0f, WeightGen);
-            }
-
-            return OneDown;
-        }
-    }
-
-
     internal class VoxelSystem
     {
         private readonly Dictionary<Vector3I, VoxelHierarchy> Grids = new Dictionary<Vector3I, VoxelHierarchy>();

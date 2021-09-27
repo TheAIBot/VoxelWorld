@@ -5,13 +5,6 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
-    internal enum GenerationStatus : byte
-    {
-        NotGenerated,
-        Generating,
-        HasBeenGenerated
-    }
-
     internal struct VoxelHierarchyInfo
     {
         private Vector3 Center;
