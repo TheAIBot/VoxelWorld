@@ -16,7 +16,6 @@ namespace VoxelWorld
         private bool PrevLeftMouseDown;
         private Vector2 PrevMousePos;
         private Vector2 CameraAngles;
-        private bool FirstLeftClick = true;
 
         public float FieldOfView = 45.0f * (MathF.PI / 180.0f);
 
