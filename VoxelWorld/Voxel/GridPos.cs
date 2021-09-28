@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace VoxelWorld
 {
-    internal readonly struct GridPos
+    internal readonly struct GridPos : IEquatable<GridPos>
     {
         private readonly int X;
         private readonly int Y;
@@ -88,11 +88,16 @@ namespace VoxelWorld
 
         public override bool Equals(object obj)
         {
-            return obj is GridPos pos &&
-                   X == pos.X &&
-                   Y == pos.Y &&
-                   Z == pos.Z &&
-                   Level == pos.Level;
+            return obj is GridPos pos && Equals(pos);
+
+        }
+
+        public bool Equals(GridPos other)
+        {
+            return X == other.X &&
+                   Y == other.Y &&
+                   Z == other.Z &&
+                   Level == other.Level;
         }
 
         public override int GetHashCode()
