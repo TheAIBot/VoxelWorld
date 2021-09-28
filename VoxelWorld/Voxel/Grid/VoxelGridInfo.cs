@@ -37,27 +37,27 @@ namespace VoxelWorld
             this.CompressedGrid = null;
         }
 
-        public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid)
+        public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
 
-            EndGenerating(genData, gridHir, grid);
+            EndGenerating(genData, gridHir, grid, gridPos);
         }
 
-        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, GridPos gridPos)
         {
             Debug.Assert(IsBeingGenerated == false);
 
             IsBeingGenerated = true;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, VoxelType.Grid));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, gridPos, VoxelType.Grid));
         }
 
-        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)
         {
             //no need to do the work if it's already hollow again
             if (IsHollow)
@@ -84,9 +84,13 @@ namespace VoxelWorld
                 }
 
                 grid.Interpolate();
-                VoxelsAtEdge = grid.EdgePointsUsed();
+
                 BoundingCircleRadius = grid.GetBoundingCircle().Radius;
                 CompressedGrid = grid.GetCompressed();
+
+                GridSidePointsUsed sidesUsed = grid.EdgePointsUsed();
+                VoxelsAtEdge = sidesUsed.IsAnyUsed();
+                genData.MarkMustGenerateSurroundings(sidesUsed, gridPos);
             }
             else
             {

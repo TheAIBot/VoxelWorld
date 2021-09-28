@@ -108,87 +108,64 @@ namespace VoxelWorld
             return TriangleCount == 0;
         }
 
-        public bool EdgePointsUsed()
+        public GridSidePointsUsed EdgePointsUsed()
         {
             int VPToIndex(int x, int y, int z)
             {
                 return z * (GenData.GridSize - 1) * (GenData.GridSize - 1) + y * (GenData.GridSize - 1) + x;
             }
 
-            bool pointsAtEdge = false;
+            GridSidePointsUsed sidesUsed = new GridSidePointsUsed();
+
             for (int y = 0; y < GenData.GridSize - 1; y++)
             {
                 for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, 0)];
+                    sidesUsed.MinusZ |= IsUsingVoxelPoint[VPToIndex(x, y, 0)];
                 }
-            }
-            if (pointsAtEdge)
-            {
-                return true;
             }
 
             for (int y = 0; y < GenData.GridSize - 1; y++)
             {
                 for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, y, GenData.GridSize - 2)];
+                    sidesUsed.PlusZ |= IsUsingVoxelPoint[VPToIndex(x, y, GenData.GridSize - 2)];
                 }
-            }
-            if (pointsAtEdge)
-            {
-                return true;
             }
 
             for (int z = 0; z < GenData.GridSize - 1; z++)
             {
                 for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, 0, z)];
+                    sidesUsed.MinusY |= IsUsingVoxelPoint[VPToIndex(x, 0, z)];
                 }
-            }
-            if (pointsAtEdge)
-            {
-                return true;
             }
 
             for (int z = 0; z < GenData.GridSize - 1; z++)
             {
                 for (int x = 0; x < GenData.GridSize - 1; x++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(x, GenData.GridSize - 2, z)];
+                    sidesUsed.PlusY |= IsUsingVoxelPoint[VPToIndex(x, GenData.GridSize - 2, z)];
                 }
-            }
-            if (pointsAtEdge)
-            {
-                return true;
             }
 
             for (int z = 0; z < GenData.GridSize - 1; z++)
             {
                 for (int y = 0; y < GenData.GridSize - 1; y++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(0, y, z)];
+                    sidesUsed.MinusX |= IsUsingVoxelPoint[VPToIndex(0, y, z)];
                 }
-            }
-            if (pointsAtEdge)
-            {
-                return true;
             }
 
             for (int z = 0; z < GenData.GridSize - 1; z++)
             {
                 for (int y = 0; y < GenData.GridSize - 1; y++)
                 {
-                    pointsAtEdge |= IsUsingVoxelPoint[VPToIndex(GenData.GridSize - 2, y, z)];
+                    sidesUsed.PlusX |= IsUsingVoxelPoint[VPToIndex(GenData.GridSize - 2, y, z)];
                 }
             }
-            if (pointsAtEdge)
-            {
-                return true;
-            }
 
-            return false;
+            return sidesUsed;
         }
 
         public void Interpolate()

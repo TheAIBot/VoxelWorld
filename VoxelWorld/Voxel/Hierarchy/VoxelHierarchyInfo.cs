@@ -10,6 +10,7 @@ namespace VoxelWorld
         private Vector3 Center;
         private VoxelHierarchy VoxelHir;
         public bool IsEmpty;
+        public bool IgnoreIsEmpty;
         public GenerationStatus GenStatus { get; private set; }
         public bool IsHollow { get; private set; }
         private float BoundingCircleRadius;
@@ -21,13 +22,14 @@ namespace VoxelWorld
             this.Center = center;
             this.VoxelHir = null;
             this.IsEmpty = false;
+            this.IgnoreIsEmpty = false;
             this.GenStatus = GenerationStatus.NotGenerated;
             this.IsHollow = true;
             this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
             this.HasBeenDisposed = false;
         }
 
-        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, GridPos gridPos)
         {
             Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
@@ -35,10 +37,10 @@ namespace VoxelWorld
             GenStatus = GenerationStatus.Generating;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, VoxelType.Hierarchy));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, gridPos, VoxelType.Hierarchy));
         }
 
-        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)
         {
             if (IsHollow)
             {
@@ -47,11 +49,11 @@ namespace VoxelWorld
             }
 
 
-            VoxelHierarchy hir = new VoxelHierarchy(Center, genData);
-            var hirData = hir.Generate(Center, genData, grid);
+            VoxelHierarchy hir = new VoxelHierarchy(Center, genData, gridPos);
+            var hirData = hir.Generate(Center, genData, grid, gridPos);
             BoundingCircleRadius = hirData.Radius;
 
-            if (hir.IsEmpty())
+            if (!IgnoreIsEmpty && hir.IsEmpty())
             {
                 IsEmpty = true;
                 hir.Dispose();
@@ -81,8 +83,22 @@ namespace VoxelWorld
             }
         }
 
-        public bool ShouldGenerate()
+        public bool ShouldGenerate(VoxelGridHierarchy gridHir)
         {
+            //It has been generated as empty but now needs to be generated
+            //again while ignoring that it's empty
+            if (IgnoreIsEmpty && IsEmpty && GenStatus == GenerationStatus.HasBeenGenerated)
+            {
+                IsEmpty = false;
+                GenStatus = GenerationStatus.NotGenerated;
+                lock (gridHir)
+                {
+                    VoxelHir?.Dispose();
+                    VoxelHir = null;
+                }
+                return true;
+            }
+
             if (GenStatus != GenerationStatus.NotGenerated)
             {
                 return false;
@@ -98,7 +114,7 @@ namespace VoxelWorld
 
         public bool CanSee(Frustum onScreenCheck, ModelTransformations modelTrans)
         {
-            if (IsEmpty)
+            if (!IgnoreIsEmpty && IsEmpty)
             {
                 return false;
             }
@@ -112,10 +128,10 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, ref GridPos gridPos)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetOneDown());
+            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetWithHalfVoxelSize(), ref gridPos);
         }
 
         public void MakeHollow(VoxelGridHierarchy gridHir)
@@ -131,6 +147,11 @@ namespace VoxelWorld
 
                 VoxelHir?.MakeHollow();
             }
+        }
+
+        public void MarkMustGenerate()
+        {
+            IgnoreIsEmpty = true;
         }
 
         public void Dispose(VoxelGridHierarchy gridHir)

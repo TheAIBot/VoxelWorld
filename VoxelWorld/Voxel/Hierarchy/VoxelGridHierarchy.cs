@@ -6,8 +6,8 @@ namespace VoxelWorld
 {
     internal class VoxelGridHierarchy : IDisposable
     {
-        public VoxelGridInfo Grid;
-        public VoxelHierarchyInfo Hierarchy;
+        private VoxelGridInfo Grid;
+        private VoxelHierarchyInfo Hierarchy;
 
         public VoxelGridHierarchy(Vector3 center, int gridSize, float voxelSize)
         {
@@ -15,19 +15,19 @@ namespace VoxelWorld
             this.Hierarchy = new VoxelHierarchyInfo(center, gridSize, voxelSize);
         }
 
-        public void GenerateGrid(VoxelSystemData genData, VoxelGrid grid)
+        public void GenerateGrid(VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            Grid.Generate(genData, this, grid);
+            Grid.Generate(genData, this, grid, gridPos);
         }
 
-        public void EndGeneratingGrid(VoxelSystemData genData, VoxelGrid grid)
+        public void EndGeneratingGrid(VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            Grid.EndGenerating(genData, this, grid);
+            Grid.EndGenerating(genData, this, grid, gridPos);
         }
 
-        public void EndGeneratingHierarchy(VoxelSystemData genData, VoxelGrid grid)
+        public void EndGeneratingHierarchy(VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            Hierarchy.EndGenerating(genData, this, grid);
+            Hierarchy.EndGenerating(genData, this, grid, gridPos);
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
@@ -43,7 +43,7 @@ namespace VoxelWorld
             return genData.VoxelSize / spaceLength < 0.0015f;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, GridPos gridPos)
         {
             if (Grid.IsBeingGenerated)
             {
@@ -52,6 +52,11 @@ namespace VoxelWorld
             if (Hierarchy.GenStatus == GenerationStatus.Generating)
             {
                 return;
+            }
+
+            if (Hierarchy.IsEmpty && genData.IsMustGenerate(gridPos))
+            {
+                MarkMustGenerate();
             }
 
             if (!Hierarchy.IsHollow && !Hierarchy.CanSee(renderCheck, modelTrans))
@@ -75,7 +80,7 @@ namespace VoxelWorld
                     {
                         if (Grid.ShouldGenerate())
                         {
-                            Grid.StartGenerating(genData, this);
+                            Grid.StartGenerating(genData, this, gridPos);
                         }
                     }
                 }
@@ -88,14 +93,14 @@ namespace VoxelWorld
             {
                 if (Hierarchy.CanSee(renderCheck, modelTrans))
                 {
-                    if (Hierarchy.ShouldGenerate())
+                    if (Hierarchy.ShouldGenerate(this))
                     {
-                        Hierarchy.StartGenerating(genData.GetOneDown(), this);
+                        Hierarchy.StartGenerating(genData.GetWithHalfVoxelSize(), this, gridPos);
                     }
                     else
                     {
                         Grid.MakeHollow(this);
-                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, genData);
+                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, genData, ref gridPos);
                     }
                 }
             }
@@ -105,6 +110,31 @@ namespace VoxelWorld
         {
             Grid.MakeHollow(this);
             Hierarchy.MakeHollow(this);
+        }
+
+        public void MarkMustGenerate()
+        {
+            Hierarchy.MarkMustGenerate();
+        }
+
+        public bool IsEmpty()
+        {
+            if (Hierarchy.IgnoreIsEmpty)
+            {
+                return false;
+            }
+
+            return Grid.IsEmpty;
+        }
+
+        public BoundingCircle GetBoundingCircle()
+        {
+            return Grid.BoundingBox;
+        }
+
+        public bool AnyVoxelsAtGridEdge()
+        {
+            return Grid.VoxelsAtEdge;
         }
 
         public void Dispose()

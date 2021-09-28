@@ -33,17 +33,17 @@ namespace VoxelWorld
                 
                 vGrid.Repurpose(Center, FirstLevelSystemData);
 
-                grid.GenerateGrid(FirstLevelSystemData, vGrid);
-                if (grid.Grid.IsEmpty)
+                grid.GenerateGrid(FirstLevelSystemData, vGrid, GridPos.RootPos());
+                if (grid.IsEmpty())
                 {
-                    FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
+                    FirstLevelSystemData = FirstLevelSystemData.GetWithDoubleVoxelSize();
                     continue;
                 }
 
 
-                if (grid.Grid.VoxelsAtEdge)
+                if (grid.AnyVoxelsAtGridEdge())
                 {
-                    FirstLevelSystemData = new VoxelSystemData(FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize * 2.0f, FirstLevelSystemData.WeightGen);
+                    FirstLevelSystemData = FirstLevelSystemData.GetWithDoubleVoxelSize();
                     continue;
                 }
 
@@ -52,10 +52,10 @@ namespace VoxelWorld
                  * that the grid size in a hierarchy only has to be halfthe size. That's why the system
                  * data is halved here.
                  */
-                FirstLevelSystemData = FirstLevelSystemData.GetOneDown();
+                FirstLevelSystemData = FirstLevelSystemData.GetWithHalfVoxelSize();
 
-                VoxelHierarchy hir = new VoxelHierarchy(Center, FirstLevelSystemData);
-                hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData, vGrid);
+                VoxelHierarchy hir = new VoxelHierarchy(Center, FirstLevelSystemData, GridPos.RootPos());
+                hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData, vGrid, GridPos.RootPos());
                 Grid = hir;
 
                 break;
@@ -69,7 +69,8 @@ namespace VoxelWorld
 
         public void CheckVoxelResolution(Frustum renderCheck)
         {
-            Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData);
+            GridPos rootPos = new GridPos();
+            Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData, ref rootPos);
         }
     }
 }
