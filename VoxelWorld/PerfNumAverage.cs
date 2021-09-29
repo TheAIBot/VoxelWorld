@@ -39,6 +39,11 @@ namespace VoxelWorld
             return Samples.Count == SamplesNeeded;
         }
 
+        public bool IsEmpty()
+        {
+            return Samples.Count == 0;
+        }
+
         public void PrintHistogram()
         {
             int[] histogram = new int[Samples.Select(HowToGetValue).Max() + 1];

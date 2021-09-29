@@ -5,11 +5,11 @@ using System.Threading;
 
 namespace VoxelWorld
 {
-
     internal static class MainThreadWork
     {
         private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 
+        private static readonly IndirectDrawFactory DrawFactory = new IndirectDrawFactory(20_000);
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
 
@@ -63,9 +63,17 @@ namespace VoxelWorld
 
             for (int i = GridDrawBuffers.Count - 1; i >= 0; i--)
             {
-                if (GridDrawBuffers[i].CommandCount() == 0)
+                if (GridDrawBuffers[i].IsEmpty())
                 {
-                    GridDrawBuffers[i].Reset();
+                    if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
+                    {
+                        GridDrawBuffers[i].Reset();
+                    }
+                    else
+                    {
+                        GridDrawBuffers[i].Dispose();
+                        GridDrawBuffers.RemoveAt(i);
+                    }
                 }
             }
 
@@ -74,6 +82,8 @@ namespace VoxelWorld
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
         {
+            DrawFactory.AddGeometrySample(cmd.GeoData);
+
             while (true)
             {
                 for (int i = indexFirstBufferNotFull; i < GridDrawBuffers.Count; i++)
@@ -94,7 +104,7 @@ namespace VoxelWorld
 
                 //No space in any buffer for the geometry so make a
                 //new one and try ágain
-                GridDrawBuffers.Add(new IndirectDraw());
+                GridDrawBuffers.Add(DrawFactory.CreateIndirectDraw());
             }
         }
 

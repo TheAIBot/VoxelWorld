@@ -13,9 +13,6 @@ namespace VoxelWorld
     {
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
         private readonly Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand>();
-        private const int VERTEX_BUFFER_SIZE = 20_000;
-        private const int INDICE_BUFFER_SIZE = 100_000;
-        private const int COMMAND_BUFFER_SIZE = 2_000;
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
@@ -24,12 +21,12 @@ namespace VoxelWorld
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
 
-        public IndirectDraw()
+        public IndirectDraw(int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
-            VertexBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(VERTEX_BUFFER_SIZE, BufferTarget.ArrayBuffer));
-            NormalBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(VERTEX_BUFFER_SIZE, BufferTarget.ArrayBuffer));
-            IndiceBuffer = new SlidingVBO<uint>(new VBO<uint>(INDICE_BUFFER_SIZE, BufferTarget.ElementArrayBuffer));
-            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(new VBO<DrawElementsIndirectCommand>(COMMAND_BUFFER_SIZE, BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw));
+            VertexBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(vertexBufferSize, BufferTarget.ArrayBuffer));
+            NormalBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(vertexBufferSize, BufferTarget.ArrayBuffer));
+            IndiceBuffer = new SlidingVBO<uint>(new VBO<uint>(indiceBufferSize, BufferTarget.ElementArrayBuffer));
+            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(new VBO<DrawElementsIndirectCommand>(commandBufferSize, BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
@@ -122,9 +119,19 @@ namespace VoxelWorld
             }
         }
 
-        public int CommandCount()
+        public int VertexBufferSize()
         {
-            return DrawCommands.Count;
+            return VertexBuffer.Buffer.Count;
+        }
+
+        public int IndiceBufferSize()
+        {
+            return IndiceBuffer.Buffer.Count;
+        }
+
+        public bool IsEmpty()
+        {
+            return TransferToBuffers.Count == 0 && DrawCommands.Count == 0;
         }
 
         public bool Reset()
@@ -147,6 +154,10 @@ namespace VoxelWorld
         public void Dispose()
         {
             Vao.Dispose();
+            VertexBuffer.Dispose();
+            NormalBuffer.Dispose();
+            IndiceBuffer.Dispose();
+            CommandBuffer.Dispose();
         }
     }
 }
