@@ -132,11 +132,6 @@ namespace VoxelWorld
             return Grid.BoundingBox;
         }
 
-        public bool AnyVoxelsAtGridEdge()
-        {
-            return Grid.VoxelsAtEdge;
-        }
-
         public void Dispose()
         {
             Grid.Dispose(this);

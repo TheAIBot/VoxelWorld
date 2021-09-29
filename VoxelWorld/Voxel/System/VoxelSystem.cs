@@ -26,22 +26,20 @@ namespace VoxelWorld
         /// </summary>
         public void TestResizeToFindFirstGrid()
         {
-            VoxelGrid vGrid = new VoxelGrid(new Vector3(0, 0, 0), FirstLevelSystemData);
+            VoxelGrid vGrid = new VoxelGrid(Center, FirstLevelSystemData);
             while (true)
-            {
-                using VoxelGridHierarchy grid = new VoxelGridHierarchy(Center, FirstLevelSystemData.GridSize, FirstLevelSystemData.VoxelSize);
-                
+            {                
                 vGrid.Repurpose(Center, FirstLevelSystemData);
+                vGrid.Randomize();
+                vGrid.PreCalculateGeometryData();
 
-                grid.GenerateGrid(FirstLevelSystemData, vGrid, GridPos.RootPos());
-                if (grid.IsEmpty())
+                if (vGrid.IsEmpty())
                 {
                     FirstLevelSystemData = FirstLevelSystemData.GetWithDoubleVoxelSize();
                     continue;
                 }
 
-
-                if (grid.AnyVoxelsAtGridEdge())
+                if (vGrid.EdgePointsUsed().IsAnyUsed())
                 {
                     FirstLevelSystemData = FirstLevelSystemData.GetWithDoubleVoxelSize();
                     continue;
@@ -54,10 +52,8 @@ namespace VoxelWorld
                  */
                 FirstLevelSystemData = FirstLevelSystemData.GetWithHalfVoxelSize();
 
-                VoxelHierarchy hir = new VoxelHierarchy(Center, FirstLevelSystemData, GridPos.RootPos());
-                hir.Generate(new Vector3(0, 0, 0), FirstLevelSystemData, vGrid, GridPos.RootPos());
-                Grid = hir;
-
+                Grid = new VoxelHierarchy(Center, FirstLevelSystemData, GridPos.RootPos());
+                Grid.Generate(Center, FirstLevelSystemData, vGrid, GridPos.RootPos());
                 break;
             }
         }
