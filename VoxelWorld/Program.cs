@@ -110,6 +110,8 @@ namespace VoxelWorld
             cake.Priority = ThreadPriority.AboveNormal;
             cake.Start();
 
+            PerfNumAverage<int> avgFrameTime = new PerfNumAverage<int>(200, x => x);
+
             // handle events and render the frame
             while (true)
             {
@@ -155,7 +157,8 @@ namespace VoxelWorld
 
                 watch.Stop();
 
-                //Console.WriteLine(watch.ElapsedMilliseconds);
+                avgFrameTime.AddSample((int)watch.ElapsedMilliseconds);
+                //Console.WriteLine(avgFrameTime.GetAverage());
 
 
 
