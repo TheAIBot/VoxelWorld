@@ -119,11 +119,11 @@ namespace VoxelWorld
                 return false;
             }
 
-            Vector3 newCenter = modelTrans.RevRotation * Center + modelTrans.Translation;
-            if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
-            {
-                return false;
-            }
+            //Vector3 newCenter = modelTrans.RevRotation * Center + modelTrans.Translation;
+            //if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
+            //{
+            //    return false;
+            //}
 
             return true;
         }
