@@ -78,9 +78,9 @@ namespace VoxelWorld
         {
             if (TransferToBuffers.Count > 0)
             {
-                using var vertexRange = VertexBuffer.MapReservedRange();
-                using var normalRange = NormalBuffer.MapReservedRange();
-                using var indiceRange = IndiceBuffer.MapReservedRange();
+                using var vertexRange = VertexBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
+                using var normalRange = NormalBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
+                using var indiceRange = IndiceBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
 
                 foreach (var transfer in TransferToBuffers)
                 {
@@ -104,7 +104,7 @@ namespace VoxelWorld
                 CommandBuffer.Reset();
                 CommandBuffer.ReserveSpace(DrawCommands.Count);
 
-                using var commandRange = CommandBuffer.MapReservedRange();
+                using var commandRange = CommandBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateBufferBit);
                 foreach (var drawCmd in DrawCommands.Values)
                 {
                     commandRange.Add(drawCmd);

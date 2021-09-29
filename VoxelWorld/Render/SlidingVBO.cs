@@ -28,7 +28,7 @@ namespace VoxelWorld
             FirstAvailableIndex += sizeToUse;
         }
 
-        public SlidingRange MapReservedRange(BufferAccessMask mappingMask = BufferAccessMask.MapWriteBit | BufferAccessMask.MapUnsynchronizedBit)
+        public SlidingRange MapReservedRange(BufferAccessMask mappingMask = BufferAccessMask.MapWriteBit)
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
             return new SlidingRange(this, Buffer.MapBufferRange(FirstAvailableIndex, reserved, mappingMask));
