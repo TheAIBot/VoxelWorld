@@ -29,7 +29,7 @@ namespace VoxelWorld
             this.HasBeenDisposed = false;
         }
 
-        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, GridPos gridPos)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, in GridPos gridPos)
         {
             Debug.Assert(GenStatus == GenerationStatus.NotGenerated);
             Debug.Assert(VoxelHir == null);
@@ -37,7 +37,7 @@ namespace VoxelWorld
             GenStatus = GenerationStatus.Generating;
             IsHollow = false;
 
-            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, gridPos, VoxelType.Hierarchy));
+            WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, in gridPos, VoxelType.Hierarchy));
         }
 
         public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)
@@ -128,10 +128,10 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, ref GridPos gridPos)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetWithHalfVoxelSize(), ref gridPos);
+            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetWithHalfVoxelSize(), in gridPos);
         }
 
         public void MakeHollow(VoxelGridHierarchy gridHir)

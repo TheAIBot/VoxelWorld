@@ -42,14 +42,14 @@ namespace VoxelWorld
             return new VoxelSystemData(GridSize, VoxelSize * 2.0f, WeightGen, PosToVoxelGridHir, MustGenerate);
         }
 
-        public void MarkMustGenerateSurroundings(GridSidePointsUsed sidesUsed, GridPos pos)
+        public void MarkMustGenerateSurroundings(GridSidePointsUsed sidesUsed, in GridPos pos)
         {
             Span<GridOffset> offsets = stackalloc GridOffset[GridSidePointsUsed.AdjacentOffsets];
             sidesUsed.FillWithAdjacentGridOffsets(offsets);
 
             for (int i = 0; i < offsets.Length; i++)
             {
-                if (pos.TryMove(offsets[i], out var adjacent))
+                if (pos.TryMove(in offsets[i], out var adjacent))
                 {
                     //Go up the tree until it finds a gridHir that has been made
                     VoxelGridHierarchy gridHir;
@@ -68,12 +68,12 @@ namespace VoxelWorld
             }
         }
 
-        public void AddVoxelGridHir(GridPos gridPos, VoxelGridHierarchy gridHir)
+        public void AddVoxelGridHir(in GridPos gridPos, VoxelGridHierarchy gridHir)
         {
             PosToVoxelGridHir.TryAdd(gridPos, gridHir);
         }
 
-        public bool IsMustGenerate(GridPos gridPos)
+        public bool IsMustGenerate(in GridPos gridPos)
         {
             return MustGenerate.ContainsKey(gridPos);
         }

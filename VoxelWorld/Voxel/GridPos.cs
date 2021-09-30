@@ -36,7 +36,7 @@ namespace VoxelWorld
             return new GridPos((int)((uint)X >> 1), (int)((uint)Y >> 1), (int)((uint)Z >> 1), Level - 1);
         }
 
-        public bool TryMove(GridOffset offset, out GridPos gridPos)
+        public bool TryMove(in GridOffset offset, out GridPos gridPos)
         {
             return TryMove(offset.X, offset.Y, offset.Z, out gridPos);
         }
@@ -71,7 +71,7 @@ namespace VoxelWorld
             return true;
         }
 
-        public GridPos Move(GridOffset offset)
+        public GridPos Move(in GridOffset offset)
         {
             return Move(offset.X, offset.Y, offset.Z);
         }

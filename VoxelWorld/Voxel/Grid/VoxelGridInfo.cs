@@ -47,7 +47,7 @@ namespace VoxelWorld
             EndGenerating(genData, gridHir, grid, gridPos);
         }
 
-        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, GridPos gridPos)
+        public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, in GridPos gridPos)
         {
             Debug.Assert(IsBeingGenerated == false);
 
@@ -90,7 +90,7 @@ namespace VoxelWorld
 
                 GridSidePointsUsed sidesUsed = grid.EdgePointsUsed();
                 VoxelsAtEdge = sidesUsed.IsAnyUsed();
-                genData.MarkMustGenerateSurroundings(sidesUsed, gridPos);
+                genData.MarkMustGenerateSurroundings(sidesUsed, in gridPos);
             }
             else
             {

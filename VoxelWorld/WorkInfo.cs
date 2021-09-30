@@ -9,7 +9,7 @@ namespace VoxelWorld
         private readonly GridPos Pos;
         private readonly VoxelType VType;
 
-        public WorkInfo(VoxelGridHierarchy gridHir, VoxelSystemData genData, GridPos pos, VoxelType type)
+        public WorkInfo(VoxelGridHierarchy gridHir, VoxelSystemData genData, in GridPos pos, VoxelType type)
         {
             this.WorkItem = gridHir;
             this.GenData = genData;

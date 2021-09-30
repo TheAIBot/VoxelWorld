@@ -43,7 +43,7 @@ namespace VoxelWorld
             return genData.VoxelSize / spaceLength < 0.0015f;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, GridPos gridPos)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)
         {
             if (Grid.IsBeingGenerated)
             {
@@ -54,7 +54,7 @@ namespace VoxelWorld
                 return;
             }
 
-            if (Hierarchy.IsEmpty && genData.IsMustGenerate(gridPos))
+            if (Hierarchy.IsEmpty && genData.IsMustGenerate(in gridPos))
             {
                 MarkMustGenerate();
             }
@@ -80,7 +80,7 @@ namespace VoxelWorld
                     {
                         if (Grid.ShouldGenerate())
                         {
-                            Grid.StartGenerating(genData, this, gridPos);
+                            Grid.StartGenerating(genData, this, in gridPos);
                         }
                     }
                 }
@@ -95,12 +95,12 @@ namespace VoxelWorld
                 {
                     if (Hierarchy.ShouldGenerate(this))
                     {
-                        Hierarchy.StartGenerating(genData.GetWithHalfVoxelSize(), this, gridPos);
+                        Hierarchy.StartGenerating(genData.GetWithHalfVoxelSize(), this, in gridPos);
                     }
                     else
                     {
                         Grid.MakeHollow(this);
-                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, genData, ref gridPos);
+                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, genData, in gridPos);
                     }
                 }
             }

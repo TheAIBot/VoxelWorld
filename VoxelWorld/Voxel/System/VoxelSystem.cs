@@ -66,7 +66,7 @@ namespace VoxelWorld
         public void CheckVoxelResolution(Frustum renderCheck)
         {
             GridPos rootPos = new GridPos();
-            Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData, ref rootPos);
+            Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData, in rootPos);
         }
     }
 }

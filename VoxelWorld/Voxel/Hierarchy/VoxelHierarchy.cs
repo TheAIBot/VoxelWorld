@@ -42,8 +42,8 @@ namespace VoxelWorld
                 Vector3 gridCenter = GetGridCenter(i, center, genData);
                 SubHierarchyGrids[i] = new VoxelGridHierarchy(gridCenter, genData.GridSize, genData.VoxelSize);
 
-                GridPos subGridPos = gridPos.Move(GridPosOffsets[i]);
-                genData.AddVoxelGridHir(subGridPos, SubHierarchyGrids[i]);
+                GridPos subGridPos = gridPos.Move(in GridPosOffsets[i]);
+                genData.AddVoxelGridHir(in subGridPos, SubHierarchyGrids[i]);
             }
         }
 
@@ -56,9 +56,9 @@ namespace VoxelWorld
         {
             gridPos = gridPos.GoDownTree();
             BoundingCircle circle = new BoundingCircle(center, 0);
-            for (int i = 0; i < GridLocations.Length; i++)
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                GridPos subGridPos = gridPos.Move(GridPosOffsets[i]);
+                GridPos subGridPos = gridPos.Move(in GridPosOffsets[i]);
                 SubHierarchyGrids[i].GenerateGrid(genData, grid, subGridPos);
                 if (!SubHierarchyGrids[i].IsEmpty())
                 {
@@ -82,15 +82,15 @@ namespace VoxelWorld
             return true;
         }
 
-        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, ref GridPos gridPos)
+        public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)
         {
             IsHollow = false;
 
-            gridPos = gridPos.GoDownTree();
-            for (int i = 0; i < GridLocations.Length; i++)
+            GridPos subGridPos = gridPos.GoDownTree();
+            for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                GridPos subGridPos = gridPos.Move(GridPosOffsets[i]);
-                SubHierarchyGrids[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData, subGridPos);
+                GridPos movedSubGridPos = subGridPos.Move(in GridPosOffsets[i]);
+                SubHierarchyGrids[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData, in movedSubGridPos);
             }
         }
 
