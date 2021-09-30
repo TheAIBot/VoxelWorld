@@ -35,7 +35,7 @@ namespace VoxelWorld
             Input.Subscribe('k', dummyCamera.MoveBackward);
             Input.Subscribe('l', () => controlDummyCamera = !controlDummyCamera);
 
-            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-15, -15, -15));
+            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-10, -10, -10));
             Input.MouseLeftClick = new Event(x => 
             {
                 if (controlDummyCamera)
@@ -95,14 +95,23 @@ namespace VoxelWorld
 
             Thread cake = new Thread(() =>
             {
+                Stopwatch watch = new Stopwatch();
+                PerfNumAverage<int> avgCheckTime = new PerfNumAverage<int>(200, x => x);
+
                 while (IsRunning)
                 {
+                    watch.Restart();
+
                     renderFrom = controlDummyCamera ? dummyCamera : player;
                     renderFrom.UpdateCameraDirection(Input.MousePosition);
                     renderCheck.UpdateFrustum(renderFrom.Perspective, renderFrom.View);
 
                     system.UpdateModel(renderFrom, angle);
                     system.CheckVoxelResolution(renderCheck);
+
+                    watch.Stop();
+                    avgCheckTime.AddSample((int)watch.ElapsedMilliseconds);
+                    Console.WriteLine(avgCheckTime.GetAverage());
                 }
 
             });
@@ -162,7 +171,7 @@ namespace VoxelWorld
 
 
 
-                angle += 0.0002f;
+                angle += 0.02f;
 
 
 
