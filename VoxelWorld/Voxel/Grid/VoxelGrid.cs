@@ -110,58 +110,32 @@ namespace VoxelWorld
 
         public GridSidePointsUsed EdgePointsUsed()
         {
-            int VPToIndex(int x, int y, int z)
+            static int VPToIndex(int sideLength, int x, int y, int z)
             {
-                return z * (GenData.GridSize - 1) * (GenData.GridSize - 1) + y * (GenData.GridSize - 1) + x;
+                return z * sideLength * sideLength + y * sideLength + x;
             }
+
+            int sideLength = GenData.GridSize - 1;
+            bool[] usedVoxelPoints = IsUsingVoxelPoint;
 
             GridSidePointsUsed sidesUsed = new GridSidePointsUsed();
-
-            for (int y = 0; y < GenData.GridSize - 1; y++)
+            for (int b = 0; b < GenData.GridSize - 1; b++)
             {
-                for (int x = 0; x < GenData.GridSize - 1; x++)
+                for (int a = 0; a < GenData.GridSize - 1; a++)
                 {
-                    sidesUsed.MinusZ |= IsUsingVoxelPoint[VPToIndex(x, y, 0)];
-                }
-            }
+                    int plusXIndex = VPToIndex(sideLength, sideLength - 1, a, b);
+                    int minusXIndex = VPToIndex(sideLength, 0, a, b);
+                    int plusYIndex = VPToIndex(sideLength, a, sideLength - 1, b);
+                    int minusYIndex = VPToIndex(sideLength, a, 0, b);
+                    int plusZIndex = VPToIndex(sideLength, a, b, sideLength - 1);
+                    int minusZIndex = VPToIndex(sideLength, a, b, 0);
 
-            for (int y = 0; y < GenData.GridSize - 1; y++)
-            {
-                for (int x = 0; x < GenData.GridSize - 1; x++)
-                {
-                    sidesUsed.PlusZ |= IsUsingVoxelPoint[VPToIndex(x, y, GenData.GridSize - 2)];
-                }
-            }
-
-            for (int z = 0; z < GenData.GridSize - 1; z++)
-            {
-                for (int x = 0; x < GenData.GridSize - 1; x++)
-                {
-                    sidesUsed.MinusY |= IsUsingVoxelPoint[VPToIndex(x, 0, z)];
-                }
-            }
-
-            for (int z = 0; z < GenData.GridSize - 1; z++)
-            {
-                for (int x = 0; x < GenData.GridSize - 1; x++)
-                {
-                    sidesUsed.PlusY |= IsUsingVoxelPoint[VPToIndex(x, GenData.GridSize - 2, z)];
-                }
-            }
-
-            for (int z = 0; z < GenData.GridSize - 1; z++)
-            {
-                for (int y = 0; y < GenData.GridSize - 1; y++)
-                {
-                    sidesUsed.MinusX |= IsUsingVoxelPoint[VPToIndex(0, y, z)];
-                }
-            }
-
-            for (int z = 0; z < GenData.GridSize - 1; z++)
-            {
-                for (int y = 0; y < GenData.GridSize - 1; y++)
-                {
-                    sidesUsed.PlusX |= IsUsingVoxelPoint[VPToIndex(GenData.GridSize - 2, y, z)];
+                    sidesUsed.PlusX |= usedVoxelPoints[plusXIndex];
+                    sidesUsed.MinusX |= usedVoxelPoints[minusXIndex];
+                    sidesUsed.PlusY |= usedVoxelPoints[plusYIndex];
+                    sidesUsed.MinusY |= usedVoxelPoints[minusYIndex];
+                    sidesUsed.PlusZ |= usedVoxelPoints[plusZIndex];
+                    sidesUsed.MinusZ |= usedVoxelPoints[minusZIndex];
                 }
             }
 
