@@ -111,7 +111,7 @@ namespace VoxelWorld
 
                     watch.Stop();
                     avgCheckTime.AddSample((int)watch.ElapsedMilliseconds);
-                    Console.WriteLine(avgCheckTime.GetAverage());
+                    //Console.WriteLine(avgCheckTime.GetAverage());
                 }
 
             });
@@ -120,11 +120,13 @@ namespace VoxelWorld
             cake.Start();
 
             PerfNumAverage<int> avgFrameTime = new PerfNumAverage<int>(200, x => x);
+            GpuTimer gpuFrameTime = new GpuTimer();
 
             // handle events and render the frame
             while (true)
             {
                 watch.Restart();
+                gpuFrameTime.StartTimer();
 
                 Window.HandleEvents();
                 if (!Window.Open)
@@ -165,9 +167,10 @@ namespace VoxelWorld
                 //Console.WriteLine(VoxelGridInfo.DrawCalls);
 
                 watch.Stop();
+                gpuFrameTime.StopTimer();
 
-                avgFrameTime.AddSample((int)watch.ElapsedMilliseconds);
-                //Console.WriteLine(avgFrameTime.GetAverage());
+                avgFrameTime.AddSample((int)gpuFrameTime.GetTimeInMS());
+                Console.WriteLine(avgFrameTime.GetAverage());
 
 
 
