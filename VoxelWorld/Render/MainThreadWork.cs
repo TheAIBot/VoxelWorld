@@ -55,7 +55,12 @@ namespace VoxelWorld
 
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
-                GridDrawBuffers[i].PrepareDraw();
+                GridDrawBuffers[i].CopyToGPU();
+            }
+
+            for (int i = 0; i < GridDrawBuffers.Count; i++)
+            {
+                GridDrawBuffers[i].SendCommandsToGPU();
             }
 
             for (int i = 0; i < GridDrawBuffers.Count; i++)

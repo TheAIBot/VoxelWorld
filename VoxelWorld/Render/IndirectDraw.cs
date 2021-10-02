@@ -12,7 +12,7 @@ namespace VoxelWorld
     internal class IndirectDraw : IDisposable
     {
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
-        private readonly Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand>();
+        IndirectDrawCmdManager DrawCommands = new IndirectDrawCmdManager();
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
@@ -71,7 +71,7 @@ namespace VoxelWorld
             CommandsChangeSinceLastPrepareDraw = true;
         }
 
-        public void PrepareDraw()
+        public void CopyToGPU()
         {
             if (TransferToBuffers.Count > 0)
             {
@@ -83,7 +83,7 @@ namespace VoxelWorld
                 {
                     GeometryData geometry = transfer.Geom;
 
-                    DrawCommands.Add(transfer.Grid, new DrawElementsIndirectCommand(geometry.Indices.Length, 1, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex, 0));
+                    DrawCommands.Add(transfer.Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
                     vertexRange.AddRange(geometry.Vertices);
                     normalRange.AddRange(geometry.Normals);
@@ -95,14 +95,17 @@ namespace VoxelWorld
                 TransferToBuffers.Clear();
                 CommandsChangeSinceLastPrepareDraw = true;
             }
+        }
 
+        public void SendCommandsToGPU()
+        {
             if (DrawCommands.Count > 0 && CommandsChangeSinceLastPrepareDraw)
             {
                 CommandBuffer.Reset();
                 CommandBuffer.ReserveSpace(DrawCommands.Count);
 
                 using var commandRange = CommandBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateBufferBit);
-                foreach (var drawCmd in DrawCommands.Values)
+                foreach (var drawCmd in DrawCommands.GetCommands())
                 {
                     commandRange.Add(drawCmd);
                 }
