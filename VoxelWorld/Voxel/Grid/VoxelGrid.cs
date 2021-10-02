@@ -454,24 +454,34 @@ namespace VoxelWorld
             }
         }
 
-        private void FillWithFaceIndices(Span<uint> indices)
+        private unsafe void FillWithFaceIndices(Span<uint> indices)
         {
-            int GridToVP(int x, int y, int z)
+            static int GridToVP(int sideLength, int x, int y, int z)
             {
-                return (z - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1) + (y - 1) * (GenData.GridSize - 1) + (x - 1);
+                return (z - 1) * sideLength * sideLength + (y - 1) * sideLength + (x - 1);
             }
 
-            int PosToGridIndex(int x, int y, int z)
+            static int PosToGridIndex(int sideLength, int x, int y, int z)
             {
-                return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
+                return z * sideLength * sideLength + y * sideLength + x;
             }
 
-            void MakeFaceVectorIndices(out Vector128<uint> first4FaceIndices, out Vector128<uint> last2FaceIndices, uint a, uint b, uint c, uint d)
+            static Vector256<uint> MakeFaceVectorIndices(uint a, uint b, uint c, uint d)
             {
-                first4FaceIndices = Vector128.Create(c, a, b, b);
-                last2FaceIndices = Vector128.Create(d, c, 0, 0);
+                return Vector256.Create(c, a, b, b, d, c, 0, 0);
             }
 
+            static uint* AddFaceIndices(uint* indices, Vector256<uint> faceVertices, Vector256<uint> storeMask)
+            {
+                Avx2.MaskStore(indices, storeMask, faceVertices);
+
+                const int indicesPerFace = 6;
+                return indices + indicesPerFace;
+            }
+
+            int gridSideLength = GenData.GridSize;
+            int vpSideLength = gridSideLength - 1;
+            bool[] gridSigns = GridSign;
 
             /*
             Each face consists of 6 indices which creates two triangles that
@@ -482,105 +492,89 @@ namespace VoxelWorld
             by only knowing the base vertex indice and the offsets to the
             other indices.
             The code below makes these offsets for each of the 6 indices
-            and stores them in two vectors so calculating/storing the indices
+            and stores them in a vectors so calculating/storing the indices
             can be vectorized. The base indice that these offsets are
             calculated from is x0y0z0.
             */
-            Vector128<uint> faceXNegVecIndice1234;
-            Vector128<uint> faceXNegVecIndice56;
-            Vector128<uint> faceYNegVecIndice1234;
-            Vector128<uint> faceYNegVecIndice56;
-            Vector128<uint> faceZNegVecIndice1234;
-            Vector128<uint> faceZNegVecIndice56;
-            Vector128<uint> faceXPosVecIndice1234;
-            Vector128<uint> faceXPosVecIndice56;
-            Vector128<uint> faceYPosVecIndice1234;
-            Vector128<uint> faceYPosVecIndice56;
-            Vector128<uint> faceZPosVecIndice1234;
-            Vector128<uint> faceZPosVecIndice56;
+            Vector256<uint> faceXNegVecIndice;
+            Vector256<uint> faceYNegVecIndice;
+            Vector256<uint> faceZNegVecIndice;
+            Vector256<uint> faceXPosVecIndice;
+            Vector256<uint> faceYPosVecIndice;
+            Vector256<uint> faceZPosVecIndice;
+            Vector256<uint> storeMask = Vector256.Create(int.MinValue, int.MinValue, int.MinValue, int.MinValue, int.MinValue, int.MinValue, 0u, 0u).AsUInt32();
             {
-                uint x0y0z0 = (uint)GridToVP(1, 1, 1);
-                uint x0y0z1 = (uint)GridToVP(1, 1, 2);
-                uint x0y1z0 = (uint)GridToVP(1, 2, 1);
-                uint x0y1z1 = (uint)GridToVP(1, 2, 2);
-                uint x1y0z0 = (uint)GridToVP(2, 1, 1);
-                uint x1y0z1 = (uint)GridToVP(2, 1, 2);
-                uint x1y1z0 = (uint)GridToVP(2, 2, 1);
-                uint x1y1z1 = (uint)GridToVP(2, 2, 2);
+                uint x0y0z0 = (uint)GridToVP(vpSideLength, 1, 1, 1);
+                uint x0y0z1 = (uint)GridToVP(vpSideLength, 1, 1, 2);
+                uint x0y1z0 = (uint)GridToVP(vpSideLength, 1, 2, 1);
+                uint x0y1z1 = (uint)GridToVP(vpSideLength, 1, 2, 2);
+                uint x1y0z0 = (uint)GridToVP(vpSideLength, 2, 1, 1);
+                uint x1y0z1 = (uint)GridToVP(vpSideLength, 2, 1, 2);
+                uint x1y1z0 = (uint)GridToVP(vpSideLength, 2, 2, 1);
+                uint x1y1z1 = (uint)GridToVP(vpSideLength, 2, 2, 2);
 
-                MakeFaceVectorIndices(out faceXNegVecIndice1234, out faceXNegVecIndice56, x0y0z1, x0y0z0, x0y1z1, x0y1z0);
-                MakeFaceVectorIndices(out faceYNegVecIndice1234, out faceYNegVecIndice56, x0y0z0, x0y0z1, x1y0z0, x1y0z1);
-                MakeFaceVectorIndices(out faceZNegVecIndice1234, out faceZNegVecIndice56, x0y1z0, x0y0z0, x1y1z0, x1y0z0);
-                MakeFaceVectorIndices(out faceXPosVecIndice1234, out faceXPosVecIndice56, x1y0z0, x1y0z1, x1y1z0, x1y1z1);
-                MakeFaceVectorIndices(out faceYPosVecIndice1234, out faceYPosVecIndice56, x0y1z1, x0y1z0, x1y1z1, x1y1z0);
-                MakeFaceVectorIndices(out faceZPosVecIndice1234, out faceZPosVecIndice56, x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                faceXNegVecIndice = MakeFaceVectorIndices(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                faceYNegVecIndice = MakeFaceVectorIndices(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                faceZNegVecIndice = MakeFaceVectorIndices(x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                faceXPosVecIndice = MakeFaceVectorIndices(x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                faceYPosVecIndice = MakeFaceVectorIndices(x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                faceZPosVecIndice = MakeFaceVectorIndices(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
             }
 
-            int indiceIndex = 0;
-            unsafe
+            fixed(uint* indicesPtr = indices)
             {
-                fixed(uint* indicesPtr = indices)
+                uint* indiceStore = indicesPtr;
+
+                for (int z = 1; z < vpSideLength; z++)
                 {
-                    void AddFaceIndices(uint* indices, Vector128<uint> firstFourFaceVertices, Vector128<uint> lastTwoFaceVertices)
+                    for (int y = 1; y < vpSideLength; y++)
                     {
-                        Avx.Store(indices + indiceIndex, firstFourFaceVertices);
-                        Avx.StoreLow((float*)(indices + indiceIndex + Vector128<uint>.Count), lastTwoFaceVertices.AsSingle());
+                        int x = 1;
 
-                        const int indicesPerFace = 6;
-                        indiceIndex += indicesPerFace;
-                    }
+                        uint x0y0z0 = (uint)GridToVP(vpSideLength, x + 0, y + 0, z + 0);
 
-                    for (int z = 1; z < GenData.GridSize - 1; z++)
-                    {
-                        for (int y = 1; y < GenData.GridSize - 1; y++)
+                        int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
+                        int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
+                        int gridIdxyn1 = PosToGridIndex(gridSideLength, x, y - 1, z);
+                        int gridIdxzn1 = PosToGridIndex(gridSideLength, x, y, z - 1);
+                        int gridIdxxp1 = PosToGridIndex(gridSideLength, x + 1, y, z);
+                        int gridIdxyp1 = PosToGridIndex(gridSideLength, x, y + 1, z);
+                        int gridIdxzp1 = PosToGridIndex(gridSideLength, x, y, z + 1);
+
+                        for (int i = 0; i < vpSideLength - 1; i++)
                         {
-                            int x = 1;
-
-                            uint x0y0z0 = (uint)GridToVP(x + 0, y + 0, z + 0);
-
-                            int gridIdxCenter = PosToGridIndex(x, y, z);
-                            int gridIdxxn1 = PosToGridIndex(x - 1, y, z);
-                            int gridIdxyn1 = PosToGridIndex(x, y - 1, z);
-                            int gridIdxzn1 = PosToGridIndex(x, y, z - 1);
-                            int gridIdxxp1 = PosToGridIndex(x + 1, y, z);
-                            int gridIdxyp1 = PosToGridIndex(x, y + 1, z);
-                            int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
-
-                            for (int i = 0; i < GenData.GridSize - 2; i++)
+                            bool centerSign = gridSigns[gridIdxCenter + i];
+                            if (!centerSign)
                             {
-                                bool centerSign = GridSign[gridIdxCenter + i];
-                                if (!centerSign)
-                                {
-                                    continue;
-                                }
+                                continue;
+                            }
 
-                                Vector128<uint> baseFaceIndex = Vector128.Create(x0y0z0 + (uint)i);
+                            Vector256<uint> baseFaceIndex = Vector256.Create(x0y0z0 + (uint)i);
 
-                                if (centerSign && !GridSign[gridIdxxn1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceXNegVecIndice1234, baseFaceIndex), Avx.Add(faceXNegVecIndice56, baseFaceIndex));
-                                }
-                                if (centerSign && !GridSign[gridIdxyn1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceYNegVecIndice1234, baseFaceIndex), Avx.Add(faceYNegVecIndice56, baseFaceIndex));
-                                }
-                                if (centerSign && !GridSign[gridIdxzn1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceZNegVecIndice1234, baseFaceIndex), Avx.Add(faceZNegVecIndice56, baseFaceIndex));
-                                }
+                            if (!gridSigns[gridIdxxn1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceXNegVecIndice, baseFaceIndex), storeMask);
+                            }
+                            if (!gridSigns[gridIdxyn1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceYNegVecIndice, baseFaceIndex), storeMask);
+                            }
+                            if (!gridSigns[gridIdxzn1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceZNegVecIndice, baseFaceIndex), storeMask);
+                            }
 
-                                if (centerSign && !GridSign[gridIdxxp1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceXPosVecIndice1234, baseFaceIndex), Avx.Add(faceXPosVecIndice56, baseFaceIndex));
-                                }
-                                if (centerSign && !GridSign[gridIdxyp1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceYPosVecIndice1234, baseFaceIndex), Avx.Add(faceYPosVecIndice56, baseFaceIndex));
-                                }
-                                if (centerSign && !GridSign[gridIdxzp1 + i])
-                                {
-                                    AddFaceIndices(indicesPtr, Avx.Add(faceZPosVecIndice1234, baseFaceIndex), Avx.Add(faceZPosVecIndice56, baseFaceIndex));
-                                }
+                            if (!gridSigns[gridIdxxp1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceXPosVecIndice, baseFaceIndex), storeMask);
+                            }
+                            if (!gridSigns[gridIdxyp1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceYPosVecIndice, baseFaceIndex), storeMask);
+                            }
+                            if (!gridSigns[gridIdxzp1 + i])
+                            {
+                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceZPosVecIndice, baseFaceIndex), storeMask);
                             }
                         }
                     }
