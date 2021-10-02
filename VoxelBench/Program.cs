@@ -7,7 +7,7 @@ using BenchmarkDotNet.Running;
 
 namespace VoxelBench
 {
-    //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     public class VoxelBencher
     {
         private readonly VoxelSystemData systemDataPlanet;
@@ -31,7 +31,7 @@ namespace VoxelBench
         public void Restore() => gridPlanet.Restore(compressedGrid);
 
         [Benchmark]
-        public bool EdgePointsUsed() => gridPlanet.EdgePointsUsed();
+        public GridSidePointsUsed EdgePointsUsed() => gridPlanet.EdgePointsUsed();
 
         [Benchmark]
         public void Interpolate() => gridPlanet.Interpolate();

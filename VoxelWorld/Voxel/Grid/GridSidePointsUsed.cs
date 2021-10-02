@@ -2,7 +2,7 @@
 
 namespace VoxelWorld
 {
-    internal struct GridSidePointsUsed
+    public struct GridSidePointsUsed
     {
         public bool PlusX;
         public bool MinusX;

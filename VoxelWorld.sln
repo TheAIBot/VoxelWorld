@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenGL.Platform", "..\openg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenGL", "..\opengl4csharp\OpenGL\OpenGL.csproj", "{1B727BA9-6268-4B0A-A954-31EE363B1D72}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VoxelBench", "VoxelBench\VoxelBench.csproj", "{FC808789-BFF3-4D9C-9CE5-85DF02E668E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{1B727BA9-6268-4B0A-A954-31EE363B1D72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1B727BA9-6268-4B0A-A954-31EE363B1D72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1B727BA9-6268-4B0A-A954-31EE363B1D72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC808789-BFF3-4D9C-9CE5-85DF02E668E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC808789-BFF3-4D9C-9CE5-85DF02E668E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC808789-BFF3-4D9C-9CE5-85DF02E668E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC808789-BFF3-4D9C-9CE5-85DF02E668E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

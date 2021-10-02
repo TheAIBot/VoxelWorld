@@ -1,6 +1,6 @@
 ﻿namespace VoxelWorld
 {
-    internal readonly struct GridOffset
+    public readonly struct GridOffset
     {
         public readonly int X;
         public readonly int Y;
