@@ -10,10 +10,12 @@ namespace VoxelWorld
     {
         private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 
+        private const int MinTransferCount = 500;
         private static readonly IndirectDrawFactory DrawFactory = new IndirectDrawFactory(20_000);
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
 
+        private static int DrawCounter = 0;
         private static int GridsDrawing = 0;
 
         public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
@@ -58,6 +60,8 @@ namespace VoxelWorld
                 GridDrawBuffers[i].CopyToGPU();
             }
 
+            TransferFromAlmostEmptyDrawers();
+
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 GridDrawBuffers[i].SendCommandsToGPU();
@@ -84,10 +88,17 @@ namespace VoxelWorld
                 }
             }
 
+            if (DrawCounter++ % 60 == 0)
+            {
+                //PrintDrawBufferUtilization();
+            }
+
             //Console.WriteLine(GridDrawBuffers.Count);
             //Console.WriteLine(GetGPUBufferSizeInMB().ToString("N0") + "MB");
             //Console.WriteLine(GridsDrawing.ToString("N0"));
             //Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
+
+            DrawCounter++;
         }
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
@@ -133,6 +144,55 @@ namespace VoxelWorld
             }
         }
 
+        /// <summary>
+        /// Improve GPU memory utilization by moving draw commands from
+        /// almost empty drawers, to other drawers. This makes the almost
+        /// empty drawers available again so they can accept new draw commands.
+        /// </summary>
+        private static void TransferFromAlmostEmptyDrawers()
+        {
+            for (int i = 0; i < GridDrawBuffers.Count; i++)
+            {
+                IndirectDraw draw = GridDrawBuffers[i];
+                if (draw.GetCommandCount() <= MinTransferCount)
+                {
+                    int vertexCount = draw.GetVertexCount();
+                    int indiceCount = draw.GetIndiceCount();
+                    int commandCount = draw.GetCommandCount();
+
+                    for (int y = 0; y < GridDrawBuffers.Count; y++)
+                    {
+                        //Don't transfer to itself
+                        if (y == i)
+                        {
+                            continue;
+                        }
+
+                        //Need to transfer to a drawer that isn't
+                        //also almost empty
+                        IndirectDraw copyTo = GridDrawBuffers[y];
+                        if (copyTo.GetCommandCount() <= MinTransferCount)
+                        {
+                            continue;
+                        }
+
+                        if (!copyTo.HasSpaceFor(vertexCount, indiceCount, commandCount))
+                        {
+                            continue;
+                        }
+
+                        foreach (var grid in draw.GetGridsDrawing())
+                        {
+                            GridsToBuffer.Remove(grid);
+                            GridsToBuffer.Add(grid, copyTo);
+                        }
+
+                        draw.TransferDrawCommands(copyTo);
+                    }
+                }
+            }
+        }
+
         private static long GetGPUBufferSizeInMB()
         {
             const int bytesToMBRatio = 1_000_000;
@@ -148,6 +208,19 @@ namespace VoxelWorld
             long gpuMemUsedInMB = GetGPUBufferSizeInMB();
 
             return (float)avgTotalGridMemUsageInMB / gpuMemUsedInMB;
+        }
+
+        private static void PrintDrawBufferUtilization()
+        {
+            PerfNumAverage<int> lol = new PerfNumAverage<int>(GridDrawBuffers.Count, x => x);
+            for (int i = 0; i < GridDrawBuffers.Count; i++)
+            {
+                lol.AddSample(GridDrawBuffers[i].GetCommandCount());
+            }
+            lol.PrintHistogram();
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine();
         }
     }
 }

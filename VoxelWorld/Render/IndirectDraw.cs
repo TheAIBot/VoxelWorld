@@ -114,6 +114,66 @@ namespace VoxelWorld
             }
         }
 
+        public bool HasSpaceFor(int vertexCount, int indiceCount, int cmdCount)
+        {
+            return VertexBuffer.SpaceAvailable >= vertexCount &&
+                NormalBuffer.SpaceAvailable >= vertexCount &&
+                IndiceBuffer.SpaceAvailable >= indiceCount &&
+                CommandBuffer.SpaceAvailable >= cmdCount;
+        }
+
+        public int GetVertexCount()
+        {
+            int vertexCount = 0;
+            foreach (var drawInfo in DrawCommands.GetCommandsInfo())
+            {
+                vertexCount += drawInfo.VertexCount;
+            }
+
+            return vertexCount;
+        }
+
+        public int GetIndiceCount()
+        {
+            int indiceCount = 0;
+            foreach (var drawInfo in DrawCommands.GetCommandsInfo())
+            {
+                indiceCount += drawInfo.IndiceCount;
+            }
+
+            return indiceCount;
+        }
+
+        public int GetCommandCount()
+        {
+            return DrawCommands.Count;
+        }
+
+        public IEnumerable<VoxelGridHierarchy> GetGridsDrawing()
+        {
+            return DrawCommands.GetGrids();
+        }
+
+        public void TransferDrawCommands(IndirectDraw dstDrawer)
+        {
+            foreach (var gridDrawInfo in DrawCommands.GetGridCommandsInfo())
+            {
+                VoxelGridHierarchy grid = gridDrawInfo.Key;
+                DrawCommandInfo drawInfo = gridDrawInfo.Value;
+
+                int dstVertexOffset = dstDrawer.VertexBuffer.FirstAvailableIndex;
+                int dstIndiceOffset = dstDrawer.IndiceBuffer.FirstAvailableIndex;
+
+                VertexBuffer.CopyTo(dstDrawer.VertexBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
+                NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
+                IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
+                dstDrawer.DrawCommands.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
+            }
+
+            DrawCommands.Clear();
+            dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
+        }
+
         public void Draw()
         {
             if (DrawCommands.Count > 0)

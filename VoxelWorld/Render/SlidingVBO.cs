@@ -26,12 +26,23 @@ namespace VoxelWorld
         public void UseSpace(int sizeToUse)
         {
             FirstAvailableIndex += sizeToUse;
+            SpaceAvailable -= sizeToUse;
         }
 
         public SlidingRange MapReservedRange(BufferAccessMask mappingMask = BufferAccessMask.MapWriteBit)
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
             return new SlidingRange(this, Buffer.MapBufferRange(FirstAvailableIndex, reserved, mappingMask));
+        }
+
+        public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
+        {
+            int srcOffsetInBytes = srcOffset * Marshal.SizeOf<T>();
+            int dstOffsetInbytes = dstOffset * Marshal.SizeOf<T>();
+            int lengthInBytes = length * Marshal.SizeOf<T>();
+
+            Gl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, (IntPtr)srcOffsetInBytes, (IntPtr)dstOffsetInbytes, lengthInBytes);
+            dstBuffer.UseSpace(length);
         }
 
         public void Reset()
