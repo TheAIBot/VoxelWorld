@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace VoxelWorld
@@ -13,6 +14,7 @@ namespace VoxelWorld
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
 
+        private static int GridsDrawing = 0;
 
         public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
         {
@@ -78,10 +80,14 @@ namespace VoxelWorld
             }
 
             //Console.WriteLine(GridDrawBuffers.Count);
+            //Console.WriteLine(GetGPUBufferSizeInMB().ToString("N0") + "MB");
+            //Console.WriteLine(GridsDrawing.ToString("N0"));
+            //Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
         }
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
         {
+            GridsDrawing++;
             DrawFactory.AddGeometrySample(cmd.GeoData);
 
             while (true)
@@ -110,6 +116,7 @@ namespace VoxelWorld
 
         private static void RemoveGrid(GridRenderCommand cmd)
         {
+            GridsDrawing--;
             if (GridsToBuffer.TryGetValue(cmd.Grid, out var buffer) &&
                 GridsToBuffer.Remove(cmd.Grid))
             {
@@ -119,6 +126,23 @@ namespace VoxelWorld
             {
                 throw new Exception("Failed to find and remove a grid.");
             }
+        }
+
+        private static long GetGPUBufferSizeInMB()
+        {
+            const int bytesToMBRatio = 1_000_000;
+            return GridDrawBuffers.Sum(x => x.GpuMemSize()) / bytesToMBRatio;
+        }
+
+        private static float GetBufferUtilization()
+        {
+            const int bytesToMBRatio = 1_000_000;
+            long averageGridSize = DrawFactory.GetAverageGridMemUsage();
+            long avgTotalGridMemUsage = averageGridSize * GridsDrawing;
+            long avgTotalGridMemUsageInMB = avgTotalGridMemUsage / bytesToMBRatio;
+            long gpuMemUsedInMB = GetGPUBufferSizeInMB();
+
+            return (float)avgTotalGridMemUsageInMB / gpuMemUsedInMB;
         }
     }
 }

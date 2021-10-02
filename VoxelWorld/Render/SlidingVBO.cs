@@ -40,6 +40,11 @@ namespace VoxelWorld
             FirstAvailableIndex = 0;
         }
 
+        public long GpuMemSize()
+        {
+            return Marshal.SizeOf<T>() * Buffer.Count;
+        }
+
         public void Dispose()
         {
             Buffer.Dispose();

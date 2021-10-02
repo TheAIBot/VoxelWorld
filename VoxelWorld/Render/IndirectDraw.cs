@@ -151,6 +151,14 @@ namespace VoxelWorld
             return true;
         }
 
+        public long GpuMemSize()
+        {
+            return VertexBuffer.GpuMemSize() +
+                NormalBuffer.GpuMemSize() +
+                IndiceBuffer.GpuMemSize() +
+                CommandBuffer.GpuMemSize();
+        }
+
         public void Dispose()
         {
             Vao.Dispose();

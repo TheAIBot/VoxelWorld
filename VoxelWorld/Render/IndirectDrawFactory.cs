@@ -1,4 +1,7 @@
-﻿using System;
+﻿using OpenGL.Constructs;
+using System;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace VoxelWorld
 {
@@ -53,6 +56,13 @@ namespace VoxelWorld
 
             const float acceptableError = 0.2f;
             return vertexError < acceptableError && indiceError < acceptableError;
+        }
+
+        public long GetAverageGridMemUsage()
+        {
+            return (long)(AvgVertexCount.GetAverage() * Marshal.SizeOf<Vector3>() * 2 +
+                AvgIndiceCount.GetAverage() * Marshal.SizeOf<uint>() +
+                Marshal.SizeOf<DrawElementsIndirectCommand>());
         }
     }
 }
