@@ -88,7 +88,7 @@ namespace VoxelWorld
                 }
             }
 
-            if (DrawCounter++ % 60 == 0)
+            if (DrawCounter % 60 == 0)
             {
                 //PrintDrawBufferUtilization();
             }
