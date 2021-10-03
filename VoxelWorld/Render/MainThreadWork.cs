@@ -30,63 +30,36 @@ namespace VoxelWorld
 
         public static void DrawGrids()
         {
-            int cmdCount = Commands.Count;
+            //Add/Remove grids from drawers
+            HandleIncommingGridCommands();
 
-            int indexFirstBufferNotFull = 0;
-            for (int cmdCounter = 0; cmdCounter < cmdCount; cmdCounter++)
-            {
-                GridRenderCommand cmd;
-                if (!Commands.TryDequeue(out cmd))
-                {
-                    throw new Exception("Expected to dequeue a command but no command was found.");
-                }
-
-                if (cmd.CType == GridRenderCommandType.Add)
-                {
-                    AddGrid(cmd, ref indexFirstBufferNotFull);
-                }
-                else if (cmd.CType == GridRenderCommandType.Remove)
-                {
-                    RemoveGrid(cmd);
-                }
-                else
-                {
-                    throw new Exception($"Unknown enum value: {cmd.CType}");
-                }
-            }
-
+            //Move new grid data to the GPU
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 GridDrawBuffers[i].CopyToGPU();
             }
 
+            //Transfer grids away from drawers that are almost empty
+            //so they can be reset and filled with grids again. This
+            //improves memory utilization by making these drawers
+            //available faster.
             TransferFromAlmostEmptyDrawers();
 
+            //Send updated draw commands to the GPU
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 GridDrawBuffers[i].SendCommandsToGPU();
             }
 
+            //Draw all the grids
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 GridDrawBuffers[i].Draw();
             }
 
-            for (int i = GridDrawBuffers.Count - 1; i >= 0; i--)
-            {
-                if (GridDrawBuffers[i].IsEmpty())
-                {
-                    if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
-                    {
-                        GridDrawBuffers[i].Reset();
-                    }
-                    else
-                    {
-                        GridDrawBuffers[i].Dispose();
-                        GridDrawBuffers.RemoveAt(i);
-                    }
-                }
-            }
+            //Reset empty drawers so they can be filled again
+            //or remove them if their buffer sizes aren't up to date
+            HandleEmptyDrawers();
 
             if (DrawCounter % 60 == 0)
             {
@@ -99,6 +72,33 @@ namespace VoxelWorld
             //Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
 
             DrawCounter++;
+        }
+
+        private static void HandleIncommingGridCommands()
+        {
+            int cmdCount = Commands.Count;
+
+            int indexFirstBufferNotFull = 0;
+            for (int cmdCounter = 0; cmdCounter < cmdCount; cmdCounter++)
+            {
+                GridRenderCommand cmd;
+                if (!Commands.TryDequeue(out cmd))
+                {
+                    throw new Exception("Expected to dequeue a command but no command was found.");
+                }
+
+                switch (cmd.CType)
+                {
+                    case GridRenderCommandType.Add:
+                        AddGrid(cmd, ref indexFirstBufferNotFull);
+                        break;
+                    case GridRenderCommandType.Remove:
+                        RemoveGrid(cmd);
+                        break;
+                    default:
+                        throw new Exception($"Unknown enum value: {cmd.CType}");
+                }
+            }
         }
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
@@ -188,6 +188,25 @@ namespace VoxelWorld
                         }
 
                         draw.TransferDrawCommands(copyTo);
+                    }
+                }
+            }
+        }
+
+        private static void HandleEmptyDrawers()
+        {
+            for (int i = GridDrawBuffers.Count - 1; i >= 0; i--)
+            {
+                if (GridDrawBuffers[i].IsEmpty())
+                {
+                    if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
+                    {
+                        GridDrawBuffers[i].Reset();
+                    }
+                    else
+                    {
+                        GridDrawBuffers[i].Dispose();
+                        GridDrawBuffers.RemoveAt(i);
                     }
                 }
             }
