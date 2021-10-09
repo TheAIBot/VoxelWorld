@@ -43,32 +43,10 @@ namespace VoxelWorld
 
         public bool TryMove(int xOffset, int yOffset, int zOffset, out GridPos gridPos)
         {
-            static bool CanMove(int dir, int offset, int level)
-            {
-                Debug.Assert(offset <= 1 && offset >= -1);
-
-                if (offset == 1 && BitOperations.PopCount((uint)dir) == level)
-                {
-                    return false;
-                }
-                else if (offset == -1 && dir == 0)
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            if (!CanMove(X, xOffset, Level) ||
-                !CanMove(Y, yOffset, Level) ||
-                !CanMove(Z, zOffset, Level))
-            {
-                gridPos = new GridPos();
-                return false;
-            }
-
             gridPos = Move(xOffset, yOffset, zOffset);
-            return true;
+            return BitOperations.PopCount((uint)gridPos.X) <= Level &&
+                BitOperations.PopCount((uint)gridPos.Y) <= Level &&
+                BitOperations.PopCount((uint)gridPos.Z) <= Level;
         }
 
         public GridPos Move(in GridOffset offset)
