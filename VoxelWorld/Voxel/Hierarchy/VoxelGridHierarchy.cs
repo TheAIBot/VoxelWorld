@@ -54,6 +54,9 @@ namespace VoxelWorld
                 return;
             }
 
+            //This right here actually sucks. Basically i have no way
+            //of making sure that the hierarchy knows if it must be
+            //generated, so instead i just check every time
             if (Hierarchy.IsEmpty && genData.IsMustGenerate(in gridPos))
             {
                 MarkMustGenerate();
