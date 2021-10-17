@@ -18,7 +18,7 @@ namespace VoxelWorld
             new Vector3(-1,  1,  1),
             new Vector3( 1,  1,  1)
         };
-        private static readonly GridOffset[] GridPosOffsets = new GridOffset[]
+        public static readonly GridOffset[] GridPosOffsets = new GridOffset[]
         {
             new GridOffset(0, 0, 0),
             new GridOffset(1, 0, 0),
@@ -54,10 +54,25 @@ namespace VoxelWorld
 
         public BoundingCircle Generate(Vector3 center, VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            gridPos = gridPos.GoDownTree();
+            Span<bool> isUsingSubHir = stackalloc bool[GridPosOffsets.Length];
+            isUsingSubHir.Fill(true);
+            return Generate(center, genData, grid, gridPos, isUsingSubHir);
+        }
+
+        public BoundingCircle Generate(Vector3 center, VoxelSystemData genData, VoxelGrid grid, GridPos gridPos, Span<bool> isUsingSubHir)
+        {
             BoundingCircle circle = new BoundingCircle(center, 0);
             for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
+                //isUsingSubHir is a guess made from the parent grids information
+                //about whether it's empty or not. But the guess might be wrong
+                //which is why it also checks if it should ignore that it's empty.
+                if (!isUsingSubHir[i] && !SubHierarchyGrids[i].IgnoreIsEmpty())
+                {
+                    SubHierarchyGrids[i].InitializeGridAsEmpty();
+                    continue;
+                }
+
                 GridPos subGridPos = gridPos.Move(in GridPosOffsets[i]);
                 SubHierarchyGrids[i].GenerateGrid(genData, grid, subGridPos);
                 if (!SubHierarchyGrids[i].IsEmpty())

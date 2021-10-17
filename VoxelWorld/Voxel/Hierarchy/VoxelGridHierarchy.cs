@@ -25,9 +25,24 @@ namespace VoxelWorld
             Grid.EndGenerating(genData, this, grid, gridPos);
         }
 
+        public void InitializeGridAsEmpty()
+        {
+            Grid.InitializeAsEmpty();
+        }
+
         public void EndGeneratingHierarchy(VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            Hierarchy.EndGenerating(genData, this, grid, gridPos);
+            bool[] isUsingSubHir = null;
+            if (Grid.HasBeenGenerated)
+            {
+                isUsingSubHir = Grid.IsSubGridUsed;
+            }
+            else
+            {
+                isUsingSubHir = new bool[VoxelHierarchy.GridPosOffsets.Length];
+                Array.Fill(isUsingSubHir, true);
+            }
+            Hierarchy.EndGenerating(genData, this, grid, gridPos, isUsingSubHir);
         }
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
@@ -129,6 +144,8 @@ namespace VoxelWorld
 
             return Grid.IsEmpty;
         }
+
+        public bool IgnoreIsEmpty() => Hierarchy.IgnoreIsEmpty;
 
         public BoundingCircle GetBoundingCircle()
         {

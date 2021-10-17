@@ -44,12 +44,12 @@ namespace VoxelWorld
 
         public void MarkMustGenerateSurroundings(GridSidePointsUsed sidesUsed, in GridPos pos)
         {
-            Span<GridOffset> offsets = stackalloc GridOffset[GridSidePointsUsed.AdjacentOffsets];
+            Span<(bool useAdjacent, GridOffset offset)> offsets = stackalloc (bool, GridOffset)[GridSidePointsUsed.AdjacentOffsets];
             sidesUsed.FillWithAdjacentGridOffsets(offsets);
 
             for (int i = 0; i < offsets.Length; i++)
             {
-                if (pos.TryMove(in offsets[i], out var adjacent))
+                if (offsets[i].useAdjacent && pos.TryMove(in offsets[i].offset, out var adjacent))
                 {
                     //Go up the tree until it finds a gridHir that has been made
                     VoxelGridHierarchy gridHir;

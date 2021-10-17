@@ -13,19 +13,19 @@ namespace VoxelWorld
 
         public const int AdjacentOffsets = 6;
 
-        public void FillWithAdjacentGridOffsets(Span<GridOffset> offsets)
+        public void FillWithAdjacentGridOffsets(Span<(bool useAdjacent, GridOffset offset)> offsets)
         {
             if (offsets.Length != AdjacentOffsets)
             {
                 throw new ArgumentOutOfRangeException(nameof(offsets), $"Must have a length of {AdjacentOffsets}.");
             }
 
-            offsets[0] = new GridOffset(PlusX ? 1 : 0, 0, 0);
-            offsets[1] = new GridOffset(MinusX ? -1 : 0, 0, 0);
-            offsets[2] = new GridOffset(0, PlusY ? 1 : 0, 0);
-            offsets[3] = new GridOffset(0, MinusY ? -1 : 0, 0);
-            offsets[4] = new GridOffset(0, 0, PlusZ ? 1 : 0);
-            offsets[5] = new GridOffset(0, 0, MinusZ ? -1 : 0);
+            offsets[0] = (PlusX, new GridOffset(1, 0, 0));
+            offsets[1] = (MinusX, new GridOffset(-1, 0, 0));
+            offsets[2] = (PlusY, new GridOffset(0, 1, 0));
+            offsets[3] = (MinusY, new GridOffset(0, -1, 0));
+            offsets[4] = (PlusZ, new GridOffset(0, 0, 1));
+            offsets[5] = (MinusZ, new GridOffset(0, 0, -1));
         }
 
         public bool IsAnyUsed()

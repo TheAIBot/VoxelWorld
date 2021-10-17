@@ -142,6 +142,39 @@ namespace VoxelWorld
             return sidesUsed;
         }
 
+        public bool SubGridEdgePointsUsed(in GridOffset subGrid)
+        {
+            static int VPToIndex(int sideLength, int x, int y, int z)
+            {
+                return z * sideLength * sideLength + y * sideLength + x;
+            }
+
+            int sideLength = GenData.GridSize - 1;
+            int halfSideLength = sideLength / 2;
+            int ceilHalfSideLength = halfSideLength + 1;
+
+            int xOffset = subGrid.X * halfSideLength;
+            int yOffset = subGrid.Y * halfSideLength;
+            int zOffset = subGrid.Z * halfSideLength;
+
+            for (int z = zOffset; z < zOffset + ceilHalfSideLength; z++)
+            {
+                for (int y = yOffset; y < yOffset + ceilHalfSideLength; y++)
+                {
+                    for (int x = xOffset; x < xOffset + ceilHalfSideLength; x++)
+                    {
+                        int voxelIndex = VPToIndex(sideLength, x, y, z);
+                        if (IsUsingVoxelPoint[voxelIndex])
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public void Interpolate()
         {
             var topLeft = GetTopLeftCorner();

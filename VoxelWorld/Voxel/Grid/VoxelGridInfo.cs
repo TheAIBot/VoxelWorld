@@ -1,4 +1,5 @@
 using OpenGL;
+using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
@@ -13,6 +14,8 @@ namespace VoxelWorld
         public bool IsEmpty { get; private set; }
         public bool VoxelsAtEdge { get; private set; }
         public BoundingCircle BoundingBox { get { return new BoundingCircle(GridCenter, BoundingCircleRadius); } }
+        public readonly bool[] IsSubGridUsed;
+        public bool HasBeenGenerated => Initialized;
 
         private float BoundingCircleRadius;
         private bool MadeDrawable;
@@ -22,6 +25,8 @@ namespace VoxelWorld
         private BitArray CompressedGrid;
 
         public static int DrawCalls = 0;
+        public static int GeneratedNotEmpty = 0;
+        public static int GeneratedEmpty = 0;
 
         public VoxelGridInfo(Vector3 center)
         {
@@ -29,6 +34,8 @@ namespace VoxelWorld
             this.IsBeingGenerated = false;
             this.IsEmpty = false;
             this.VoxelsAtEdge = false;
+            this.IsSubGridUsed = new bool[VoxelHierarchy.GridPosOffsets.Length];
+            Array.Fill(IsSubGridUsed, true);
             this.BoundingCircleRadius = 0.0f;
             this.MadeDrawable = false;
             this.IsHollow = true;
@@ -77,12 +84,12 @@ namespace VoxelWorld
                 grid.PreCalculateGeometryData();
                 if (grid.IsEmpty())
                 {
-                    IsEmpty = true;
-                    Initialized = true;
-                    IsBeingGenerated = false;
+                    Interlocked.Increment(ref GeneratedEmpty);
+                    InitializeAsEmpty();
                     return;
                 }
 
+                Interlocked.Increment(ref GeneratedNotEmpty);
                 grid.Interpolate();
 
                 BoundingCircleRadius = grid.GetBoundingCircle().Radius;
@@ -90,6 +97,12 @@ namespace VoxelWorld
 
                 GridSidePointsUsed sidesUsed = grid.EdgePointsUsed();
                 VoxelsAtEdge = sidesUsed.IsAnyUsed();
+
+                for (int i = 0; i < VoxelHierarchy.GridPosOffsets.Length; i++)
+                {
+                    IsSubGridUsed[i] = grid.SubGridEdgePointsUsed(VoxelHierarchy.GridPosOffsets[i]);
+                }
+
                 genData.MarkMustGenerateSurroundings(sidesUsed, in gridPos);
             }
             else
@@ -123,6 +136,13 @@ namespace VoxelWorld
                 }
             }
 
+            IsBeingGenerated = false;
+        }
+
+        public void InitializeAsEmpty()
+        {
+            IsEmpty = true;
+            Initialized = true;
             IsBeingGenerated = false;
         }
 

@@ -40,7 +40,7 @@ namespace VoxelWorld
             WorkLimiter.QueueWork(new WorkInfo(gridHir, genData, in gridPos, VoxelType.Hierarchy));
         }
 
-        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)
+        public void EndGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos, bool[] isUsingSubHir)
         {
             if (IsHollow)
             {
@@ -50,7 +50,7 @@ namespace VoxelWorld
 
 
             VoxelHierarchy hir = new VoxelHierarchy(Center, genData, gridPos);
-            var hirData = hir.Generate(Center, genData, grid, gridPos);
+            var hirData = hir.Generate(Center, genData, grid, gridPos, isUsingSubHir);
             BoundingCircleRadius = hirData.Radius;
 
             if (!IgnoreIsEmpty && hir.IsEmpty())

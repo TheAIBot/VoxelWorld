@@ -170,7 +170,13 @@ namespace VoxelWorld
                 gpuFrameTime.StopTimer();
 
                 avgFrameTime.AddSample((int)gpuFrameTime.GetTimeInMS());
-                Console.WriteLine(avgFrameTime.GetAverage());
+                //Console.WriteLine(avgFrameTime.GetAverage());
+                Console.WriteLine($"Empty: {VoxelGridInfo.GeneratedEmpty:N0}");
+                Console.WriteLine($"Not Empty: {VoxelGridInfo.GeneratedNotEmpty:N0}");
+                int totalGenerated = VoxelGridInfo.GeneratedEmpty + VoxelGridInfo.GeneratedNotEmpty;
+                float ratioEmpty = (float)VoxelGridInfo.GeneratedEmpty / totalGenerated;
+                Console.WriteLine($"Empty: {(100.0f * ratioEmpty):N0}%");
+                Console.WriteLine();
 
 
 
