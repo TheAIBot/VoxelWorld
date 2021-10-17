@@ -1,7 +1,7 @@
 ﻿using OpenGL;
 using System.Numerics;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.System
 {
     internal class ModelTransformations
     {

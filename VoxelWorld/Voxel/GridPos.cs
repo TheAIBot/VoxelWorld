@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel
 {
     internal readonly struct GridPos : IEquatable<GridPos>
     {

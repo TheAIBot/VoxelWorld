@@ -1,4 +1,4 @@
-﻿namespace VoxelWorld
+﻿namespace VoxelWorld.Voxel
 {
     internal enum GenerationStatus : byte
     {

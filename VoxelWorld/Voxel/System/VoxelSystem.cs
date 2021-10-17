@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.Hierarchy;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.System
 {
     internal class VoxelSystem
     {
@@ -16,8 +19,8 @@ namespace VoxelWorld
 
         public VoxelSystem(int gridSize, Vector3 center, float voxelSize, PlanetGen generator)
         {
-            this.Center = center;
-            this.FirstLevelSystemData = new VoxelSystemData(gridSize, voxelSize, generator);
+            Center = center;
+            FirstLevelSystemData = new VoxelSystemData(gridSize, voxelSize, generator);
         }
 
         /// <summary>
@@ -28,7 +31,7 @@ namespace VoxelWorld
         {
             VoxelGrid vGrid = new VoxelGrid(Center, FirstLevelSystemData);
             while (true)
-            {                
+            {
                 vGrid.Repurpose(Center, FirstLevelSystemData);
                 vGrid.Randomize();
                 vGrid.PreCalculateGeometryData();

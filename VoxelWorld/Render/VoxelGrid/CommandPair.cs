@@ -1,4 +1,7 @@
-﻿namespace VoxelWorld
+﻿using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Hierarchy;
+
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal readonly struct CommandPair
     {
@@ -7,8 +10,8 @@
 
         public CommandPair(VoxelGridHierarchy grid, GeometryData geometry)
         {
-            this.Grid = grid;
-            this.Geom = geometry;
+            Grid = grid;
+            Geom = geometry;
         }
     }
 }

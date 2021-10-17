@@ -1,4 +1,4 @@
-﻿namespace VoxelWorld
+﻿namespace VoxelWorld.Render.VoxelGrid
 {
     internal readonly struct DrawCommandInfo
     {

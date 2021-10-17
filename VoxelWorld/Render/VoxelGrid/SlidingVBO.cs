@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace VoxelWorld
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal class SlidingVBO<T> : IDisposable where T : struct
     {
@@ -94,7 +94,7 @@ namespace VoxelWorld
             public void Dispose()
             {
                 Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
-                MappedRange.Dispose();            
+                MappedRange.Dispose();
             }
         }
     }

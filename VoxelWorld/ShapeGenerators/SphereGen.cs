@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace VoxelWorld
+namespace VoxelWorld.ShapeGenerators
 {
     internal static class SphereGen
     {

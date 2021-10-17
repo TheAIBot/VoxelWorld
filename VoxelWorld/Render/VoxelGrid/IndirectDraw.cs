@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using VoxelWorld.Shaders;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Hierarchy;
 using static OpenGL.GenericVAO;
 
-namespace VoxelWorld
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal class IndirectDraw : IDisposable
     {
@@ -60,7 +62,7 @@ namespace VoxelWorld
             if (!DrawCommands.Remove(grid))
             {
                 int gridIndex = TransferToBuffers.FindIndex(x => x.Grid == grid);
-                if (gridIndex  == -1)
+                if (gridIndex == -1)
                 {
                     throw new Exception("Failed to find grid and remove it.");
                 }

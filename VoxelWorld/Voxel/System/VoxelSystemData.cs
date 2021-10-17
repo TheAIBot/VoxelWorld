@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.Hierarchy;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.System
 {
     internal class VoxelSystemData
     {
@@ -20,11 +23,11 @@ namespace VoxelWorld
 
         private VoxelSystemData(int gridSize, float voxelSize, PlanetGen generator, ConcurrentDictionary<GridPos, VoxelGridHierarchy> posToVoxelGridHir, ConcurrentDictionary<GridPos, bool> mustGenerate)
         {
-            this.GridSize = gridSize;
-            this.VoxelSize = voxelSize;
-            this.WeightGen = generator;
-            this.PosToVoxelGridHir = posToVoxelGridHir;
-            this.MustGenerate = mustGenerate;
+            GridSize = gridSize;
+            VoxelSize = voxelSize;
+            WeightGen = generator;
+            PosToVoxelGridHir = posToVoxelGridHir;
+            MustGenerate = mustGenerate;
         }
 
         public VoxelSystemData GetWithHalfVoxelSize()

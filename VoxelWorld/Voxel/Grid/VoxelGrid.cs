@@ -7,8 +7,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.System;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.Grid
 {
     internal class VoxelGrid
     {
@@ -21,12 +24,12 @@ namespace VoxelWorld
 
         public VoxelGrid(Vector3 center, VoxelSystemData voxelSystemData)
         {
-            this.GenData = voxelSystemData;
-            this.GridCenter = center;
+            GenData = voxelSystemData;
+            GridCenter = center;
 
-            this.GridSign = new bool[GenData.GridSize * GenData.GridSize * GenData.GridSize];
-            this.VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
-            this.IsUsingVoxelPoint = new bool[VoxelPoints.Length];
+            GridSign = new bool[GenData.GridSize * GenData.GridSize * GenData.GridSize];
+            VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
+            IsUsingVoxelPoint = new bool[VoxelPoints.Length];
         }
 
         public void Repurpose(Vector3 newCenter, VoxelSystemData genData)
@@ -48,7 +51,7 @@ namespace VoxelWorld
 
         private Vector4 GetTopLeftCorner()
         {
-            float distanceFromCenter = (((float)GenData.GridSize - 1.0f) / 2.0f) * GenData.VoxelSize;
+            float distanceFromCenter = (GenData.GridSize - 1.0f) / 2.0f * GenData.VoxelSize;
             return new Vector4(GridCenter + new Vector3(distanceFromCenter, distanceFromCenter, distanceFromCenter), 0.0f);
         }
 
@@ -57,9 +60,9 @@ namespace VoxelWorld
             Vector128<float> YZToFloat128(int y, int z)
             {
                 Vector128<int> zero = Vector128<int>.Zero;
-                Vector128<int> yPos = Avx.Insert(zero, y, 1);
-                Vector128<int> yzPos = Avx.Insert(yPos, z, 2);
-                return Avx.ConvertToVector128Single(yzPos);
+                Vector128<int> yPos = Sse41.Insert(zero, y, 1);
+                Vector128<int> yzPos = Sse41.Insert(yPos, z, 2);
+                return Sse2.ConvertToVector128Single(yzPos);
             }
 
             if (Avx.IsSupported)
@@ -67,12 +70,12 @@ namespace VoxelWorld
                 float* stackSpace = stackalloc float[CosApproxConsts.StackSpaceNeeded(GenData.WeightGen.Seeds)];
 
                 fixed (float* seedsPtr = GenData.WeightGen.Seeds.Seeds)
-                {     
+                {
                     CosApproxConsts cosApprox = new CosApproxConsts(GenData.WeightGen.Seeds, GenData.WeightGen.NoiseFrequency, seedsPtr, stackSpace);
 
                     Vector4 voxelSizeX = Vector4.Zero;
                     voxelSizeX.X = GenData.VoxelSize;
-                    cosApprox.BaseSeededXDiff(voxelSizeX);                      
+                    cosApprox.BaseSeededXDiff(voxelSizeX);
 
                     Vector4 topLeftCorner = GetTopLeftCorner();
                     int index = 0;
@@ -178,7 +181,7 @@ namespace VoxelWorld
         public void Interpolate()
         {
             var topLeft = GetTopLeftCorner();
-            Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - (new Vector3(GenData.VoxelSize) * 0.5f);
+            Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
 
             Vector3 xIncrement = new Vector3(1, 0, 0) * GenData.VoxelSize;
             Vector3 yIncrement = new Vector3(0, 1, 0) * GenData.VoxelSize;
@@ -261,7 +264,7 @@ namespace VoxelWorld
                             }
 
 
-                            VoxelPoints[VPToIndex(x, y, z)] += ((center / points) - VoxelPoints[VPToIndex(x, y, z)]);
+                            VoxelPoints[VPToIndex(x, y, z)] += center / points - VoxelPoints[VPToIndex(x, y, z)];
                         }
                     }
                 }
@@ -281,10 +284,10 @@ namespace VoxelWorld
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
-            fixed(bool* gridSifsgnPtr = GridSign)
+            fixed (bool* gridSifsgnPtr = GridSign)
             {
                 sbyte* gridSignPtr = (sbyte*)gridSifsgnPtr;
-                fixed(bool* isUsingVoxelBoolPtr = IsUsingVoxelPoint)
+                fixed (bool* isUsingVoxelBoolPtr = IsUsingVoxelPoint)
                 {
                     sbyte* isUsingVoxelPtr = (sbyte*)isUsingVoxelBoolPtr;
                     TriangleCount = 0;
@@ -317,59 +320,59 @@ namespace VoxelWorld
                                 //Does the same as the non vectorized version but does it 16 points at a time
                                 for (; i + Vector128<sbyte>.Count <= GenData.GridSize - 2; i += Vector128<sbyte>.Count)
                                 {
-                                    Vector128<sbyte> centerSigns = Avx.LoadVector128(gridSignPtr + gridIdxCenter + i);
+                                    Vector128<sbyte> centerSigns = Sse2.LoadVector128(gridSignPtr + gridIdxCenter + i);
 
-                                    Vector128<sbyte> gsXNeg = Avx.LoadVector128(gridSignPtr + gridIdxxn1 + i);
-                                    Vector128<sbyte> gsYNeg = Avx.LoadVector128(gridSignPtr + gridIdxyn1 + i);
-                                    Vector128<sbyte> gsZNeg = Avx.LoadVector128(gridSignPtr + gridIdxzn1 + i);
-                                    Vector128<sbyte> gsXPos = Avx.LoadVector128(gridSignPtr + gridIdxxp1 + i);
-                                    Vector128<sbyte> gsYPos = Avx.LoadVector128(gridSignPtr + gridIdxyp1 + i);
-                                    Vector128<sbyte> gsZPos = Avx.LoadVector128(gridSignPtr + gridIdxzp1 + i);
+                                    Vector128<sbyte> gsXNeg = Sse2.LoadVector128(gridSignPtr + gridIdxxn1 + i);
+                                    Vector128<sbyte> gsYNeg = Sse2.LoadVector128(gridSignPtr + gridIdxyn1 + i);
+                                    Vector128<sbyte> gsZNeg = Sse2.LoadVector128(gridSignPtr + gridIdxzn1 + i);
+                                    Vector128<sbyte> gsXPos = Sse2.LoadVector128(gridSignPtr + gridIdxxp1 + i);
+                                    Vector128<sbyte> gsYPos = Sse2.LoadVector128(gridSignPtr + gridIdxyp1 + i);
+                                    Vector128<sbyte> gsZPos = Sse2.LoadVector128(gridSignPtr + gridIdxzp1 + i);
 
-                                    Vector128<sbyte> faceXNeg = Avx.AndNot(gsXNeg, centerSigns);
-                                    Vector128<sbyte> faceYNeg = Avx.AndNot(gsYNeg, centerSigns);
-                                    Vector128<sbyte> faceZNeg = Avx.AndNot(gsZNeg, centerSigns);
-                                    Vector128<sbyte> faceXPos = Avx.AndNot(gsXPos, centerSigns);
-                                    Vector128<sbyte> faceYPos = Avx.AndNot(gsYPos, centerSigns);
-                                    Vector128<sbyte> faceZPos = Avx.AndNot(gsZPos, centerSigns);
+                                    Vector128<sbyte> faceXNeg = Sse2.AndNot(gsXNeg, centerSigns);
+                                    Vector128<sbyte> faceYNeg = Sse2.AndNot(gsYNeg, centerSigns);
+                                    Vector128<sbyte> faceZNeg = Sse2.AndNot(gsZNeg, centerSigns);
+                                    Vector128<sbyte> faceXPos = Sse2.AndNot(gsXPos, centerSigns);
+                                    Vector128<sbyte> faceYPos = Sse2.AndNot(gsYPos, centerSigns);
+                                    Vector128<sbyte> faceZPos = Sse2.AndNot(gsZPos, centerSigns);
 
                                     //From the non vectorized version one can infer what face directions must be true
                                     //in order for the voxel being used. 
-                                    Vector128<sbyte> orXNegYNeg = Avx.Or(faceXNeg, faceYNeg);
-                                    Vector128<sbyte> orXNegYPos = Avx.Or(faceXNeg, faceYPos);
-                                    Vector128<sbyte> orXPosYNeg = Avx.Or(faceXPos, faceYNeg);
-                                    Vector128<sbyte> orXPosYPos = Avx.Or(faceXPos, faceYPos);
+                                    Vector128<sbyte> orXNegYNeg = Sse2.Or(faceXNeg, faceYNeg);
+                                    Vector128<sbyte> orXNegYPos = Sse2.Or(faceXNeg, faceYPos);
+                                    Vector128<sbyte> orXPosYNeg = Sse2.Or(faceXPos, faceYNeg);
+                                    Vector128<sbyte> orXPosYPos = Sse2.Or(faceXPos, faceYPos);
                                     //Pseudo: IsUsingVoxel[x] |= faceA | faceB | faceC
-                                    Avx.Store(isUsingVoxelPtr + x0y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Avx.Or(orXNegYNeg, faceZNeg)));
-                                    Avx.Store(isUsingVoxelPtr + x0y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Avx.Or(orXNegYNeg, faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x0y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Avx.Or(orXNegYPos, faceZNeg)));
-                                    Avx.Store(isUsingVoxelPtr + x0y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Avx.Or(orXNegYPos, faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y0z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Avx.Or(orXPosYNeg, faceZNeg)));
-                                    Avx.Store(isUsingVoxelPtr + x1y0z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Avx.Or(orXPosYNeg, faceZPos)));
-                                    Avx.Store(isUsingVoxelPtr + x1y1z0 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Avx.Or(orXPosYPos, faceZNeg)));
-                                    Avx.Store(isUsingVoxelPtr + x1y1z1 + i, Avx.Or(Avx.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Avx.Or(orXPosYPos, faceZPos)));
+                                    Sse2.Store(isUsingVoxelPtr + x0y0z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Sse2.Or(orXNegYNeg, faceZNeg)));
+                                    Sse2.Store(isUsingVoxelPtr + x0y0z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Sse2.Or(orXNegYNeg, faceZPos)));
+                                    Sse2.Store(isUsingVoxelPtr + x0y1z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Sse2.Or(orXNegYPos, faceZNeg)));
+                                    Sse2.Store(isUsingVoxelPtr + x0y1z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Sse2.Or(orXNegYPos, faceZPos)));
+                                    Sse2.Store(isUsingVoxelPtr + x1y0z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Sse2.Or(orXPosYNeg, faceZNeg)));
+                                    Sse2.Store(isUsingVoxelPtr + x1y0z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Sse2.Or(orXPosYNeg, faceZPos)));
+                                    Sse2.Store(isUsingVoxelPtr + x1y1z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Sse2.Or(orXPosYPos, faceZNeg)));
+                                    Sse2.Store(isUsingVoxelPtr + x1y1z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Sse2.Or(orXPosYPos, faceZPos)));
 
                                     //Need to count the number of faces so the triangle count can be updated.
                                     //Each face is represented as a bit here. The idea is the shift the bits
                                     //in the 6 xmm registers so no bits overlap. Or the registers together
                                     //and use popcnt instruction in order to count the number of bits.
-                                    Vector128<sbyte> faceXNegShift = Avx.ShiftLeftLogical(faceXNeg.AsInt16(), 0).AsSByte();
-                                    Vector128<sbyte> faceYNegShift = Avx.ShiftLeftLogical(faceYNeg.AsInt16(), 1).AsSByte();
-                                    Vector128<sbyte> faceZNegShift = Avx.ShiftLeftLogical(faceZNeg.AsInt16(), 2).AsSByte();
-                                    Vector128<sbyte> faceXPosShift = Avx.ShiftLeftLogical(faceXPos.AsInt16(), 3).AsSByte();
-                                    Vector128<sbyte> faceYPosShift = Avx.ShiftLeftLogical(faceYPos.AsInt16(), 4).AsSByte();
-                                    Vector128<sbyte> faceZPosShift = Avx.ShiftLeftLogical(faceZPos.AsInt16(), 5).AsSByte();
+                                    Vector128<sbyte> faceXNegShift = Sse2.ShiftLeftLogical(faceXNeg.AsInt16(), 0).AsSByte();
+                                    Vector128<sbyte> faceYNegShift = Sse2.ShiftLeftLogical(faceYNeg.AsInt16(), 1).AsSByte();
+                                    Vector128<sbyte> faceZNegShift = Sse2.ShiftLeftLogical(faceZNeg.AsInt16(), 2).AsSByte();
+                                    Vector128<sbyte> faceXPosShift = Sse2.ShiftLeftLogical(faceXPos.AsInt16(), 3).AsSByte();
+                                    Vector128<sbyte> faceYPosShift = Sse2.ShiftLeftLogical(faceYPos.AsInt16(), 4).AsSByte();
+                                    Vector128<sbyte> faceZPosShift = Sse2.ShiftLeftLogical(faceZPos.AsInt16(), 5).AsSByte();
 
                                     //Or the registers together
-                                    Vector128<sbyte> bitPerFace = Avx.Or(Avx.Or(Avx.Or(faceXNegShift, faceYNegShift), Avx.Or(faceZNegShift, faceXPosShift)), Avx.Or(faceYPosShift, faceZPosShift));
+                                    Vector128<sbyte> bitPerFace = Sse2.Or(Sse2.Or(Sse2.Or(faceXNegShift, faceYNegShift), Sse2.Or(faceZNegShift, faceXPosShift)), Sse2.Or(faceYPosShift, faceZPosShift));
 
                                     //Use popcnt on the two ulongs to count the bits.
                                     //Each face consists of two triangles.
                                     int faces = (int)(Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(0)) + Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(1)));
                                     TriangleCount += faces * 2;
-                                }   
+                                }
                             }
-                            
+
                             for (; i < GenData.GridSize - 2; i++)
                             {
                                 bool centerSign = GridSign[gridIdxCenter + i];
@@ -472,7 +475,7 @@ namespace VoxelWorld
                     sum += bytes[i];
                 }
 
-                return sum;   
+                return sum;
             }
             else
             {
@@ -483,7 +486,7 @@ namespace VoxelWorld
                     sum += bytes[i];
                 }
 
-                return sum;   
+                return sum;
             }
         }
 
@@ -554,7 +557,7 @@ namespace VoxelWorld
                 faceZPosVecIndice = MakeFaceVectorIndices(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
             }
 
-            fixed(uint* indicesPtr = indices)
+            fixed (uint* indicesPtr = indices)
             {
                 uint* indiceStore = indicesPtr;
 

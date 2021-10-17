@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace VoxelWorld
+namespace VoxelWorld.ShapeGenerators
 {
     internal unsafe readonly struct CosApproxConsts
     {
@@ -24,18 +24,18 @@ namespace VoxelWorld
 
         internal CosApproxConsts(SeedsInfo seedsInfo, float noiseFrequency, float* seeds, float* stackSpace)
         {
-            this.const0_25 = Vector256.Create(0.25f);
-            this.const0_5 = Vector256.Create(0.5f);
-            this.const_noSign = Vector256.Create(0x7fffffff).AsSingle();
-            this.seedsCountReci = Vector128.Create(seedsInfo.Reci_SeedsCount * const16);
-            this.PosMultiplier = new Vector4(noiseFrequency * consttp);
+            const0_25 = Vector256.Create(0.25f);
+            const0_5 = Vector256.Create(0.5f);
+            const_noSign = Vector256.Create(0x7fffffff).AsSingle();
+            seedsCountReci = Vector128.Create(seedsInfo.Reci_SeedsCount * const16);
+            PosMultiplier = new Vector4(noiseFrequency * consttp);
 
-            this.Seeds = seeds;
-            this.SeedsCount = seedsInfo.GetSeedsCount();
-            this.BaseNoises = stackSpace + SeedsCount * 0;
-            this.XNoiseDiffs = stackSpace + SeedsCount * 1;
-            this.TurbulentNoises = stackSpace + SeedsCount * 2;
-            
+            Seeds = seeds;
+            SeedsCount = seedsInfo.GetSeedsCount();
+            BaseNoises = stackSpace + SeedsCount * 0;
+            XNoiseDiffs = stackSpace + SeedsCount * 1;
+            TurbulentNoises = stackSpace + SeedsCount * 2;
+
         }
 
         internal static int StackSpaceNeeded(SeedsInfo seedsInfo)
@@ -55,9 +55,9 @@ namespace VoxelWorld
         {
             Vector128<float> lower = x.GetLower();
             Vector128<float> upper = x.GetUpper();
-            Vector128<float> sum = Avx.Add(lower, upper);
+            Vector128<float> sum = Sse.Add(lower, upper);
 
-            return Avx.DotProduct(sum, seedsCountReci, 0b1111_0001).GetElement(0);
+            return Sse41.DotProduct(sum, seedsCountReci, 0b1111_0001).GetElement(0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,7 +84,7 @@ namespace VoxelWorld
                 Vector256<float> s34 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 1);
                 Vector256<float> s56 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 2);
                 Vector256<float> s78 = Avx.LoadVector256(seedsPtr + Vector256<float>.Count * 3);
-                
+
                 Vector256<float> ps12 = Avx.DotProduct(dotWith256, s12, 0b0111_1000);//[2,_,_,_,1,_,_,_]
                 Vector256<float> ps34 = Avx.DotProduct(dotWith256, s34, 0b0111_0100);//[_,4,_,_,_,3,_,_]
                 Vector256<float> ps56 = Avx.DotProduct(dotWith256, s56, 0b0111_0010);//[_,_,6,_,_,_,5,_]
@@ -96,7 +96,7 @@ namespace VoxelWorld
 
                 Avx.Store(storeDots + i, ps);
                 seedsPtr += Vector256<float>.Count * 4;
-            } 
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,7 +110,7 @@ namespace VoxelWorld
                 Vector256<float> xDelta = Avx.LoadVector256(xDiff + i);
 
                 Vector256<float> correctedNoise = Avx.Subtract(baseNoise, xDelta);
-                
+
                 Avx.Store(baseNoises + i, correctedNoise);
             }
         }
@@ -165,14 +165,14 @@ namespace VoxelWorld
         private readonly float NoiseWeight;
         internal readonly float NoiseFrequency;
         private const int SEED_COUNT = 32;
-        
+
 
         public PlanetGen(int seed, float planetRadius, float noiseWeight, float noiseFrequency)
         {
-            this.Seeds = new SeedsInfo(seed, SEED_COUNT);
-            this.PlanetRadius = planetRadius;
-            this.NoiseWeight = noiseWeight;
-            this.NoiseFrequency = noiseFrequency;
+            Seeds = new SeedsInfo(seed, SEED_COUNT);
+            PlanetRadius = planetRadius;
+            NoiseWeight = noiseWeight;
+            NoiseFrequency = noiseFrequency;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

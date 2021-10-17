@@ -1,4 +1,4 @@
-﻿namespace VoxelWorld
+﻿namespace VoxelWorld.Voxel
 {
     public readonly struct GridOffset
     {

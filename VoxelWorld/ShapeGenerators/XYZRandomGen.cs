@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace VoxelWorld
+namespace VoxelWorld.ShapeGenerators
 {
     internal class SeedsInfo
     {
@@ -14,8 +14,8 @@ namespace VoxelWorld
 
         public SeedsInfo(int seed, int seedCount)
         {
-            this.Seeds = Initialize(seed, seedCount);
-            this.Reci_SeedsCount = 1.0f / (seedCount);
+            Seeds = Initialize(seed, seedCount);
+            Reci_SeedsCount = 1.0f / seedCount;
         }
 
         internal int GetSeedsCount()
@@ -32,7 +32,7 @@ namespace VoxelWorld
             {
                 while (true)
                 {
-                    Vector4 vec = new Vector4(((float)rand.NextDouble() * 2.0f) - 1.0f, ((float)rand.NextDouble() * 2.0f) - 1.0f, ((float)rand.NextDouble() * 2.0f) - 1.0f, 0.0f);
+                    Vector4 vec = new Vector4((float)rand.NextDouble() * 2.0f - 1.0f, (float)rand.NextDouble() * 2.0f - 1.0f, (float)rand.NextDouble() * 2.0f - 1.0f, 0.0f);
                     if (vec.Length() > 0.25f && vec.Length() < 1.0f)
                     {
                         randVecs[i + 0] = vec.X;
@@ -76,7 +76,7 @@ namespace VoxelWorld
             noise = Avx.DotProduct(noise, Vector256.Create(seeds.Reci_SeedsCount), 0b1111_0001);
             Vector128<float> lower = noise.GetLower();
             Vector128<float> upper = noise.GetUpper();
-            return Avx.Add(lower, upper).GetElement(0);
+            return Sse.Add(lower, upper).GetElement(0);
         }
     }
 }

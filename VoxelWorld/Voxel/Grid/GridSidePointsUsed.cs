@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.Grid
 {
     public struct GridSidePointsUsed
     {

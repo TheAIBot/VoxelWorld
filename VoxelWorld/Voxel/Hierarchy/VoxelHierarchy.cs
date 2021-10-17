@@ -2,8 +2,11 @@
 using System;
 using System.Numerics;
 using System.Threading;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.System;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.Hierarchy
 {
     internal class VoxelHierarchy : IDisposable
     {

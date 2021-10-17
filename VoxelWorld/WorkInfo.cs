@@ -1,4 +1,8 @@
 ﻿using System;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.Hierarchy;
+using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld
 {

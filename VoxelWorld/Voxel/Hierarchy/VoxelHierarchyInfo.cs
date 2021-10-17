@@ -2,8 +2,10 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.System;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.Hierarchy
 {
     internal struct VoxelHierarchyInfo
     {
@@ -19,14 +21,14 @@ namespace VoxelWorld
 
         public VoxelHierarchyInfo(Vector3 center, int gridSize, float voxelSize)
         {
-            this.Center = center;
-            this.VoxelHir = null;
-            this.IsEmpty = false;
-            this.IgnoreIsEmpty = false;
-            this.GenStatus = GenerationStatus.NotGenerated;
-            this.IsHollow = true;
-            this.BoundingCircleRadius = (gridSize / 2) * voxelSize;
-            this.HasBeenDisposed = false;
+            Center = center;
+            VoxelHir = null;
+            IsEmpty = false;
+            IgnoreIsEmpty = false;
+            GenStatus = GenerationStatus.NotGenerated;
+            IsHollow = true;
+            BoundingCircleRadius = gridSize / 2 * voxelSize;
+            HasBeenDisposed = false;
         }
 
         public void StartGenerating(VoxelSystemData genData, VoxelGridHierarchy gridHir, in GridPos gridPos)

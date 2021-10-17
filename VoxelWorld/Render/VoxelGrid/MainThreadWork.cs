@@ -3,8 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Hierarchy;
 
-namespace VoxelWorld
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal static class MainThreadWork
     {

@@ -1,7 +1,9 @@
 ﻿using OpenGL.Constructs;
 using System.Collections.Generic;
+using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Hierarchy;
 
-namespace VoxelWorld
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal class IndirectDrawCmdManager
     {

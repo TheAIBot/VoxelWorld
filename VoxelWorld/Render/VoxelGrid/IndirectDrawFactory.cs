@@ -2,8 +2,9 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using VoxelWorld.Voxel;
 
-namespace VoxelWorld
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal class IndirectDrawFactory
     {

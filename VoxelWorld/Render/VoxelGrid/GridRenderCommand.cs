@@ -1,4 +1,7 @@
-﻿namespace VoxelWorld
+﻿using VoxelWorld.Voxel;
+using VoxelWorld.Voxel.Hierarchy;
+
+namespace VoxelWorld.Render.VoxelGrid
 {
     internal readonly struct GridRenderCommand
     {
@@ -8,9 +11,9 @@
 
         public GridRenderCommand(GridRenderCommandType cmd, VoxelGridHierarchy grid, GeometryData data)
         {
-            this.Grid = grid;
-            this.GeoData = data;
-            this.CType = cmd;
+            Grid = grid;
+            GeoData = data;
+            CType = cmd;
         }
     }
 }

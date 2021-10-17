@@ -4,8 +4,11 @@ using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
+using VoxelWorld.Render.VoxelGrid;
+using VoxelWorld.Voxel.Hierarchy;
+using VoxelWorld.Voxel.System;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel.Grid
 {
     internal struct VoxelGridInfo
     {
@@ -30,18 +33,18 @@ namespace VoxelWorld
 
         public VoxelGridInfo(Vector3 center)
         {
-            this.GridCenter = center;
-            this.IsBeingGenerated = false;
-            this.IsEmpty = false;
-            this.VoxelsAtEdge = false;
-            this.IsSubGridUsed = new bool[VoxelHierarchy.GridPosOffsets.Length];
+            GridCenter = center;
+            IsBeingGenerated = false;
+            IsEmpty = false;
+            VoxelsAtEdge = false;
+            IsSubGridUsed = new bool[VoxelHierarchy.GridPosOffsets.Length];
             Array.Fill(IsSubGridUsed, true);
-            this.BoundingCircleRadius = 0.0f;
-            this.MadeDrawable = false;
-            this.IsHollow = true;
-            this.Initialized = false;
-            this.HasBeenDisposed = false;
-            this.CompressedGrid = null;
+            BoundingCircleRadius = 0.0f;
+            MadeDrawable = false;
+            IsHollow = true;
+            Initialized = false;
+            HasBeenDisposed = false;
+            CompressedGrid = null;
         }
 
         public void Generate(VoxelSystemData genData, VoxelGridHierarchy gridHir, VoxelGrid grid, GridPos gridPos)

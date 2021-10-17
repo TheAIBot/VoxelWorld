@@ -2,7 +2,7 @@
 using System.Buffers;
 using System.Numerics;
 
-namespace VoxelWorld
+namespace VoxelWorld.Voxel
 {
     public class GeometryData
     {
@@ -25,17 +25,17 @@ namespace VoxelWorld
             this.vertices = vertices;
             this.normals = normals;
             this.indices = indices;
-            this.VertexCount = vertices.Length;
-            this.IndiceCount = indices.Length;
+            VertexCount = vertices.Length;
+            IndiceCount = indices.Length;
         }
 
         public GeometryData(int vertexCount, int indiceCount)
         {
-            this.vertices = ArrayPool<Vector3>.Shared.Rent(vertexCount);
-            this.normals = ArrayPool<Vector3>.Shared.Rent(vertexCount);
-            this.indices = ArrayPool<uint>.Shared.Rent(indiceCount);
-            this.VertexCount = vertexCount;
-            this.IndiceCount = indiceCount;
+            vertices = ArrayPool<Vector3>.Shared.Rent(vertexCount);
+            normals = ArrayPool<Vector3>.Shared.Rent(vertexCount);
+            indices = ArrayPool<uint>.Shared.Rent(indiceCount);
+            VertexCount = vertexCount;
+            IndiceCount = indiceCount;
 
 
             //Array.Fill(vertices, new Vector3(0, 0, 0));
