@@ -8,7 +8,7 @@ using VoxelWorld.Voxel.Hierarchy;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal static class MainThreadWork
+    internal static class VoxelGridRenderManager
     {
         private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 

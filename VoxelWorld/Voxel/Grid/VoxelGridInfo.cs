@@ -135,7 +135,7 @@ namespace VoxelWorld.Voxel.Grid
                 }
                 else
                 {
-                    MainThreadWork.MakeGridDrawable(gridHir, meshData);
+                    VoxelGridRenderManager.MakeGridDrawable(gridHir, meshData);
                     BoxRenderManager.AddBox(in GridCenter, genData.VoxelSize * genData.GridSize);
                     MadeDrawable = true;
                 }
@@ -205,7 +205,7 @@ namespace VoxelWorld.Voxel.Grid
 
                 if (MadeDrawable)
                 {
-                    MainThreadWork.RemoveDrawableGrid(gridHir);
+                    VoxelGridRenderManager.RemoveDrawableGrid(gridHir);
                     BoxRenderManager.RemoveBox(in GridCenter);
                     MadeDrawable = false;
                 }
@@ -220,7 +220,7 @@ namespace VoxelWorld.Voxel.Grid
 
                 if (MadeDrawable)
                 {
-                    MainThreadWork.RemoveDrawableGrid(gridHir);
+                    VoxelGridRenderManager.RemoveDrawableGrid(gridHir);
                     BoxRenderManager.RemoveBox(in GridCenter);
                     MadeDrawable = false;
                 }

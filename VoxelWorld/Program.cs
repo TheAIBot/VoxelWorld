@@ -147,7 +147,7 @@ namespace VoxelWorld
 
                 Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-                MainThreadWork.ProcessCommands();
+                VoxelGridRenderManager.ProcessCommands();
                 BoxRenderManager.ProcessCommands();
 
                 VoxelGridInfo.DrawCalls = 0;
@@ -158,7 +158,7 @@ namespace VoxelWorld
                     SimpleShader.SetLight(light, renderFrom.CameraPos);
                     SimpleShader.SetMaterial(material);
 
-                    MainThreadWork.DrawGrids();
+                    VoxelGridRenderManager.DrawGrids();
                 }
                 if (renderPoints)
                 {
