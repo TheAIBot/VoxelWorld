@@ -19,7 +19,7 @@ namespace VoxelWorld.Render.Box
             BoxCommands.Enqueue(new BoxRenderCommand(BoxRenderCommandType.Remove, new BoxRenderInfo(in gridCenter, 0)));
         }
 
-        public static void Draw()
+        public static void ProcessCommands()
         {
             int boxCommands = BoxCommands.Count;
             for (int i = 0; i < boxCommands; i++)
@@ -42,7 +42,10 @@ namespace VoxelWorld.Render.Box
                         throw new ArgumentOutOfRangeException(nameof(boxCommand.CType));
                 }
             }
+        }
 
+        public static void Draw()
+        {
             Render.CopyToGPU();
             Render.Draw();
         }

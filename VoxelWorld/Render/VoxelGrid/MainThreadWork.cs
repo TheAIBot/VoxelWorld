@@ -30,7 +30,7 @@ namespace VoxelWorld.Render.VoxelGrid
             Commands.Enqueue(new GridRenderCommand(GridRenderCommandType.Remove, grid, null));
         }
 
-        public static void DrawGrids()
+        public static void ProcessCommands()
         {
             //Add/Remove grids from drawers
             HandleIncommingGridCommands();
@@ -47,6 +47,14 @@ namespace VoxelWorld.Render.VoxelGrid
             //available faster.
             TransferFromAlmostEmptyDrawers();
 
+            //Reset empty drawers so they can be filled again
+            //or remove them if their buffer sizes aren't up to date
+            HandleEmptyDrawers();
+        }
+
+        public static void DrawGrids()
+        {
+
             //Send updated draw commands to the GPU
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
@@ -58,10 +66,6 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 GridDrawBuffers[i].Draw();
             }
-
-            //Reset empty drawers so they can be filled again
-            //or remove them if their buffer sizes aren't up to date
-            HandleEmptyDrawers();
 
             if (DrawCounter % 60 == 0)
             {

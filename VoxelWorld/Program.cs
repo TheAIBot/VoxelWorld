@@ -147,6 +147,9 @@ namespace VoxelWorld
 
                 Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+                MainThreadWork.ProcessCommands();
+                BoxRenderManager.ProcessCommands();
+
                 VoxelGridInfo.DrawCalls = 0;
                 if (renderMesh)
                 {
