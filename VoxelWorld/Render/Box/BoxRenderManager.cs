@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace VoxelWorld.Render.Box
 {
     internal static class BoxRenderManager
     {
-        private static readonly BoxRender Render = new BoxRender();
         private static readonly ConcurrentQueue<BoxRenderCommand> BoxCommands = new ConcurrentQueue<BoxRenderCommand>();
+        private static readonly List<BoxRender> Renderers = new List<BoxRender>();
+        private static readonly Dictionary<Vector3, BoxRender> GridCenterToBoxRenderer = new Dictionary<Vector3, BoxRender>();
 
         public static void AddBox(in Vector3 gridCenter, float gridSideLength)
         {
@@ -33,10 +36,10 @@ namespace VoxelWorld.Render.Box
                 switch (boxCommand.CType)
                 {
                     case BoxRenderCommandType.Add:
-                        Render.TryAdd(in boxCommand.BoxInfo);
+                        AddBoxToRenderer(in boxCommand.BoxInfo);
                         break;
                     case BoxRenderCommandType.Remove:
-                        Render.Remove(in boxCommand.BoxInfo.GridCenter);
+                        RemoveBoxFromRenderer(in boxCommand.BoxInfo);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(boxCommand.CType));
@@ -44,10 +47,46 @@ namespace VoxelWorld.Render.Box
             }
         }
 
+        private static void AddBoxToRenderer(in BoxRenderInfo boxInfo)
+        {
+            while (true)
+            {
+                foreach (var renderer in Renderers)
+                {
+                    if (renderer.TryAdd(in boxInfo))
+                    {
+                        GridCenterToBoxRenderer.Add(boxInfo.GridCenter, renderer);
+                        return;
+                    }
+                }
+
+                Renderers.Add(new BoxRender());
+            }
+        }
+
+        private static void RemoveBoxFromRenderer(in BoxRenderInfo boxInfo)
+        {
+            if (GridCenterToBoxRenderer.TryGetValue(boxInfo.GridCenter, out BoxRender boxRenderer))
+            {
+                GridCenterToBoxRenderer.Remove(boxInfo.GridCenter);
+                boxRenderer.Remove(in boxInfo.GridCenter);
+            }
+            else
+            {
+                throw new Exception("Failed to find the renderer that the box resides in.");
+            }
+        }
+
         public static void Draw()
         {
-            Render.CopyToGPU();
-            Render.Draw();
+            for (int i = 0; i < Renderers.Count; i++)
+            {
+                Renderers[i].CopyToGPU();
+            }
+            for (int i = 0; i < Renderers.Count; i++)
+            {
+                Renderers[i].Draw();
+            }
         }
     }
 }
