@@ -1,9 +1,11 @@
 ﻿using System;
-using VoxelWorld;
 using System.Numerics;
 using System.Collections;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.System;
+using VoxelWorld.ShapeGenerators;
 
 namespace VoxelBench
 {

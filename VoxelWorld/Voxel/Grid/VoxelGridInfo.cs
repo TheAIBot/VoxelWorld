@@ -4,6 +4,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
+using VoxelWorld.Render.Box;
 using VoxelWorld.Render.VoxelGrid;
 using VoxelWorld.Voxel.Hierarchy;
 using VoxelWorld.Voxel.System;
@@ -135,6 +136,7 @@ namespace VoxelWorld.Voxel.Grid
                 else
                 {
                     MainThreadWork.MakeGridDrawable(gridHir, meshData);
+                    BoxRenderManager.AddBox(in GridCenter, genData.VoxelSize * genData.GridSize);
                     MadeDrawable = true;
                 }
             }
@@ -204,6 +206,7 @@ namespace VoxelWorld.Voxel.Grid
                 if (MadeDrawable)
                 {
                     MainThreadWork.RemoveDrawableGrid(gridHir);
+                    BoxRenderManager.RemoveBox(in GridCenter);
                     MadeDrawable = false;
                 }
             }
@@ -218,6 +221,7 @@ namespace VoxelWorld.Voxel.Grid
                 if (MadeDrawable)
                 {
                     MainThreadWork.RemoveDrawableGrid(gridHir);
+                    BoxRenderManager.RemoveBox(in GridCenter);
                     MadeDrawable = false;
                 }
             }

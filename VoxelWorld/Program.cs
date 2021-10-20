@@ -7,6 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using VoxelWorld.Shaders;
 using System.Runtime.CompilerServices;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Render.VoxelGrid;
+using VoxelWorld.Voxel.System;
+using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Render.Box;
 
 [assembly: InternalsVisibleToAttribute("VoxelBench")]
 namespace VoxelWorld
@@ -142,27 +147,27 @@ namespace VoxelWorld
 
                 Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-                //vboPos.BufferSubData(grid.VoxelPoints);
-                //vboNorm.BufferSubData(Geometry.CalculateNormals(grid.VoxelPoints, grid.indicesArr));
-
-                ShaderProgram meshShader = SimpleShader.GetShader();
-                meshShader.Use();
-
-                SimpleShader.SetPVM(renderFrom.Perspective, renderFrom.View, system.Model);
-                SimpleShader.SetLight(light, renderFrom.CameraPos);
-                SimpleShader.SetMaterial(material);
-
                 VoxelGridInfo.DrawCalls = 0;
                 if (renderMesh)
                 {
-                    Gl.Disable(EnableCap.Blend);
+                    SimpleShader.GetShader().Use();
+                    SimpleShader.SetPVM(renderFrom.Perspective, renderFrom.View, system.Model);
+                    SimpleShader.SetLight(light, renderFrom.CameraPos);
+                    SimpleShader.SetMaterial(material);
+
                     MainThreadWork.DrawGrids();
                 }
-                //if (renderPoints)
-                //{
-                //    Gl.Enable(EnableCap.Blend);
-                //    system.DrawPoints();
-                //}
+                if (renderPoints)
+                {
+                    Gl.Enable(EnableCap.Blend);
+
+                    BoxShader.GetShader().Use();
+                    BoxShader.SetPVM(renderFrom.Perspective, renderFrom.View, system.Model);
+
+                    BoxRenderManager.Draw();
+
+                    Gl.Disable(EnableCap.Blend);
+                }
 
                 //Console.WriteLine(VoxelGridInfo.DrawCalls);
 
