@@ -23,14 +23,14 @@ namespace VoxelWorld.Voxel.Hierarchy
         };
         public static readonly GridOffset[] GridPosOffsets = new GridOffset[]
         {
-            new GridOffset(0, 0, 0),
-            new GridOffset(1, 0, 0),
-            new GridOffset(0, 1, 0),
-            new GridOffset(1, 1, 0),
-            new GridOffset(0, 0, 1),
-            new GridOffset(1, 0, 1),
+            new GridOffset(1, 1, 1),
             new GridOffset(0, 1, 1),
-            new GridOffset(1, 1, 1)
+            new GridOffset(1, 0, 1),
+            new GridOffset(0, 0, 1),
+            new GridOffset(1, 1, 0),
+            new GridOffset(0, 1, 0),
+            new GridOffset(1, 0, 0),
+            new GridOffset(0, 0, 0)
         };
 
         //keeps track of sub hierarchies
