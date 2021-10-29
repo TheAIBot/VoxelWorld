@@ -55,8 +55,8 @@ namespace VoxelWorld.Voxel.System
                  */
                 FirstLevelSystemData = FirstLevelSystemData.GetWithHalfVoxelSize();
 
-                Grid = new VoxelHierarchy(Center, FirstLevelSystemData, GridPos.RootPos());
-                Grid.Generate(Center, FirstLevelSystemData, vGrid, GridPos.RootPos());
+                Grid = new VoxelHierarchy(Center, FirstLevelSystemData, GridPos.RootPos().GoDownTree());
+                Grid.Generate(Center, FirstLevelSystemData, vGrid, GridPos.RootPos().GoDownTree());
                 break;
             }
         }
@@ -68,7 +68,7 @@ namespace VoxelWorld.Voxel.System
 
         public void CheckVoxelResolution(Frustum renderCheck)
         {
-            GridPos rootPos = new GridPos();
+            GridPos rootPos = GridPos.RootPos().GoDownTree();
             Grid.CheckAndIncreaseResolution(renderCheck, ModelTrans, FirstLevelSystemData, in rootPos);
         }
     }

@@ -21,7 +21,7 @@ namespace VoxelWorld.Voxel
 
         public static GridPos RootPos()
         {
-            return new GridPos(0, 0, 0, 1);
+            return new GridPos(0, 0, 0, 0);
         }
 
         public GridPos GoDownTree()
@@ -82,6 +82,11 @@ namespace VoxelWorld.Voxel
         public override int GetHashCode()
         {
             return HashCode.Combine(X, Y, Z, Level);
+        }
+
+        public override string ToString()
+        {
+            return $"{X}, {Y}, {Z}, Level {Level}";
         }
     }
 }
