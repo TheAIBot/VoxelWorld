@@ -44,9 +44,10 @@ namespace VoxelWorld.Voxel
         public bool TryMove(int xOffset, int yOffset, int zOffset, out GridPos gridPos)
         {
             gridPos = Move(xOffset, yOffset, zOffset);
-            return BitOperations.PopCount((uint)gridPos.X) <= Level &&
-                BitOperations.PopCount((uint)gridPos.Y) <= Level &&
-                BitOperations.PopCount((uint)gridPos.Z) <= Level;
+            int mask = (1 << Level) - 1;
+            return gridPos.X == (gridPos.X & mask) &&
+                   gridPos.Y == (gridPos.Y & mask) &&
+                   gridPos.Z == (gridPos.Z & mask);
         }
 
         public GridPos Move(in GridOffset offset)
