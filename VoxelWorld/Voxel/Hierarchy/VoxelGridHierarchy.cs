@@ -113,14 +113,16 @@ namespace VoxelWorld.Voxel.Hierarchy
             {
                 if (Hierarchy.CanSee(renderCheck, modelTrans))
                 {
+                    var subHirGenData = genData.GetWithHalfVoxelSize();
+                    GridPos subGridHirPos = gridPos.GoDownTree();
                     if (Hierarchy.ShouldGenerate(this))
                     {
-                        Hierarchy.StartGenerating(genData.GetWithHalfVoxelSize(), this, in gridPos);
+                        Hierarchy.StartGenerating(subHirGenData, this, in subGridHirPos);
                     }
                     else
                     {
                         Grid.MakeHollow(this);
-                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, genData, in gridPos);
+                        Hierarchy.CheckAndIncreaseResolution(renderCheck, modelTrans, subHirGenData, in subGridHirPos);
                     }
                 }
             }

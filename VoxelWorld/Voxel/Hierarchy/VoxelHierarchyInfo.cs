@@ -133,7 +133,7 @@ namespace VoxelWorld.Voxel.Hierarchy
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)
         {
             IsHollow = false;
-            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData.GetWithHalfVoxelSize(), in gridPos);
+            VoxelHir.CheckAndIncreaseResolution(renderCheck, modelTrans, genData, in gridPos);
         }
 
         public void MakeHollow(VoxelGridHierarchy gridHir)

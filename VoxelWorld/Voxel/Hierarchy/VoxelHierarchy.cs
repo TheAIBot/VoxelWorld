@@ -103,11 +103,9 @@ namespace VoxelWorld.Voxel.Hierarchy
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)
         {
             IsHollow = false;
-
-            GridPos subGridPos = gridPos.GoDownTree();
             for (int i = 0; i < SubHierarchyGrids.Length; i++)
             {
-                GridPos movedSubGridPos = subGridPos.Move(in GridPosOffsets[i]);
+                GridPos movedSubGridPos = gridPos.Move(in GridPosOffsets[i]);
                 SubHierarchyGrids[i].CheckAndIncreaseResolution(renderCheck, modelTrans, genData, in movedSubGridPos);
             }
         }
