@@ -157,6 +157,7 @@ namespace VoxelWorld.Render.VoxelGrid
         /// </summary>
         private static void TransferFromAlmostEmptyDrawers()
         {
+            int transferCount = 0;
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 IndirectDraw draw = GridDrawBuffers[i];
@@ -193,10 +194,12 @@ namespace VoxelWorld.Render.VoxelGrid
                             GridsToBuffer.Add(grid, copyTo);
                         }
 
-                        draw.TransferDrawCommands(copyTo);
+                        transferCount += draw.TransferDrawCommands(copyTo);
                     }
                 }
             }
+
+            //Console.WriteLine($"Copy commands: {transferCount}");
         }
 
         private static void HandleEmptyDrawers()

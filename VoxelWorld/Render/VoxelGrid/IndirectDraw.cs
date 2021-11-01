@@ -156,8 +156,9 @@ namespace VoxelWorld.Render.VoxelGrid
             return DrawCommands.GetGrids();
         }
 
-        public void TransferDrawCommands(IndirectDraw dstDrawer)
+        public int TransferDrawCommands(IndirectDraw dstDrawer)
         {
+            int copyCommands = 0;
             foreach (var gridDrawInfo in DrawCommands.GetGridCommandsInfo())
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
@@ -171,10 +172,14 @@ namespace VoxelWorld.Render.VoxelGrid
                 IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
                 dstDrawer.CommandBuffer.ReserveSpace(1);
                 dstDrawer.DrawCommands.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
+
+                copyCommands++;
             }
 
             DrawCommands.Clear();
             dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
+
+            return copyCommands;
         }
 
         public void Draw()
