@@ -70,6 +70,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 TransferToBuffers.RemoveAt(gridIndex);
             }
 
+            CommandBuffer.ReserveSpace(-1);
             CommandsChangeSinceLastPrepareDraw = true;
         }
 
