@@ -10,18 +10,17 @@ namespace VoxelWorld.Shaders
 
 attribute vec3 vertex_pos;
 attribute vec3 vertex_normal;
-uniform mat4 P;
-uniform mat4 V;
-uniform mat4 M;
+uniform mat4 PVM;
+uniform mat3 M;
 
 out vec3 position;
 out vec3 normal;
 
 void main(void)
 {
-    gl_Position = P * V * M * vec4(vertex_pos, 1.0);
-    position = (M * vec4(vertex_pos, 1.0)).xyz;
-    normal = mat3(M) * vertex_normal;
+    gl_Position = PVM * vec4(vertex_pos, 1.0);
+    position = M * vertex_pos;
+    normal = M * vertex_normal;
 }
 ";
 
@@ -64,16 +63,18 @@ void main(void)
 
         private static ShaderProgram Static_Shader = new ShaderProgram(VertexShader, FragmentShader);
 
-        internal static ShaderProgram  GetShader()
+        internal static ShaderProgram GetShader()
         {
             return Static_Shader;
         }
 
         internal static void SetPVM(Matrix4 perspective, Matrix4 view, Matrix4 model)
         {
-            Static_Shader["P"].SetValue(perspective);
-            Static_Shader["V"].SetValue(view);
-            Static_Shader["M"].SetValue(model);
+            Static_Shader["PVM"].SetValue(model * view * perspective);
+            Static_Shader["M"].SetValue(new Matrix3(
+                new Vector3(model[0].X, model[0].Y, model[0].Z),
+                new Vector3(model[1].X, model[1].Y, model[1].Z),
+                new Vector3(model[2].X, model[2].Y, model[2].Z)));
         }
 
         internal static void SetLight(DirectionalLight light, Vector3 cameraPosition)
