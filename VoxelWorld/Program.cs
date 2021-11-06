@@ -40,7 +40,7 @@ namespace VoxelWorld
             Input.Subscribe('k', dummyCamera.MoveBackward);
             Input.Subscribe('l', () => controlDummyCamera = !controlDummyCamera);
 
-            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-10, -10, -10));
+            PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-8, -8, -8));
             Input.MouseLeftClick = new Event(x => 
             {
                 if (controlDummyCamera)

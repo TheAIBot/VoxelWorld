@@ -6,6 +6,7 @@ using BenchmarkDotNet.Running;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;
 using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Voxel;
 
 namespace VoxelBench
 {
