@@ -208,7 +208,12 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 if (GridDrawBuffers[i].IsEmpty())
                 {
-                    if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
+                    if (GridDrawBuffers.Count(x => x.IsEmpty()) > 5)
+                    {
+                        GridDrawBuffers[i].Dispose();
+                        GridDrawBuffers.RemoveAt(i);
+                    }
+                    else if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
                     {
                         GridDrawBuffers[i].Reset();
                     }
