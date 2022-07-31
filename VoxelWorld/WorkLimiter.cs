@@ -22,7 +22,8 @@ namespace VoxelWorld
 
         public static void StartWorkers(VoxelSystemData voxelgenData)
         {
-            for (int i = 0; i < 14; i++)
+            int workerCount = Math.Max(1, Environment.ProcessorCount - 2);
+            for (int i = 0; i < workerCount; i++)
             {
                 Workers.Add(new Thread(() =>
                 {
