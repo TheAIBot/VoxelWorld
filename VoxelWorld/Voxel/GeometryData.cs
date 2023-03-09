@@ -19,6 +19,7 @@ namespace VoxelWorld.Voxel
         public Memory<Vector3> VerticesAsMemSpan { get { return new Memory<Vector3>(vertices, 0, VertexCount); } }
         public Memory<Vector3> NormalsAsMemSpan { get { return new Memory<Vector3>(normals, 0, VertexCount); } }
         public Memory<uint> IndicesAsMemSpan { get { return new Memory<uint>(indices, 0, IndiceCount); } }
+        public int TriangleCount => Indices.Length / 3;
 
         public GeometryData(Vector3[] vertices, Vector3[] normals, uint[] indices)
         {

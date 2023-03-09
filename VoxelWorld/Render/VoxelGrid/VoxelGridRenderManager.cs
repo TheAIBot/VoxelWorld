@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
 
@@ -13,9 +12,11 @@ namespace VoxelWorld.Render.VoxelGrid
         private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 
         private const int MinTransferCount = 500;
-        private static readonly IndirectDrawFactory DrawFactory = new IndirectDrawFactory(20_000);
+        private static readonly IndirectDrawFactory DrawFactory = new IndirectDrawFactory(5_000);
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
+        private static readonly Dictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
+        private static readonly PerfNumAverage<int> AvgNewTriangles = new PerfNumAverage<int>(200, x => x);
 
         private static int DrawCounter = 0;
         private static int GridsDrawing = 0;
@@ -72,16 +73,19 @@ namespace VoxelWorld.Render.VoxelGrid
                 //PrintDrawBufferUtilization();
             }
 
-            //Console.WriteLine(GridDrawBuffers.Count);
+            Console.WriteLine(GridDrawBuffers.Count);
             //Console.WriteLine(GetGPUBufferSizeInMB().ToString("N0") + "MB");
             //Console.WriteLine(GridsDrawing.ToString("N0"));
-            //Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
+            Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
+            Console.WriteLine(GridsToTriangleCount.Values.Sum().ToString("N0"));
+            Console.WriteLine($"Generated triangles: {AvgNewTriangles.GetAverage():N0}");
 
             DrawCounter++;
         }
 
         private static void HandleIncommingGridCommands()
         {
+            int newTrianglesForFrame = 0;
             int cmdCount = Commands.Count;
 
             int indexFirstBufferNotFull = 0;
@@ -97,14 +101,19 @@ namespace VoxelWorld.Render.VoxelGrid
                 {
                     case GridRenderCommandType.Add:
                         AddGrid(cmd, ref indexFirstBufferNotFull);
+                        GridsToTriangleCount.Add(cmd.Grid, cmd.GeoData.TriangleCount);
+                        newTrianglesForFrame += cmd.GeoData.TriangleCount;
                         break;
                     case GridRenderCommandType.Remove:
                         RemoveGrid(cmd);
+                        GridsToTriangleCount.Remove(cmd.Grid);
                         break;
                     default:
                         throw new Exception($"Unknown enum value: {cmd.CType}");
                 }
             }
+
+            AvgNewTriangles.AddSample(newTrianglesForFrame);
         }
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)
@@ -199,7 +208,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 }
             }
 
-            //Console.WriteLine($"Copy commands: {transferCount}");
+            Console.WriteLine($"Copy commands: {transferCount}");
         }
 
         private static void HandleEmptyDrawers()
@@ -208,7 +217,7 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 if (GridDrawBuffers[i].IsEmpty())
                 {
-                    if (GridDrawBuffers.Count(x => x.IsEmpty()) > 5)
+                    if (GridDrawBuffers.Count(x => x.IsEmpty()) > 1)
                     {
                         GridDrawBuffers[i].Dispose();
                         GridDrawBuffers.RemoveAt(i);
