@@ -1,14 +1,11 @@
 ﻿using OpenGL;
 using System;
-using System.Buffers;
 using System.Collections;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using VoxelWorld.ShapeGenerators;
-using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Grid
@@ -18,7 +15,7 @@ namespace VoxelWorld.Voxel.Grid
         private Vector3 GridCenter;
         VoxelSystemData GenData;
         private readonly bool[] GridSign;
-        private readonly Vector3[] VoxelPoints;
+        private readonly Vector4[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
         private int TriangleCount = 0;
 
@@ -28,7 +25,7 @@ namespace VoxelWorld.Voxel.Grid
             GridCenter = center;
 
             GridSign = new bool[GenData.GridSize * GenData.GridSize * GenData.GridSize];
-            VoxelPoints = new Vector3[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
+            VoxelPoints = new Vector4[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
             IsUsingVoxelPoint = new bool[VoxelPoints.Length];
         }
 
@@ -183,11 +180,11 @@ namespace VoxelWorld.Voxel.Grid
             var topLeft = GetTopLeftCorner();
             Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
 
-            Vector3 xIncrement = new Vector3(1, 0, 0) * GenData.VoxelSize;
-            Vector3 yIncrement = new Vector3(0, 1, 0) * GenData.VoxelSize;
-            Vector3 zIncrement = new Vector3(0, 0, 1) * GenData.VoxelSize;
+            Vector4 xIncrement = new Vector4(1, 0, 0, 0) * GenData.VoxelSize;
+            Vector4 yIncrement = new Vector4(0, 1, 0, 0) * GenData.VoxelSize;
+            Vector4 zIncrement = new Vector4(0, 0, 1, 0) * GenData.VoxelSize;
 
-            Vector3 voxelPos = topLeftCorner;
+            Vector4 voxelPos = new Vector4(topLeftCorner, 0);
 
             int index = 0;
             for (int vpZ = 0; vpZ < GenData.GridSize - 1; vpZ++)
@@ -228,7 +225,7 @@ namespace VoxelWorld.Voxel.Grid
                             }
 
                             int points = 0;
-                            Vector3 center = new Vector3(0, 0, 0);
+                            Vector4 center = Vector4.Zero;
 
                             if (IsUsingVoxelPoint[VPToIndex(x - 1, y, z)])
                             {
@@ -439,8 +436,8 @@ namespace VoxelWorld.Voxel.Grid
 
         public BoundingCircle GetBoundingCircle()
         {
-            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            Vector4 min = new Vector4(float.MaxValue);
+            Vector4 max = new Vector4(float.MinValue);
 
             for (int i = 0; i < VoxelPoints.Length; i++)
             {
@@ -449,13 +446,13 @@ namespace VoxelWorld.Voxel.Grid
                     continue;
                 }
 
-                Vector3 vp = VoxelPoints[i];
-                min = Vector3.Min(min, vp);
-                max = Vector3.Max(max, vp);
+                Vector4 vp = VoxelPoints[i];
+                min = Vector4.Min(min, vp);
+                max = Vector4.Max(max, vp);
             }
-            Vector3 center = (max + min) * 0.5f;
+            Vector4 center = (max + min) * 0.5f;
             float radius = (max - center).Length();
-            return new BoundingCircle(center, radius);
+            return new BoundingCircle(new Vector3(center.X, center.Y, center.Z), radius);
         }
 
         private static int CountTruesWithPopCnt(bool[] bools)
@@ -634,7 +631,8 @@ namespace VoxelWorld.Voxel.Grid
                     {
                         newIndex = (uint)vpIndex;
                         indexConverter[oldIndex] = newIndex;
-                        vertices[vpIndex++] = VoxelPoints[oldIndex];
+                        Vector4 voxelPoint = VoxelPoints[oldIndex];
+                        vertices[vpIndex++] = new Vector3(voxelPoint.X, voxelPoint.Y, voxelPoint.Z);
                     }
                     indices[i] = newIndex;
                 }
