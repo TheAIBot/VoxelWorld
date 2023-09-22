@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Silk.NET.OpenGL;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,14 +13,19 @@ namespace VoxelWorld.Render.VoxelGrid
         private static ConcurrentQueue<GridRenderCommand> Commands = new ConcurrentQueue<GridRenderCommand>();
 
         private const int MinTransferCount = 500;
-        private static readonly IndirectDrawFactory DrawFactory = new IndirectDrawFactory(5_000);
+        private static IndirectDrawFactory DrawFactory;
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
-        private static readonly PerfNumAverage<int> AvgNewTriangles = new PerfNumAverage<int>(200, x => x);
+        private static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(2), x => x);
 
         private static int DrawCounter = 0;
         private static int GridsDrawing = 0;
+
+        public static void SetOpenGl(GL openGl)
+        {
+            DrawFactory = new IndirectDrawFactory(openGl, 5_000);
+        }
 
         public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
         {
@@ -78,7 +84,7 @@ namespace VoxelWorld.Render.VoxelGrid
             //Console.WriteLine(GridsDrawing.ToString("N0"));
             Console.WriteLine((GetBufferUtilization() * 100).ToString("N2"));
             Console.WriteLine(GridsToTriangleCount.Values.Sum().ToString("N0"));
-            Console.WriteLine($"Generated triangles: {AvgNewTriangles.GetAverage():N0}");
+            Console.WriteLine($"Generated triangles: {AvgNewTriangles.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
 
             DrawCounter++;
         }
@@ -113,7 +119,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 }
             }
 
-            AvgNewTriangles.AddSample(newTrianglesForFrame);
+            AvgNewTriangles.AddSampleNow(newTrianglesForFrame);
         }
 
         private static void AddGrid(GridRenderCommand cmd, ref int indexFirstBufferNotFull)

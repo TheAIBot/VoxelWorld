@@ -6,7 +6,7 @@ using VoxelWorld.Voxel.Hierarchy;
 
 namespace VoxelWorld.Voxel.System
 {
-    internal class VoxelSystemData
+    internal sealed class VoxelSystemData
     {
         public readonly int GridSize;
         public readonly float VoxelSize;

@@ -1,6 +1,4 @@
-﻿using OpenGL;
-using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;

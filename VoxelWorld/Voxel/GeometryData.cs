@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace VoxelWorld.Voxel
 {
-    public class GeometryData
+    public sealed class GeometryData
     {
         private readonly Vector3[] vertices;
         private readonly Vector3[] normals;

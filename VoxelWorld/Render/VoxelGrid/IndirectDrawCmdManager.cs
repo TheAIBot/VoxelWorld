@@ -1,11 +1,10 @@
-﻿using OpenGL.Constructs;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal class IndirectDrawCmdManager
+    internal sealed class IndirectDrawCmdManager
     {
         private readonly Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand>();
         private readonly Dictionary<VoxelGridHierarchy, DrawCommandInfo> DrawCmdInfos = new Dictionary<VoxelGridHierarchy, DrawCommandInfo>();
@@ -18,7 +17,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Add(VoxelGridHierarchy grid, int firstIndice, int indiceCount, int firstVertex, int vertexCount)
         {
-            DrawCommands.Add(grid, new DrawElementsIndirectCommand(indiceCount, 1, firstIndice, firstVertex, 0));
+            DrawCommands.Add(grid, new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, 0u));
             DrawCmdInfos.Add(grid, new DrawCommandInfo(firstIndice, indiceCount, firstVertex, vertexCount));
         }
 

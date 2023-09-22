@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -7,7 +6,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace VoxelWorld.ShapeGenerators
 {
-    internal class SeedsInfo
+    internal sealed class SeedsInfo
     {
         public readonly float[] Seeds;
         public readonly float Reci_SeedsCount;

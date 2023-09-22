@@ -1,5 +1,7 @@
-﻿using OpenGL;
+﻿using Silk.NET.Maths;
+using Silk.NET.OpenGL;
 using System.Numerics;
+using VoxelWorld.Render.VoxelGrid;
 
 namespace VoxelWorld.Shaders
 {
@@ -61,20 +63,21 @@ void main(void)
 }
 ";
 
-        private static ShaderProgram Static_Shader = new ShaderProgram(VertexShader, FragmentShader);
+        private static ShaderProgram Static_Shader;
 
-        internal static ShaderProgram GetShader()
+        internal static ShaderProgram GetShader(GL openGl)
         {
+            Static_Shader ??= new ShaderProgram(openGl, VertexShader, FragmentShader);
             return Static_Shader;
         }
 
-        internal static void SetPVM(Matrix4 perspective, Matrix4 view, Matrix4 model)
+        internal static void SetPVM(Matrix4x4 perspective, Matrix4x4 view, Matrix4x4 model)
         {
             Static_Shader["PVM"].SetValue(model * view * perspective);
-            Static_Shader["M"].SetValue(new Matrix3(
-                new Vector3(model[0].X, model[0].Y, model[0].Z),
-                new Vector3(model[1].X, model[1].Y, model[1].Z),
-                new Vector3(model[2].X, model[2].Y, model[2].Z)));
+            Static_Shader["M"].SetValue(new Matrix3X3<float>(
+                model.M11, model.M12, model.M13,
+                model.M21, model.M22, model.M23,
+                model.M31, model.M32, model.M33));
         }
 
         internal static void SetLight(DirectionalLight light, Vector3 cameraPosition)
@@ -86,7 +89,7 @@ void main(void)
 
             Static_Shader["viewPos"].SetValue(cameraPosition);
         }
-        
+
         internal static void SetMaterial(Material material)
         {
             Static_Shader["mat_diff"].SetValue(material.Diffuse);

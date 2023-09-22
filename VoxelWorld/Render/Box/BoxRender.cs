@@ -1,16 +1,16 @@
-﻿using OpenGL;
+﻿using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Runtime.InteropServices;
+using VoxelWorld.Render.VoxelGrid;
 using VoxelWorld.Shaders;
-using static OpenGL.GenericVAO;
+using static VoxelWorld.Render.VoxelGrid.VAO;
 
 namespace VoxelWorld.Render.Box
 {
-    internal class BoxRender : IDisposable
+    internal sealed class BoxRender : IDisposable
     {
-        private static readonly Vector3[] BoxVertices = new Vector3[] 
+        private static readonly Vector3[] BoxVertices = new Vector3[]
         {
             new Vector3(-1, -1,  1),
             new Vector3( 1, -1,  1),
@@ -22,7 +22,7 @@ namespace VoxelWorld.Render.Box
             new Vector3(-1, -1, -1)
         };
 
-        private static readonly uint[] BoxIndices = new uint[] 
+        private static readonly uint[] BoxIndices = new uint[]
         {
             0, 1, 2, 1, 3, 2,
             1, 4, 3, 4, 5, 3,
@@ -32,17 +32,21 @@ namespace VoxelWorld.Render.Box
             2, 3, 6, 3, 5, 6
         };
 
-        private readonly VBO<Vector3> VerticesBuffer = new VBO<Vector3>(BoxVertices);
-        private readonly VBO<uint> IndicesBuffer = new VBO<uint>(BoxIndices, BufferTarget.ElementArrayBuffer);
-        private readonly VBO<float> BoxScalesBuffer = new VBO<float>(100_000);
-        private readonly VBO<Vector3> BoxCenterBuffer = new VBO<Vector3>(100_000);
+        private readonly VBO<Vector3> VerticesBuffer;
+        private readonly VBO<uint> IndicesBuffer;
+        private readonly VBO<float> BoxScalesBuffer;
+        private readonly VBO<Vector3> BoxCenterBuffer;
         private readonly VAO BoxVAO;
         private readonly float[] BoxScales = new float[100_000];
         private readonly Vector3[] BoxCenters = new Vector3[100_000];
         private readonly Dictionary<Vector3, int> CenterToIndex = new Dictionary<Vector3, int>();
 
-        public BoxRender()
+        public BoxRender(GL openGl)
         {
+            VerticesBuffer = new VBO<Vector3>(openGl, BoxVertices);
+            IndicesBuffer = new VBO<uint>(openGl, BoxIndices, BufferTargetARB.ElementArrayBuffer);
+            BoxScalesBuffer = new VBO<float>(openGl, 100_000);
+            BoxCenterBuffer = new VBO<Vector3>(openGl, 100_000);
             BoxScalesBuffer.Divisor = 1;
             BoxCenterBuffer.Divisor = 1;
 
@@ -53,7 +57,7 @@ namespace VoxelWorld.Render.Box
                 new GenericVBO<Vector3>(BoxCenterBuffer, "vertex_offset"),
                 new GenericVBO<uint>(IndicesBuffer),
             };
-            BoxVAO = new VAO(BoxShader.GetShader(), vbos);
+            BoxVAO = new VAO(openGl, BoxShader.GetShader(openGl), vbos);
         }
 
         public bool TryAdd(in BoxRenderInfo boxInfo)
@@ -104,8 +108,8 @@ namespace VoxelWorld.Render.Box
 
         public void CopyToGPU()
         {
-            BoxScalesBuffer.BufferSubData(BoxScales, CenterToIndex.Count * Marshal.SizeOf<float>());
-            BoxCenterBuffer.BufferSubData(BoxCenters, CenterToIndex.Count * Marshal.SizeOf<Vector3>());
+            BoxScalesBuffer.BufferSubData(BoxScales.AsSpan(0, CenterToIndex.Count));
+            BoxCenterBuffer.BufferSubData(BoxCenters.AsSpan(0, CenterToIndex.Count));
         }
 
         public void Draw()

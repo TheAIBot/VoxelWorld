@@ -1,4 +1,4 @@
-﻿using OpenGL.Constructs;
+﻿using Silk.NET.OpenGL;
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -6,14 +6,16 @@ using VoxelWorld.Voxel;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal class IndirectDrawFactory
+    internal sealed class IndirectDrawFactory
     {
         private readonly PerfNumAverage<int> AvgVertexCount;
         private readonly PerfNumAverage<int> AvgIndiceCount;
+        private readonly GL _openGl;
         private readonly int GeometryPerBuffer;
 
-        public IndirectDrawFactory(int geometryPerBuffer)
+        public IndirectDrawFactory(GL openGl, int geometryPerBuffer)
         {
+            _openGl = openGl;
             GeometryPerBuffer = geometryPerBuffer;
 
             const int SampleCount = 10_000;
@@ -31,13 +33,13 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             if (AvgVertexCount.IsEmpty())
             {
-                return new IndirectDraw(20_000, 100_000, GeometryPerBuffer);
+                return new IndirectDraw(_openGl, 20_000, 100_000, GeometryPerBuffer);
             }
             else
             {
                 int vertexCount = (int)(AvgVertexCount.GetAverage() * GeometryPerBuffer);
                 int indiceCount = (int)(AvgIndiceCount.GetAverage() * GeometryPerBuffer);
-                return new IndirectDraw(vertexCount, indiceCount, GeometryPerBuffer);
+                return new IndirectDraw(_openGl, vertexCount, indiceCount, GeometryPerBuffer);
             }
         }
 

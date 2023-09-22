@@ -1,7 +1,5 @@
-﻿using OpenGL;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Silk.NET.OpenGL;
+using VoxelWorld.Render.VoxelGrid;
 
 namespace VoxelWorld.Shaders
 {
@@ -26,10 +24,11 @@ void main(void)
 }
 ";
 
-        private static ShaderProgram Static_Shader = new ShaderProgram(VertexShader, FragmentShader);
+        private static ShaderProgram Static_Shader;
 
-        internal static ShaderProgram GetShader()
+        internal static ShaderProgram GetShader(GL openGl)
         {
+            Static_Shader ??= new ShaderProgram(openGl, VertexShader, FragmentShader);
             return Static_Shader;
         }
     }

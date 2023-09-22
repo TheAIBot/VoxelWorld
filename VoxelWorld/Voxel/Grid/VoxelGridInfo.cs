@@ -1,4 +1,3 @@
-using OpenGL;
 using System;
 using System.Collections;
 using System.Diagnostics;
@@ -178,7 +177,7 @@ namespace VoxelWorld.Voxel.Grid
                 return false;
             }
 
-            Vector3 newCenter = modelTrans.RevRotation * GridCenter + modelTrans.Translation;
+            Vector3 newCenter = Vector3.Transform(GridCenter, modelTrans.RevRotation) + modelTrans.Translation;
             if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
             {
                 return false;

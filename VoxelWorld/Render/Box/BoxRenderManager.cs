@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Silk.NET.OpenGL;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 namespace VoxelWorld.Render.Box
@@ -11,6 +11,12 @@ namespace VoxelWorld.Render.Box
         private static readonly ConcurrentQueue<BoxRenderCommand> BoxCommands = new ConcurrentQueue<BoxRenderCommand>();
         private static readonly List<BoxRender> Renderers = new List<BoxRender>();
         private static readonly Dictionary<Vector3, BoxRender> GridCenterToBoxRenderer = new Dictionary<Vector3, BoxRender>();
+        private static GL _openGl;
+
+        public static void SetOpenGl(GL openGl)
+        {
+            _openGl = openGl;
+        }
 
         public static void AddBox(in Vector3 gridCenter, float gridSideLength)
         {
@@ -60,7 +66,7 @@ namespace VoxelWorld.Render.Box
                     }
                 }
 
-                Renderers.Add(new BoxRender());
+                Renderers.Add(new BoxRender(_openGl));
             }
         }
 

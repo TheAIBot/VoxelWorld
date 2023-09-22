@@ -1,4 +1,6 @@
-﻿using OpenGL;
+﻿using Silk.NET.OpenGL;
+using System.Numerics;
+using VoxelWorld.Render.VoxelGrid;
 
 namespace VoxelWorld.Shaders
 {
@@ -24,14 +26,15 @@ void main(void)
 }
 ";
 
-        private static ShaderProgram Static_Shader = new ShaderProgram(VertexShader, FragmentShader);
+        private static ShaderProgram Static_Shader;
 
-        internal static ShaderProgram GetShader()
+        internal static ShaderProgram GetShader(GL openGl)
         {
+            Static_Shader ??= new ShaderProgram(openGl, VertexShader, FragmentShader);
             return Static_Shader;
         }
 
-        internal static void SetPVM(Matrix4 perspective, Matrix4 view, Matrix4 model)
+        internal static void SetPVM(Matrix4x4 perspective, Matrix4x4 view, Matrix4x4 model)
         {
             Static_Shader["P"].SetValue(perspective);
             Static_Shader["V"].SetValue(view);

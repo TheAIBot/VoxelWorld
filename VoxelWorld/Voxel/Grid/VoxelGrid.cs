@@ -1,5 +1,4 @@
-﻿using OpenGL;
-using System;
+﻿using System;
 using System.Collections;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -10,7 +9,7 @@ using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Grid
 {
-    internal class VoxelGrid
+    internal sealed class VoxelGrid
     {
         private Vector3 GridCenter;
         VoxelSystemData GenData;
@@ -648,9 +647,51 @@ namespace VoxelWorld.Voxel.Grid
 
             FillWithFaceIndices(geoData.Indices);
             FillWithFaceVerticesAndRemoveDuplicateIndices(geoData.Indices, geoData.Vertices);
-            Geometry.CalculateNormals(geoData.Vertices, geoData.Indices, geoData.Normals);
+            CalculateNormals(geoData.Vertices, geoData.Indices, geoData.Normals);
 
             return geoData;
+        }
+
+        /// <summary>
+        /// Calculate the array of vertex normals based on vertex and face information (assuming triangle polygons)
+        /// and put the normals into the provided array.
+        /// </summary>
+        /// <param name="vertexData">The vertex data to find the normals for.</param>
+        /// <param name="elementData">The element array describing the order in which vertices are drawn.</param>
+        /// <param name="normalData">The array the normals will be put into. Has to be the same length as the vertex array</param>
+        /// <returns></returns>
+        private static void CalculateNormals(ReadOnlySpan<Vector3> vertexData, ReadOnlySpan<uint> elementData, Span<Vector3> normalData)
+        {
+            if ((elementData.Length % 3) != 0)
+            {
+                throw new ArgumentOutOfRangeException($"Expected {nameof(elementData)} to be a multiple of 3 as each triangle consists of 3 points.");
+            }
+            if (vertexData.Length != normalData.Length)
+            {
+                throw new ArgumentOutOfRangeException($"Expected {nameof(vertexData)} and {nameof(normalData)} to have the same length.");
+            }
+
+            for (int i = 0; i < elementData.Length; i += 3)
+            {
+                int cornerAIndex = (int)elementData[i + 0];
+                int cornerBIndex = (int)elementData[i + 1];
+                int cornerCIndex = (int)elementData[i + 2];
+
+                Vector3 cornerA = vertexData[cornerAIndex];
+                Vector3 cornerB = vertexData[cornerBIndex];
+                Vector3 cornerC = vertexData[cornerCIndex];
+
+                Vector3 ab = cornerB - cornerA;
+                Vector3 ac = cornerC - cornerA;
+
+                Vector3 normal = Vector3.Normalize(Vector3.Cross(ab, ac));
+
+                normalData[cornerAIndex] += normal;
+                normalData[cornerBIndex] += normal;
+                normalData[cornerCIndex] += normal;
+            }
+
+            for (int i = 0; i < normalData.Length; i++) normalData[i] = Vector3.Normalize(normalData[i]);
         }
     }
 }

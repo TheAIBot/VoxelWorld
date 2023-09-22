@@ -1,12 +1,11 @@
-﻿using OpenGL;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace VoxelWorld.Voxel.System
 {
-    internal class ModelTransformations
+    internal sealed class ModelTransformations
     {
-        public Matrix4 Rotation = Matrix4.Identity;
-        public Matrix4 RevRotation = Matrix4.Identity;
+        public Matrix4x4 Rotation = Matrix4x4.Identity;
+        public Matrix4x4 RevRotation = Matrix4x4.Identity;
         public Vector3 Translation = new Vector3(0, 0, 0);
         public Vector3 RotatedLookDir = new Vector3(0, 0, 0);
         public Vector3 CameraPos = new Vector3(0, 0, 0);
@@ -14,9 +13,9 @@ namespace VoxelWorld.Voxel.System
 
         public void Update(PlayerCamera camera, float yAngle)
         {
-            Rotation = Matrix4.CreateRotationY(yAngle);
-            RevRotation = Matrix4.CreateRotationY(-yAngle);
-            RotatedLookDir = Rotation * camera.LookDirection;
+            Rotation = Matrix4x4.CreateRotationY(yAngle);
+            RevRotation = Matrix4x4.CreateRotationY(-yAngle);
+            RotatedLookDir = Vector3.Transform(camera.LookDirection, Rotation);
             CameraPos = camera.CameraPos;
             FOV = camera.FieldOfView;
         }

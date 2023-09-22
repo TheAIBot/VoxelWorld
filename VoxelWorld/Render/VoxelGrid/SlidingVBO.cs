@@ -1,18 +1,19 @@
-﻿using OpenGL;
+﻿using Silk.NET.OpenGL;
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal class SlidingVBO<T> : IDisposable where T : struct
+    internal sealed class SlidingVBO<T> : IDisposable where T : unmanaged
     {
+        private readonly GL _openGl;
         public int SpaceAvailable { get; private set; }
         public int FirstAvailableIndex { get; private set; }
         public readonly VBO<T> Buffer;
 
-        public SlidingVBO(VBO<T> buffer)
+        public SlidingVBO(GL openGl, VBO<T> buffer)
         {
+            _openGl = openGl;
             Buffer = buffer;
             SpaceAvailable = Buffer.Count;
             FirstAvailableIndex = 0;
@@ -29,10 +30,10 @@ namespace VoxelWorld.Render.VoxelGrid
             SpaceAvailable -= sizeToUse;
         }
 
-        public SlidingRange MapReservedRange(BufferAccessMask mappingMask = BufferAccessMask.MapWriteBit)
+        public SlidingRange MapReservedRange(MapBufferAccessMask mappingMask = MapBufferAccessMask.WriteBit)
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
-            return new SlidingRange(this, Buffer.MapBufferRange(FirstAvailableIndex, reserved, mappingMask));
+            return new SlidingRange(this, Buffer.MapBufferRange(_openGl, FirstAvailableIndex, reserved, mappingMask));
         }
 
         public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
@@ -41,7 +42,7 @@ namespace VoxelWorld.Render.VoxelGrid
             int dstOffsetInbytes = dstOffset * Marshal.SizeOf<T>();
             int lengthInBytes = length * Marshal.SizeOf<T>();
 
-            Gl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, (IntPtr)srcOffsetInBytes, (IntPtr)dstOffsetInbytes, lengthInBytes);
+            _openGl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, (IntPtr)srcOffsetInBytes, (IntPtr)dstOffsetInbytes, (nuint)lengthInBytes);
             dstBuffer.UseSpace(length);
         }
 

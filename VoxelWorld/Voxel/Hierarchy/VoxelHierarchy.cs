@@ -1,14 +1,11 @@
-﻿using OpenGL;
-using System;
+﻿using System;
 using System.Numerics;
-using System.Threading;
-using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Hierarchy
 {
-    internal class VoxelHierarchy : IDisposable
+    internal sealed class VoxelHierarchy : IDisposable
     {
         private static readonly Vector3[] GridLocations = new Vector3[]
         {

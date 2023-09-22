@@ -1,20 +1,19 @@
-﻿using OpenGL;
-using OpenGL.Constructs;
+﻿using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using VoxelWorld.Shaders;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
-using static OpenGL.GenericVAO;
+using static VoxelWorld.Render.VoxelGrid.VAO;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal class IndirectDraw : IDisposable
+
+    internal sealed class IndirectDraw : IDisposable
     {
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
-        IndirectDrawCmdManager DrawCommands = new IndirectDrawCmdManager();
+        private readonly IndirectDrawCmdManager DrawCommands = new IndirectDrawCmdManager();
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
@@ -23,12 +22,12 @@ namespace VoxelWorld.Render.VoxelGrid
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
 
-        public IndirectDraw(int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
+        public IndirectDraw(GL openGl, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
-            VertexBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(vertexBufferSize, BufferTarget.ArrayBuffer));
-            NormalBuffer = new SlidingVBO<Vector3>(new VBO<Vector3>(vertexBufferSize, BufferTarget.ArrayBuffer));
-            IndiceBuffer = new SlidingVBO<uint>(new VBO<uint>(indiceBufferSize, BufferTarget.ElementArrayBuffer));
-            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(new VBO<DrawElementsIndirectCommand>(commandBufferSize, BufferTarget.DrawIndirectBuffer, BufferUsageHint.DynamicDraw));
+            VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferTargetARB.ArrayBuffer));
+            NormalBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferTargetARB.ArrayBuffer));
+            IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferTargetARB.ElementArrayBuffer));
+            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(openGl, new VBO<DrawElementsIndirectCommand>(openGl, commandBufferSize, BufferTargetARB.DrawIndirectBuffer, BufferUsageARB.DynamicDraw));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
@@ -36,7 +35,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 new GenericVBO<uint>(IndiceBuffer.Buffer),
                 new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer.Buffer),
             };
-            Vao = new VAO(SimpleShader.GetShader(), vbos);
+            Vao = new VAO(openGl, SimpleShader.GetShader(openGl), vbos);
             Vao.DisposeChildren = false;
             Vao.DisposeElementArray = false;
         }
@@ -66,7 +65,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 {
                     throw new Exception("Failed to find grid and remove it.");
                 }
-                TransferToBuffers[gridIndex].Geom.Reuse();
+                TransferToBuffers[gridIndex].Geometry.Reuse();
                 TransferToBuffers.RemoveAt(gridIndex);
             }
 
@@ -78,13 +77,13 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             if (TransferToBuffers.Count > 0)
             {
-                using var vertexRange = VertexBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
-                using var normalRange = NormalBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
-                using var indiceRange = IndiceBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateRangeBit);
+                using var vertexRange = VertexBuffer.MapReservedRange(MapBufferAccessMask.WriteBit | MapBufferAccessMask.InvalidateRangeBit);
+                using var normalRange = NormalBuffer.MapReservedRange(MapBufferAccessMask.WriteBit | MapBufferAccessMask.InvalidateRangeBit);
+                using var indiceRange = IndiceBuffer.MapReservedRange(MapBufferAccessMask.WriteBit | MapBufferAccessMask.InvalidateRangeBit);
 
                 foreach (var transfer in TransferToBuffers)
                 {
-                    GeometryData geometry = transfer.Geom;
+                    GeometryData geometry = transfer.Geometry;
 
                     DrawCommands.Add(transfer.Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
@@ -107,7 +106,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 CommandBuffer.Reset();
                 CommandBuffer.ReserveSpace(DrawCommands.Count);
 
-                using var commandRange = CommandBuffer.MapReservedRange(BufferAccessMask.MapWriteBit | BufferAccessMask.MapInvalidateBufferBit);
+                using var commandRange = CommandBuffer.MapReservedRange(MapBufferAccessMask.WriteBit | MapBufferAccessMask.InvalidateBufferBit);
                 foreach (var drawCmd in DrawCommands.GetCommands())
                 {
                     commandRange.Add(drawCmd);

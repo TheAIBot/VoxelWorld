@@ -1,12 +1,11 @@
-﻿using OpenGL;
-using System;
+﻿using System;
 using System.Numerics;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Hierarchy
 {
-    internal class VoxelGridHierarchy : IDisposable
+    internal sealed class VoxelGridHierarchy : IDisposable
     {
         private VoxelGridInfo Grid;
         private VoxelHierarchyInfo Hierarchy;
@@ -49,7 +48,7 @@ namespace VoxelWorld.Voxel.Hierarchy
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
         {
-            Vector3 a = modelTrans.Translation + modelTrans.RevRotation * voxelCenter;
+            Vector3 a = modelTrans.Translation + Vector3.Transform(voxelCenter, modelTrans.RevRotation);
             Vector3 c = modelTrans.CameraPos;
 
             float distance = (a - c).Length();

@@ -1,21 +1,18 @@
-﻿using OpenGL;
-using System;
-using System.Collections.Generic;
-using System.Numerics;
+﻿using System.Numerics;
 using VoxelWorld.ShapeGenerators;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.Hierarchy;
 
 namespace VoxelWorld.Voxel.System
 {
-    internal class VoxelSystem
+    internal sealed class VoxelSystem
     {
         private VoxelHierarchy Grid = null;
         private readonly Vector3 Center;
         internal VoxelSystemData FirstLevelSystemData;
         private readonly ModelTransformations ModelTrans = new ModelTransformations();
 
-        public Matrix4 Model { get { return ModelTrans.Rotation; } }
+        public Matrix4x4 Model { get { return ModelTrans.Rotation; } }
 
         public VoxelSystem(int gridSize, Vector3 center, float voxelSize, PlanetGen generator)
         {

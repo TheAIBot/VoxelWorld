@@ -1,11 +1,10 @@
-﻿using OpenGL;
-using OpenGL.Platform;
+﻿using Silk.NET.Input;
 using System;
 using System.Numerics;
 
 namespace VoxelWorld
 {
-    class PlayerCamera
+    internal sealed class PlayerCamera
     {
         private int WindowWidth;
         private int WindowHeight;
@@ -13,25 +12,25 @@ namespace VoxelWorld
         public Vector3 CameraPos;
         public Vector3 LookDirection;
         public Vector3 UpVector;
-        private bool PrevLeftMouseDown;
         private Vector2 PrevMousePos;
         private Vector2 CameraAngles;
+        private bool PrevMouseDown = false;
 
         public float FieldOfView = 45.0f * (MathF.PI / 180.0f);
 
-        public Matrix4 Perspective 
+        public Matrix4x4 Perspective
         {
             get
             {
-                return Matrix4.CreatePerspectiveFieldOfView(FieldOfView, (float)WindowWidth / WindowHeight, 0.1f, 100f);
+                return Matrix4x4.CreatePerspectiveFieldOfView(FieldOfView, (float)WindowWidth / WindowHeight, 0.1f, 100f);
             }
         }
 
-        public Matrix4 View
+        public Matrix4x4 View
         {
             get
             {
-                return Matrix4.LookAt(CameraPos, CameraPos + LookDirection, UpVector);
+                return Matrix4x4.CreateLookAt(CameraPos, CameraPos + LookDirection, UpVector);
             }
         }
 
@@ -41,9 +40,8 @@ namespace VoxelWorld
             this.WindowHeight = height;
 
             this.CameraPos = cameraPos;
-            this.LookDirection = -CameraPos.Normalize();//new Vector3(MathF.Cos(0) * MathF.Cos(0) - 3, MathF.Sin(0) * MathF.Cos(0), MathF.Sin(0));
+            this.LookDirection = -Vector3.Normalize(CameraPos);//new Vector3(MathF.Cos(0) * MathF.Cos(0) - 3, MathF.Sin(0) * MathF.Cos(0), MathF.Sin(0));
             this.UpVector = new Vector3(0, 1, 0);
-            this.PrevLeftMouseDown = false;
             this.PrevMousePos = new Vector2(0, 0);
 
             float yAngle = MathF.Asin(LookDirection.Y);
@@ -56,26 +54,43 @@ namespace VoxelWorld
         public void MoveForward() => CameraPos += 0.08f * LookDirection;
         public void MoveBackward() => CameraPos += -0.08f * LookDirection;
 
-        public void UpdateCameraDirection(Click mouse)
+        public void UpdateCameraDirectionMouseDown(IMouse mouse, MouseButton mouseButton)
         {
-            if (PrevLeftMouseDown)
+            if (mouseButton != MouseButton.Left)
             {
-                float dx = 0.6f * MathF.PI * (PrevMousePos.X - mouse.X) / WindowWidth;
-                float dy = 0.3f * MathF.PI * (PrevMousePos.Y - mouse.Y) / WindowHeight;
-                CameraAngles += new Vector2(dx, -dy);
-                LookDirection = new Vector3(MathF.Cos(CameraAngles.X) * MathF.Cos(CameraAngles.Y), MathF.Sin(CameraAngles.Y), MathF.Sin(CameraAngles.X) * MathF.Cos(CameraAngles.Y));
-                PrevMousePos = new Vector2(mouse.X, mouse.Y);
+                return;
+            }
 
-                if (mouse.Button == MouseButton.Left && mouse.State == MouseState.Up)
-                {
-                    PrevLeftMouseDown = false;
-                }
-            }
-            else
+            PrevMouseDown = true;
+            PrevMousePos = new Vector2(mouse.Position.X, mouse.Position.Y);
+        }
+
+        public void UpdateCameraDirectionMouseUp(IMouse mouse, MouseButton mouseButton)
+        {
+            if (mouseButton != MouseButton.Left)
             {
-                PrevLeftMouseDown = mouse.Button == MouseButton.Left && mouse.State == MouseState.Down;
-                PrevMousePos = new Vector2(mouse.X, mouse.Y);
+                return;
             }
+
+            UpdateCameraDirectionMouseMove(mouse);
+
+            PrevMouseDown = false;
+        }
+
+        public void UpdateCameraDirectionMouseMove(IMouse mouse)
+        {
+            if (!PrevMouseDown)
+            {
+                return;
+            }
+
+            float dx = 0.6f * MathF.PI * (PrevMousePos.X - mouse.Position.X) / WindowWidth;
+            float dy = 0.3f * MathF.PI * (PrevMousePos.Y - mouse.Position.Y) / WindowHeight;
+            CameraAngles += new Vector2(dx, -dy);
+            LookDirection = new Vector3(MathF.Cos(CameraAngles.X) * MathF.Cos(CameraAngles.Y), MathF.Sin(CameraAngles.Y), MathF.Sin(CameraAngles.X) * MathF.Cos(CameraAngles.Y));
+
+
+            PrevMousePos = new Vector2(mouse.Position.X, mouse.Position.Y);
         }
 
         public bool UpdateCameraDimensions(int width, int height)

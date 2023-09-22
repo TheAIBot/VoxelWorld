@@ -3,34 +3,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-	<TieredPGO>true</TieredPGO>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\opengl4csharp\OpenGL.Platform\OpenGL.Platform.csproj" />
-    <ProjectReference Include="..\..\opengl4csharp\OpenGL\OpenGL.csproj" />
+    <PackageReference Include="Silk.NET.Input.Glfw" Version="2.17.1" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.17.1" />
+    <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.17.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Update="SDL2-CS.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="SDL2.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="SDL2.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
+	
 </Project>
