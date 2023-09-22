@@ -1,17 +1,15 @@
 ﻿using OpenGL;
 using OpenGL.Platform;
-using System;
 using System.Diagnostics;
 using System.Numerics;
-using System.Threading;
-using System.Threading.Tasks;
-using VoxelWorld.Shaders;
 using System.Runtime.CompilerServices;
-using VoxelWorld.Voxel.Grid;
-using VoxelWorld.Render.VoxelGrid;
-using VoxelWorld.Voxel.System;
-using VoxelWorld.ShapeGenerators;
+using System.Threading;
 using VoxelWorld.Render.Box;
+using VoxelWorld.Render.VoxelGrid;
+using VoxelWorld.Shaders;
+using VoxelWorld.ShapeGenerators;
+using VoxelWorld.Voxel.Grid;
+using VoxelWorld.Voxel.System;
 
 [assembly: InternalsVisibleToAttribute("VoxelBench")]
 namespace VoxelWorld
@@ -41,7 +39,7 @@ namespace VoxelWorld
             Input.Subscribe('l', () => controlDummyCamera = !controlDummyCamera);
 
             PlayerCamera player = new PlayerCamera(Window.Width, Window.Height, new Vector3(-8, -8, -8));
-            Input.MouseLeftClick = new Event(x => 
+            Input.MouseLeftClick = new Event(x =>
             {
                 if (controlDummyCamera)
                 {
@@ -73,7 +71,7 @@ namespace VoxelWorld
             );
 
             var planetGen = new PlanetGen(3, 8.0f, 3.0f, 3.0f);
-            VoxelSystem system = new VoxelSystem(10, new Vector3(0, 0, 0), 0.3f, planetGen);
+            VoxelSystem system = new VoxelSystem(30, new Vector3(0, 0, 0), 0.3f, planetGen);
             system.TestResizeToFindFirstGrid();
 
             WorkLimiter.StartWorkers(system.FirstLevelSystemData);
@@ -179,16 +177,16 @@ namespace VoxelWorld
 
                 avgFrameTime.AddSample((int)gpuFrameTime.GetTimeInMS());
                 //Console.WriteLine(avgFrameTime.GetAverage());
-                Console.WriteLine($"Empty: {VoxelGridInfo.GeneratedEmpty:N0}");
-                Console.WriteLine($"Not Empty: {VoxelGridInfo.GeneratedNotEmpty:N0}");
-                int totalGenerated = VoxelGridInfo.GeneratedEmpty + VoxelGridInfo.GeneratedNotEmpty;
-                float ratioEmpty = (float)VoxelGridInfo.GeneratedEmpty / totalGenerated;
-                Console.WriteLine($"Empty: {(100.0f * ratioEmpty):N0}%");
-                Console.WriteLine();
+                //Console.WriteLine($"Empty: {VoxelGridInfo.GeneratedEmpty:N0}");
+                //Console.WriteLine($"Not Empty: {VoxelGridInfo.GeneratedNotEmpty:N0}");
+                //int totalGenerated = VoxelGridInfo.GeneratedEmpty + VoxelGridInfo.GeneratedNotEmpty;
+                //float ratioEmpty = (float)VoxelGridInfo.GeneratedEmpty / totalGenerated;
+                //Console.WriteLine($"Empty: {(100.0f * ratioEmpty):N0}%");
+                //Console.WriteLine();
 
 
 
-                angle += 0.02f;
+                angle += 0.0002f;
 
 
 
