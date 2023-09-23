@@ -177,7 +177,7 @@ namespace VoxelWorld.Voxel.Grid
                 return false;
             }
 
-            Vector3 newCenter = Vector3.Transform(GridCenter, modelTrans.RevRotation) + modelTrans.Translation;
+            Vector3 newCenter = Vector3.Transform(GridCenter, modelTrans.Rotation) + modelTrans.Translation;
             if (!onScreenCheck.Intersects(new BoundingCircle(newCenter, BoundingCircleRadius)))
             {
                 return false;

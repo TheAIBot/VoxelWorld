@@ -45,8 +45,8 @@ namespace VoxelWorld
 
         static void Main(string[] args)
         {
-            int windowWidth = 1280;
-            int windowHeight = 720;
+            int windowWidth = 2280;
+            int windowHeight = 1720;
 
             var options = WindowOptions.Default;
             options.Size = new Vector2D<int>(windowWidth, windowHeight);
@@ -124,8 +124,6 @@ namespace VoxelWorld
 
             cake.Priority = ThreadPriority.AboveNormal;
             cake.Start();
-
-
 
 
             //Set-up input context.

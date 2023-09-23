@@ -48,7 +48,7 @@ namespace VoxelWorld.Voxel.Hierarchy
 
         private bool IsHighEnoughResolution(Vector3 voxelCenter, ModelTransformations modelTrans, VoxelSystemData genData)
         {
-            Vector3 a = modelTrans.Translation + Vector3.Transform(voxelCenter, modelTrans.RevRotation);
+            Vector3 a = modelTrans.Translation + Vector3.Transform(voxelCenter, modelTrans.Rotation);
             Vector3 c = modelTrans.CameraPos;
 
             float distance = (a - c).Length();
