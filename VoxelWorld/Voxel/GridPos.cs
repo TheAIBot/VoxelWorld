@@ -1,24 +1,7 @@
-﻿using System;
-using System.Diagnostics;
-using System.Numerics;
-
-namespace VoxelWorld.Voxel
+﻿namespace VoxelWorld.Voxel
 {
-    internal readonly struct GridPos : IEquatable<GridPos>
+    internal readonly record struct GridPos(int X, int Y, int Z, int Level)
     {
-        private readonly int X;
-        private readonly int Y;
-        private readonly int Z;
-        private readonly int Level;
-
-        public GridPos(int x, int y, int z, int level)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-            Level = level;
-        }
-
         public static GridPos RootPos()
         {
             return new GridPos(0, 0, 0, 0);
@@ -63,30 +46,6 @@ namespace VoxelWorld.Voxel
         public bool IsRootLevel()
         {
             return Level == 1;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is GridPos pos && Equals(pos);
-
-        }
-
-        public bool Equals(GridPos other)
-        {
-            return X == other.X &&
-                   Y == other.Y &&
-                   Z == other.Z &&
-                   Level == other.Level;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(X, Y, Z, Level);
-        }
-
-        public override string ToString()
-        {
-            return $"{X}, {Y}, {Z}, Level {Level}";
         }
     }
 }
