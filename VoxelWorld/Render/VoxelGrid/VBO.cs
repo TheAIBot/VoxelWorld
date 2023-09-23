@@ -243,7 +243,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
             fixed (void* dataPointer = data)
             {
-                if (_openGl.IsExtensionPresent("GL_ARB_direct_state_access"))
+                if (_openGl.IsExtensionDirectStateAccessEnabled())
                 {
                     _openGl.NamedBufferSubData(ID, 0, (nuint)(data.Length * Marshal.SizeOf<T>()), dataPointer);
                 }

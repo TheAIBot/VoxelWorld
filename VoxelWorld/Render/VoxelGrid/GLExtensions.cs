@@ -6,6 +6,24 @@ namespace VoxelWorld.Render.VoxelGrid
 {
     public static class GLExtensions
     {
+        private static bool? _isDirectStateAccessEnabled;
+        private static readonly object _lock = new();
+
+        public static bool IsExtensionDirectStateAccessEnabled(this GL openGl)
+        {
+            if (_isDirectStateAccessEnabled.HasValue)
+            {
+                return _isDirectStateAccessEnabled.Value;
+            }
+
+            lock (_lock)
+            {
+                _isDirectStateAccessEnabled = openGl.IsExtensionPresent("GL_ARB_direct_state_access");
+            }
+
+            return _isDirectStateAccessEnabled.Value;
+        }
+
         /// <summary>
         /// Creates a standard VBO of type T where the length of the VBO is less than or equal to the length of the data.
         /// </summary>
@@ -51,7 +69,7 @@ namespace VoxelWorld.Render.VoxelGrid
         public static unsafe void* MapBufferRange<T>(this GL openGl, VBO<T> buffer, int offset, int length, MapBufferAccessMask mask)
             where T : unmanaged
         {
-            if (openGl.IsExtensionPresent("GL_ARB_direct_state_access"))
+            if (openGl.IsExtensionDirectStateAccessEnabled())
             {
                 return openGl.MapNamedBufferRange(buffer.ID, offset, (nuint)length, mask);
             }

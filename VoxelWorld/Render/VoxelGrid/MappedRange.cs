@@ -22,7 +22,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Dispose()
         {
-            if (_openGl.IsExtensionPresent("GL_ARB_direct_state_access"))
+            if (_openGl.IsExtensionDirectStateAccessEnabled())
             {
                 _openGl.UnmapNamedBuffer(buffer.ID);
             }
