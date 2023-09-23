@@ -33,7 +33,7 @@ namespace VoxelWorld.Voxel.Hierarchy
 
         public void EndGeneratingHierarchy(VoxelSystemData genData, VoxelGrid grid, GridPos gridPos)
         {
-            bool[] isUsingSubHir = null;
+            bool[] isUsingSubHir;
             if (Grid.HasBeenGenerated)
             {
                 isUsingSubHir = Grid.IsSubGridUsed;
@@ -56,7 +56,7 @@ namespace VoxelWorld.Voxel.Hierarchy
 
             float spaceLength = MathF.Tan(modelTrans.FOV) * distance * 2.0f;
 
-            return genData.VoxelSize / spaceLength < 0.0015f;
+            return genData.VoxelSize / spaceLength < 0.0005f;
         }
 
         public void CheckAndIncreaseResolution(Frustum renderCheck, ModelTransformations modelTrans, VoxelSystemData genData, in GridPos gridPos)

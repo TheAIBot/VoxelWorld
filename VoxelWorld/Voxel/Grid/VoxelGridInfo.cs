@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
-using System.Threading;
 using VoxelWorld.Render.Box;
 using VoxelWorld.Render.VoxelGrid;
 using VoxelWorld.Voxel.Hierarchy;
@@ -87,12 +86,12 @@ namespace VoxelWorld.Voxel.Grid
                 grid.PreCalculateGeometryData();
                 if (grid.IsEmpty())
                 {
-                    Interlocked.Increment(ref GeneratedEmpty);
+                    //Interlocked.Increment(ref GeneratedEmpty);
                     InitializeAsEmpty();
                     return;
                 }
 
-                Interlocked.Increment(ref GeneratedNotEmpty);
+                //Interlocked.Increment(ref GeneratedNotEmpty);
                 grid.Interpolate();
 
                 BoundingCircleRadius = grid.GetBoundingCircle().Radius;

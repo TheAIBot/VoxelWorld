@@ -2,11 +2,13 @@
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using VoxelWorld.Render.Box;
 using VoxelWorld.Render.VoxelGrid;
 using VoxelWorld.Shaders;
@@ -50,7 +52,7 @@ namespace VoxelWorld
 
             var options = WindowOptions.Default;
             options.Size = new Vector2D<int>(windowWidth, windowHeight);
-            options.Title = "LearnOpenGL with Silk.NET";
+            options.Title = "Voxel World";
 
             window = Window.Create(options);
 
@@ -124,6 +126,24 @@ namespace VoxelWorld
 
             cake.Priority = ThreadPriority.AboveNormal;
             cake.Start();
+
+            Task.Run(async () =>
+            {
+                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+                while (IsRunning && await timer.WaitForNextTickAsync())
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"Draw Buffers: {VoxelGridRenderManager.DrawBuffers}");
+                    //Console.WriteLine(GetGPUBufferSizeInMB().ToString("N0") + "MB");
+                    //Console.WriteLine(GridsDrawing.ToString("N0"));
+                    Console.WriteLine($"Draw Buffer Utilization {(VoxelGridRenderManager.GetBufferUtilization() * 100):N2}%");
+                    Console.WriteLine($"Rendered Triangles: {VoxelGridRenderManager.TrianglesDrawing:N0}");
+                    Console.WriteLine($"Rendered Grids: {VoxelGridRenderManager.GridsDrawing:N0}");
+                    Console.WriteLine($"Generated Triangles: {VoxelGridRenderManager.AvgNewTriangles.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
+                    Console.WriteLine($"Generated Grids: {VoxelGridRenderManager.AvgNewGrids.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
+                    Console.WriteLine($"Copy commands: {VoxelGridRenderManager.AvgTransferedGridsFromAlmostEmptyBuffers.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
+                }
+            });
 
 
             //Set-up input context.
