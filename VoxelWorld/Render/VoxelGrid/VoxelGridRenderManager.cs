@@ -17,7 +17,7 @@ namespace VoxelWorld.Render.VoxelGrid
         private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
-        private static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(2), x => x);
+        private static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
 
         private static int DrawCounter = 0;
         private static int GridsDrawing = 0;

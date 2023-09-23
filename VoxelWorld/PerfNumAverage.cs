@@ -4,37 +4,7 @@ using System.Linq;
 
 namespace VoxelWorld
 {
-    internal sealed class TimeNumberAverage<T>
-    {
-        private readonly Queue<(DateTime Time, int Value)> _timeSamples = new Queue<(DateTime Time, int Value)>();
-        private readonly TimeSpan _timeToAverage;
-        private readonly Func<T, int> _howToGetValue;
-
-        public TimeNumberAverage(TimeSpan timeToAverage, Func<T, int> howToGetSample)
-        {
-            _timeToAverage = timeToAverage;
-            _howToGetValue = howToGetSample;
-        }
-
-        public void AddSampleNow(T sample)
-        {
-            (DateTime Time, int Value) timedSample = (DateTime.Now, _howToGetValue(sample));
-            _timeSamples.Enqueue(timedSample);
-
-            while (timedSample.Time - _timeSamples.Peek().Time > _timeToAverage)
-            {
-                _timeSamples.Dequeue();
-            }
-        }
-
-        public float GetAveragePerTimeUnit(TimeSpan timeUnit)
-        {
-            float timeUnitRatio = timeUnit.Ticks / (float)_timeToAverage.Ticks;
-            return _timeSamples.Average(x => (float)x.Value) * timeUnitRatio;
-        }
-    }
-
-    internal class PerfNumAverage<T>
+    internal sealed class PerfNumAverage<T>
     {
         private readonly Queue<T> Samples;
         private int SamplesSum;
