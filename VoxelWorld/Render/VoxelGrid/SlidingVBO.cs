@@ -1,15 +1,18 @@
 ﻿using Silk.NET.OpenGL;
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-    internal sealed class SlidingVBO<T> : IDisposable where T : unmanaged
+    internal sealed unsafe class SlidingVBO<T> : IDisposable where T : unmanaged
     {
         private readonly GL _openGl;
         public int SpaceAvailable { get; private set; }
         public int FirstAvailableIndex { get; private set; }
         public readonly VBO<T> Buffer;
+        private readonly void* BufferPointer;
+
 
         public SlidingVBO(GL openGl, VBO<T> buffer)
         {
@@ -17,6 +20,9 @@ namespace VoxelWorld.Render.VoxelGrid
             Buffer = buffer;
             SpaceAvailable = Buffer.Count;
             FirstAvailableIndex = 0;
+
+            int byteLength = SpaceAvailable * Marshal.SizeOf<T>();
+            BufferPointer = _openGl.MapBufferRange(Buffer, 0, byteLength, MapBufferAccessMask.WriteBit | MapBufferAccessMask.PersistentBit | MapBufferAccessMask.CoherentBit);
         }
 
         public void ReserveSpace(int sizeToReserve)
@@ -34,6 +40,12 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
             return new SlidingRange(this, Buffer.MapBufferRange(_openGl, FirstAvailableIndex, reserved, mappingMask));
+        }
+
+        public Span<T> GetReservedRange()
+        {
+            int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
+            return new Span<T>(Unsafe.Add<T>(BufferPointer, FirstAvailableIndex), reserved);
         }
 
         public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
@@ -59,6 +71,16 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Dispose()
         {
+            if (_openGl.IsExtensionDirectStateAccessEnabled())
+            {
+                _openGl.UnmapNamedBuffer(Buffer.ID);
+            }
+            else
+            {
+                _openGl.BindBuffer(Buffer.BufferTarget, Buffer.ID);
+                _openGl.UnmapBuffer(Buffer.BufferTarget);
+            }
+
             Buffer.Dispose();
         }
 

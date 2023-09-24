@@ -57,6 +57,18 @@ namespace VoxelWorld.Render.VoxelGrid
             return vboHandle;
         }
 
+        public static uint CreateVBO<T>(this GL openGl, BufferStorageTarget target, BufferStorageMask hint, int length)
+where T : unmanaged
+        {
+            uint vboHandle = openGl.CreateBuffer();
+            if (vboHandle == 0) return 0;
+
+            openGl.BindBuffer((GLEnum)target, vboHandle);
+            openGl.BufferStorage<T>(target, (nuint)(length * Marshal.SizeOf<T>()), null, hint);
+            openGl.BindBuffer((GLEnum)target, 0);
+            return vboHandle;
+        }
+
         /// <summary>
         /// Maps a range of the buffer object's data store to a Span<typeparamref name="T"/>>.
         /// </summary>

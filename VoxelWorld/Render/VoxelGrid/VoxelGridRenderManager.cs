@@ -14,8 +14,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
         private const int MinTransferCount = 500;
         private static IndirectDrawFactory DrawFactory;
-        private static readonly List<IndirectDraw> GridDrawBuffers = new List<IndirectDraw>();
-        private static readonly Dictionary<VoxelGridHierarchy, IndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, IndirectDraw>();
+        private static readonly List<MultiBufferedIndirectDraw> GridDrawBuffers = new List<MultiBufferedIndirectDraw>();
+        private static readonly Dictionary<VoxelGridHierarchy, MultiBufferedIndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, MultiBufferedIndirectDraw>();
         private static readonly ConcurrentDictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
         public static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
         public static readonly TimeNumberAverage<int> AvgNewGrids = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
@@ -57,7 +57,7 @@ namespace VoxelWorld.Render.VoxelGrid
             //so they can be reset and filled with grids again. This
             //improves memory utilization by making these drawers
             //available faster.
-            TransferFromAlmostEmptyDrawers();
+            //TransferFromAlmostEmptyDrawers();
 
             //Reset empty drawers so they can be filled again
             //or remove them if their buffer sizes aren't up to date
@@ -83,8 +83,6 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 //PrintDrawBufferUtilization();
             }
-
-
 
             DrawCounter++;
         }
@@ -177,7 +175,7 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
-                IndirectDraw draw = GridDrawBuffers[i];
+                MultiBufferedIndirectDraw draw = GridDrawBuffers[i];
                 if (draw.GetCommandCount() <= MinTransferCount)
                 {
                     int vertexCount = draw.GetVertexCount();
@@ -194,7 +192,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
                         //Need to transfer to a drawer that isn't
                         //also almost empty
-                        IndirectDraw copyTo = GridDrawBuffers[y];
+                        MultiBufferedIndirectDraw copyTo = GridDrawBuffers[y];
                         if (copyTo.GetCommandCount() <= MinTransferCount)
                         {
                             continue;

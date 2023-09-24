@@ -118,54 +118,6 @@ namespace VoxelWorld.Render.VoxelGrid
         /// </summary>
         public bool IsIntegralType { get; }
 
-
-        /// <summary>
-        /// Creates a buffer object of type T with a specified length.
-        /// This allows the array T[] to be larger than the actual size necessary to buffer.
-        /// Useful for reusing resources and avoiding unnecessary GC action.
-        /// </summary>
-        /// <param name="Data">An array of data of type T (which must be a struct) that will be buffered to the GPU.</param>
-        /// <param name="Length">The length of the valid data in the data array.</param>
-        /// <param name="Target">Specifies the target buffer object.</param>
-        /// <param name="Hint">Specifies the expected usage of the data store.</param>
-        public VBO(GL openGl, T[] Data, int Length, BufferTargetARB Target = BufferTargetARB.ArrayBuffer, BufferUsageARB Hint = BufferUsageARB.StaticDraw)
-        {
-            _openGl = openGl;
-            Length = Math.Max(0, Math.Min(Length, Data.Length));
-
-            ID = _openGl.CreateVBO<T>(Target, Data, Hint, Length);
-
-            BufferTarget = Target;
-            this.Size = GetTypeComponentSize();
-            this.PointerType = GetAttribPointerType();
-            this.Count = Length;
-            this.IsIntegralType = IsTypeIntegral();
-        }
-
-        /// <summary>
-        /// Creates a buffer object of type T with a specified length.
-        /// This allows the array T[] to be larger than the actual size necessary to buffer.
-        /// Useful for reusing resources and avoiding unnecessary GC action.
-        /// </summary>
-        /// <param name="Data">An array of data of type T (which must be a struct) that will be buffered to the GPU.</param>
-        /// <param name="Position">An offset into the Data array from which to begin buffering.</param>
-        /// <param name="Length">The length of the valid data in the data array.</param>
-        /// <param name="Target">Specifies the target buffer object.</param>
-        /// <param name="Hint">Specifies the expected usage of the data store.</param>
-        public VBO(GL openGl, T[] Data, int Position, int Length, BufferTargetARB Target = BufferTargetARB.ArrayBuffer, BufferUsageARB Hint = BufferUsageARB.StaticDraw)
-        {
-            _openGl = openGl;
-            Length = Math.Max(0, Math.Min(Length, Data.Length));
-
-            ID = _openGl.CreateVBO<T>(Target, Data.AsSpan(Position), Hint, Length);
-
-            BufferTarget = Target;
-            this.Size = GetTypeComponentSize();
-            this.PointerType = GetAttribPointerType();
-            this.Count = Length;
-            this.IsIntegralType = IsTypeIntegral();
-        }
-
         /// <summary>
         /// Creates a buffer object of type T.
         /// </summary>
@@ -205,6 +157,41 @@ namespace VoxelWorld.Render.VoxelGrid
             ID = _openGl.CreateVBO<T>(Target, Hint, Length);
 
             BufferTarget = Target;
+            this.Size = GetTypeComponentSize();
+            this.PointerType = GetAttribPointerType();
+            this.Count = Length;
+            this.IsIntegralType = IsTypeIntegral();
+        }
+
+        /// <summary>
+        /// Creates a buffer object of type T with a specified length.
+        /// </summary>
+        /// <param name="Length">The length of the vertex buffer.</param>
+        /// <param name="Target">Specifies the target buffer object.</param>
+        /// <param name="Hint">Specifies the expected usage of the data store.</param>
+        public VBO(GL openGl, int Length, BufferStorageTarget Target, BufferStorageMask Hint)
+        {
+            _openGl = openGl;
+            ID = _openGl.CreateVBO<T>(Target, Hint, Length);
+
+            BufferTarget = Target switch
+            {
+                BufferStorageTarget.ArrayBuffer => BufferTargetARB.ArrayBuffer,
+                BufferStorageTarget.ElementArrayBuffer => BufferTargetARB.ElementArrayBuffer,
+                BufferStorageTarget.PixelPackBuffer => BufferTargetARB.PixelPackBuffer,
+                BufferStorageTarget.PixelUnpackBuffer => BufferTargetARB.PixelUnpackBuffer,
+                BufferStorageTarget.UniformBuffer => BufferTargetARB.UniformBuffer,
+                BufferStorageTarget.TextureBuffer => BufferTargetARB.TextureBuffer,
+                BufferStorageTarget.TransformFeedbackBuffer => BufferTargetARB.TransformFeedbackBuffer,
+                BufferStorageTarget.CopyReadBuffer => BufferTargetARB.CopyReadBuffer,
+                BufferStorageTarget.CopyWriteBuffer => BufferTargetARB.CopyWriteBuffer,
+                BufferStorageTarget.DrawIndirectBuffer => BufferTargetARB.DrawIndirectBuffer,
+                BufferStorageTarget.ShaderStorageBuffer => BufferTargetARB.ShaderStorageBuffer,
+                BufferStorageTarget.DispatchIndirectBuffer => BufferTargetARB.DispatchIndirectBuffer,
+                BufferStorageTarget.QueryBuffer => BufferTargetARB.QueryBuffer,
+                BufferStorageTarget.AtomicCounterBuffer => BufferTargetARB.AtomicCounterBuffer,
+                var _ => throw new Exception()
+            };
             this.Size = GetTypeComponentSize();
             this.PointerType = GetAttribPointerType();
             this.Count = Length;
