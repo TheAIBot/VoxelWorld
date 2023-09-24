@@ -95,9 +95,9 @@ namespace VoxelWorld.Render.VoxelGrid
             }
 
             GeometryData[] geometryTransfered = new GeometryData[TransferToBuffers.Count];
-            var vertexRange = VertexBuffer.GetReservedRange();
-            var normalRange = NormalBuffer.GetReservedRange();
-            var indiceRange = IndiceBuffer.GetReservedRange();
+            using var vertexRange = VertexBuffer.GetReservedRange();
+            using var normalRange = NormalBuffer.GetReservedRange();
+            using var indiceRange = IndiceBuffer.GetReservedRange();
 
             for (int i = 0; i < TransferToBuffers.Count; i++)
             {
@@ -106,18 +106,9 @@ namespace VoxelWorld.Render.VoxelGrid
 
                 DrawCommands.Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
-                geometry.Vertices.CopyTo(vertexRange);
-                vertexRange = vertexRange.Slice(geometry.Vertices.Length);
-
-                geometry.Normals.CopyTo(normalRange);
-                normalRange = normalRange.Slice(geometry.Normals.Length);
-
-                geometry.Indices.CopyTo(indiceRange);
-                indiceRange = indiceRange.Slice(geometry.Indices.Length);
-
-                VertexBuffer.UseSpace(geometry.Vertices.Length);
-                NormalBuffer.UseSpace(geometry.Normals.Length);
-                IndiceBuffer.UseSpace(geometry.Indices.Length);
+                vertexRange.AddRange(geometry.Vertices);
+                normalRange.AddRange(geometry.Normals);
+                indiceRange.AddRange(geometry.Indices);
             }
 
             TransferToBuffers.Clear();
@@ -133,12 +124,10 @@ namespace VoxelWorld.Render.VoxelGrid
                 CommandBuffer.Reset();
                 CommandBuffer.ReserveSpace(DrawCommands.Count);
 
-                var commandRange = CommandBuffer.GetReservedRange();
+                using var commandRange = CommandBuffer.GetReservedRange();
                 foreach (var drawCmd in DrawCommands.GetCommands())
                 {
-                    commandRange[0] = drawCmd;
-                    commandRange = commandRange.Slice(1);
-                    CommandBuffer.UseSpace(1);
+                    commandRange.Add(drawCmd);
                 }
 
 

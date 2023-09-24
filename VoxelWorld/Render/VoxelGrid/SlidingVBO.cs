@@ -1,6 +1,5 @@
 ﻿using Silk.NET.OpenGL;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace VoxelWorld.Render.VoxelGrid
@@ -22,7 +21,10 @@ namespace VoxelWorld.Render.VoxelGrid
             FirstAvailableIndex = 0;
 
             int byteLength = SpaceAvailable * Marshal.SizeOf<T>();
-            BufferPointer = _openGl.MapBufferRange(Buffer, 0, byteLength, MapBufferAccessMask.WriteBit | MapBufferAccessMask.PersistentBit | MapBufferAccessMask.CoherentBit);
+            BufferPointer = _openGl.MapBufferRange(Buffer, 0, byteLength, MapBufferAccessMask.WriteBit |
+                                                                          MapBufferAccessMask.PersistentBit |
+                                                                          MapBufferAccessMask.CoherentBit |
+                                                                          MapBufferAccessMask.FlushExplicitBit);
         }
 
         public void ReserveSpace(int sizeToReserve)
@@ -42,10 +44,10 @@ namespace VoxelWorld.Render.VoxelGrid
             return new SlidingRange(this, Buffer.MapBufferRange(_openGl, FirstAvailableIndex, reserved, mappingMask));
         }
 
-        public Span<T> GetReservedRange()
+        public PermanentFlushSlidingRange GetReservedRange()
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
-            return new Span<T>(Unsafe.Add<T>(BufferPointer, FirstAvailableIndex), reserved);
+            return new PermanentFlushSlidingRange(this, new FlushPermanentMappedRange<T>(_openGl, Buffer, FirstAvailableIndex, reserved, BufferPointer));
         }
 
         public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
@@ -91,6 +93,43 @@ namespace VoxelWorld.Render.VoxelGrid
             private readonly int StartIndex;
 
             internal SlidingRange(SlidingVBO<T> sliding, MappedRange<T> mapped)
+            {
+                Sliding = sliding;
+                MappedRange = mapped;
+                StartIndex = Sliding.FirstAvailableIndex;
+            }
+
+            public void Add(T value)
+            {
+                int offset = Sliding.FirstAvailableIndex - StartIndex;
+                MappedRange.Range[offset] = value;
+
+                Sliding.FirstAvailableIndex++;
+            }
+
+            public void AddRange(Span<T> values)
+            {
+                int offset = Sliding.FirstAvailableIndex - StartIndex;
+                Span<T> offsetRange = MappedRange.Range.Slice(offset);
+                values.CopyTo(offsetRange);
+
+                Sliding.FirstAvailableIndex += values.Length;
+            }
+
+            public void Dispose()
+            {
+                Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
+                MappedRange.Dispose();
+            }
+        }
+
+        internal readonly ref struct PermanentFlushSlidingRange
+        {
+            private readonly SlidingVBO<T> Sliding;
+            private readonly FlushPermanentMappedRange<T> MappedRange;
+            private readonly int StartIndex;
+
+            internal PermanentFlushSlidingRange(SlidingVBO<T> sliding, FlushPermanentMappedRange<T> mapped)
             {
                 Sliding = sliding;
                 MappedRange = mapped;
