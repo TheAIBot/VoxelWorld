@@ -181,7 +181,7 @@ namespace VoxelWorld.Render.VoxelGrid
             foreach (var gridDrawInfo in DrawCommands.GetGridCommandsInfo())
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
-                DrawCommandInfo drawInfo = gridDrawInfo.Value;
+                DrawCommandInfo drawInfo = gridDrawInfo.Value.Information;
 
                 int dstVertexOffset = dstDrawer.VertexBuffer.FirstAvailableIndex;
                 int dstIndiceOffset = dstDrawer.IndiceBuffer.FirstAvailableIndex;

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
 
@@ -6,9 +7,8 @@ namespace VoxelWorld.Render.VoxelGrid
 {
     internal sealed class IndirectDrawCmdManager
     {
-        private readonly Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand> DrawCommands = new Dictionary<VoxelGridHierarchy, DrawElementsIndirectCommand>();
-        private readonly Dictionary<VoxelGridHierarchy, DrawCommandInfo> DrawCmdInfos = new Dictionary<VoxelGridHierarchy, DrawCommandInfo>();
-        public int Count => DrawCommands.Count;
+        private readonly Dictionary<VoxelGridHierarchy, DrawInformation> Drawinformations = new Dictionary<VoxelGridHierarchy, DrawInformation>();
+        public int Count => Drawinformations.Count;
 
         public void Add(VoxelGridHierarchy grid, GeometryData geometry, int firstIndice, int firstVertex)
         {
@@ -17,44 +17,40 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Add(VoxelGridHierarchy grid, int firstIndice, int indiceCount, int firstVertex, int vertexCount)
         {
-            DrawCommands.Add(grid, new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, 0u));
-            DrawCmdInfos.Add(grid, new DrawCommandInfo(firstIndice, indiceCount, firstVertex, vertexCount));
+            Drawinformations.Add(grid, new DrawInformation(new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, 0u),
+                                                           new DrawCommandInfo(firstIndice, indiceCount, firstVertex, vertexCount)));
         }
 
         public bool Remove(VoxelGridHierarchy grid)
         {
-            if (DrawCommands.Remove(grid))
-            {
-                DrawCmdInfos.Remove(grid);
-                return true;
-            }
-            return false;
+            return Drawinformations.Remove(grid);
         }
 
         public IEnumerable<VoxelGridHierarchy> GetGrids()
         {
-            return DrawCommands.Keys;
+            return Drawinformations.Keys;
         }
 
         public IEnumerable<DrawElementsIndirectCommand> GetCommands()
         {
-            return DrawCommands.Values;
+            return Drawinformations.Values.Select(x => x.Command);
         }
 
         public IEnumerable<DrawCommandInfo> GetCommandsInfo()
         {
-            return DrawCmdInfos.Values;
+            return Drawinformations.Values.Select(x => x.Information);
         }
 
-        public IEnumerable<KeyValuePair<VoxelGridHierarchy, DrawCommandInfo>> GetGridCommandsInfo()
+        public IEnumerable<KeyValuePair<VoxelGridHierarchy, DrawInformation>> GetGridCommandsInfo()
         {
-            return DrawCmdInfos;
+            return Drawinformations;
         }
 
         public void Clear()
         {
-            DrawCommands.Clear();
-            DrawCmdInfos.Clear();
+            Drawinformations.Clear();
         }
+
+        internal sealed record DrawInformation(DrawElementsIndirectCommand Command, DrawCommandInfo Information);
     }
 }
