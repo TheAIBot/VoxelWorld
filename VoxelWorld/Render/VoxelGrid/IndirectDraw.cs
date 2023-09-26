@@ -14,7 +14,7 @@ namespace VoxelWorld.Render.VoxelGrid
     internal sealed class IndirectDraw : IDisposable
     {
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
-        private readonly IndirectDrawCmdManager DrawCommands = new IndirectDrawCmdManager();
+        private readonly Dictionary<VoxelGridHierarchy, DrawInformation> DrawInformations = new Dictionary<VoxelGridHierarchy, DrawInformation>();
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
@@ -44,6 +44,17 @@ namespace VoxelWorld.Render.VoxelGrid
             Vao.DisposeElementArray = false;
         }
 
+        private void Add(VoxelGridHierarchy grid, GeometryData geometry, int firstIndice, int firstVertex)
+        {
+            Add(grid, firstIndice, geometry.Indices.Length, firstVertex, geometry.Vertices.Length);
+        }
+
+        private void Add(VoxelGridHierarchy grid, int firstIndice, int indiceCount, int firstVertex, int vertexCount)
+        {
+            DrawInformations.Add(grid, new DrawInformation(new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, 0u),
+                                                           new DrawCommandInfo(firstIndice, indiceCount, firstVertex, vertexCount)));
+        }
+
         public bool TryAddGeometry(VoxelGridHierarchy grid, GeometryData geometry)
         {
             if (HasSpaceFor(geometry.Vertices.Length, geometry.Indices.Length, 1))
@@ -60,7 +71,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool TryRemoveGeometry(VoxelGridHierarchy grid, [NotNullWhen(true)] out GeometryData geometryData)
         {
-            if (!DrawCommands.Remove(grid))
+            if (!DrawInformations.Remove(grid))
             {
                 int gridIndex = TransferToBuffers.FindIndex(x => x.Grid == grid);
                 if (gridIndex == -1)
@@ -104,7 +115,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 GeometryData geometry = TransferToBuffers[i].Geometry;
                 geometryTransfered[i] = geometry;
 
-                DrawCommands.Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
+                Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
                 vertexRange.AddRange(geometry.Vertices);
                 normalRange.AddRange(geometry.Normals);
@@ -119,15 +130,15 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void SendCommandsToGPU()
         {
-            if (DrawCommands.Count > 0 && CommandsChangeSinceLastPrepareDraw)
+            if (DrawInformations.Count > 0 && CommandsChangeSinceLastPrepareDraw)
             {
                 CommandBuffer.Reset();
-                CommandBuffer.ReserveSpace(DrawCommands.Count);
+                CommandBuffer.ReserveSpace(DrawInformations.Count);
 
                 using var commandRange = CommandBuffer.GetReservedRange();
-                foreach (var drawCmd in DrawCommands.GetCommands())
+                foreach (var drawCmd in DrawInformations.Values)
                 {
-                    commandRange.Add(drawCmd);
+                    commandRange.Add(drawCmd.Command);
                 }
 
 
@@ -146,9 +157,9 @@ namespace VoxelWorld.Render.VoxelGrid
         public int GetVertexCount()
         {
             int vertexCount = 0;
-            foreach (var drawInfo in DrawCommands.GetCommandsInfo())
+            foreach (var drawInfo in DrawInformations.Values)
             {
-                vertexCount += drawInfo.VertexCount;
+                vertexCount += drawInfo.Information.VertexCount;
             }
 
             return vertexCount;
@@ -157,9 +168,9 @@ namespace VoxelWorld.Render.VoxelGrid
         public int GetIndiceCount()
         {
             int indiceCount = 0;
-            foreach (var drawInfo in DrawCommands.GetCommandsInfo())
+            foreach (var drawInfo in DrawInformations.Values)
             {
-                indiceCount += drawInfo.IndiceCount;
+                indiceCount += drawInfo.Information.IndiceCount;
             }
 
             return indiceCount;
@@ -167,18 +178,18 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int GetCommandCount()
         {
-            return DrawCommands.Count;
+            return DrawInformations.Count;
         }
 
         public IEnumerable<VoxelGridHierarchy> GetGridsDrawing()
         {
-            return DrawCommands.GetGrids();
+            return DrawInformations.Keys;
         }
 
         public int TransferDrawCommands(IndirectDraw dstDrawer)
         {
             int copyCommands = 0;
-            foreach (var gridDrawInfo in DrawCommands.GetGridCommandsInfo())
+            foreach (var gridDrawInfo in DrawInformations)
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
                 DrawCommandInfo drawInfo = gridDrawInfo.Value.Information;
@@ -190,12 +201,12 @@ namespace VoxelWorld.Render.VoxelGrid
                 NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
                 IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
                 dstDrawer.CommandBuffer.ReserveSpace(1);
-                dstDrawer.DrawCommands.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
+                dstDrawer.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
 
                 copyCommands++;
             }
 
-            DrawCommands.Clear();
+            DrawInformations.Clear();
             dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
 
             return copyCommands;
@@ -203,9 +214,9 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Draw()
         {
-            if (DrawCommands.Count > 0)
+            if (DrawInformations.Count > 0)
             {
-                Vao.MultiDrawElementsIndirect(CommandBuffer.Buffer, DrawCommands.Count);
+                Vao.MultiDrawElementsIndirect(CommandBuffer.Buffer, DrawInformations.Count);
 
                 if (_syncFlag.HasValue)
                 {
@@ -227,13 +238,13 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool IsEmpty()
         {
-            return TransferToBuffers.Count == 0 && DrawCommands.Count == 0;
+            return TransferToBuffers.Count == 0 && DrawInformations.Count == 0;
         }
 
         public void Reset()
         {
             TransferToBuffers.Clear();
-            DrawCommands.Clear();
+            DrawInformations.Clear();
 
             VertexBuffer.Reset();
             NormalBuffer.Reset();
@@ -256,5 +267,7 @@ namespace VoxelWorld.Render.VoxelGrid
             IndiceBuffer.Dispose();
             CommandBuffer.Dispose();
         }
+
+        private sealed record DrawInformation(DrawElementsIndirectCommand Command, DrawCommandInfo Information);
     }
 }
