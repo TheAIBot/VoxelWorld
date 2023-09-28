@@ -18,13 +18,13 @@ namespace VoxelWorld.Render.VoxelGrid
         public MultiBufferedIndirectDraw(GL openGl, int bufferCount, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
             _bufferedDrawers = new IndirectDraw[bufferCount];
-            for (int i = 0; i < bufferCount; i++)
+            for (int i = 0; i < _bufferedDrawers.Length; i++)
             {
                 _bufferedDrawers[i] = new IndirectDraw(openGl, vertexBufferSize, indiceBufferSize, commandBufferSize);
             }
 
             _updateBufferIndex = 0;
-            _drawBufferIndex = 1;
+            _drawBufferIndex = (_updateBufferIndex + 1) % _bufferedDrawers.Length;
         }
 
         public bool TryAddGeometry(VoxelGridHierarchy grid, GeometryData geometry)
