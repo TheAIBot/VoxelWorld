@@ -46,32 +46,19 @@ namespace VoxelWorld
 
         public void PrintHistogram()
         {
-            int[] histogram = new int[Samples.Select(HowToGetValue).Max() + 1];
-            int usablesamples = 0;
-            foreach (int sample in Samples.Select(HowToGetValue))
-            {
-                if (sample < histogram.Length)
-                {
-                    histogram[sample]++;
-                    usablesamples++;
-                }
-            }
-
             int xValues = 30;
             int yValues = 60;
-
-            int xDiv = histogram.Length / xValues;
-
+            int xDiv = (Samples.Select(HowToGetValue).Max() + xValues - 1) / xValues;
             int[] histSums = new int[xValues];
-            for (int i = 0; i < histSums.Length; i++)
+            foreach (int sample in Samples.Select(HowToGetValue))
             {
-                histSums[i] = histogram.AsSpan(i * xDiv, xDiv).ToArray().Sum();
-
+                histSums[sample / xDiv]++;
             }
             int maxValue = histSums.Max();
-            for (int i = 1; i < histSums.Length; i++)
+            for (int i = 0; i < histSums.Length; i++)
             {
-                Console.WriteLine($"{(i * xDiv).ToString().PadLeft(3, ' ')}|{"".PadLeft((int)(((float)histSums[i]) / (((float)maxValue) / yValues)), '#')}");
+                int padding = maxValue == 0 ? 0 : (int)((histSums[i] / (float)maxValue) * yValues);
+                Console.WriteLine($"{(i * xDiv).ToString().PadLeft(4, ' ')}|{"".PadLeft(padding, '#')}");
             }
         }
     }

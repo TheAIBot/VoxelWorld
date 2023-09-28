@@ -17,8 +17,6 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public MultiBufferedIndirectDraw(GL openGl, int bufferCount, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
-            //ArgumentOutOfRangeException.ThrowIfLessThan(bufferCount, 2);
-
             _bufferedDrawers = new IndirectDraw[bufferCount];
             for (int i = 0; i < bufferCount; i++)
             {
@@ -33,15 +31,9 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             if (HasSpaceFor(geometry.Vertices.Length, geometry.Indices.Length, 1))
             {
-                var added = new List<bool>();
                 foreach (var indirectDrawer in _bufferedDrawers)
                 {
-                    added.Add(indirectDrawer.TryAddGeometry(grid, geometry));
-                }
-
-                if (!added.All(x => x) & !added.All(x => !x))
-                {
-                    throw new Exception();
+                    indirectDrawer.TryAddGeometry(grid, geometry);
                 }
 
                 ref int buffersResideInCount = ref CollectionsMarshal.GetValueRefOrAddDefault(_bufferCountGeometryResidesIn, geometry, out var _);
@@ -93,6 +85,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
             return canAdd;
         }
+
+        public bool IsTransferringToBuffers() => _bufferedDrawers.Any(x => x.IsTransferringToBuffers());
 
         public int GetVertexCount()
         {

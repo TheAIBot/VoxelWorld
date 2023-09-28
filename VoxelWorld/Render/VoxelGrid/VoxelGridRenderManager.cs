@@ -57,7 +57,7 @@ namespace VoxelWorld.Render.VoxelGrid
             //so they can be reset and filled with grids again. This
             //improves memory utilization by making these drawers
             //available faster.
-            //TransferFromAlmostEmptyDrawers();
+            TransferFromAlmostEmptyDrawers();
 
             //Reset empty drawers so they can be filled again
             //or remove them if their buffer sizes aren't up to date
@@ -77,11 +77,6 @@ namespace VoxelWorld.Render.VoxelGrid
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 GridDrawBuffers[i].Draw();
-            }
-
-            if (DrawCounter % 60 == 0)
-            {
-                //PrintDrawBufferUtilization();
             }
 
             DrawCounter++;
@@ -176,7 +171,7 @@ namespace VoxelWorld.Render.VoxelGrid
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 MultiBufferedIndirectDraw draw = GridDrawBuffers[i];
-                if (draw.GetCommandCount() <= MinTransferCount)
+                if (draw.GetCommandCount() <= MinTransferCount && !draw.IsTransferringToBuffers())
                 {
                     int vertexCount = draw.GetVertexCount();
                     int indiceCount = draw.GetIndiceCount();
@@ -256,7 +251,7 @@ namespace VoxelWorld.Render.VoxelGrid
             return (float)avgTotalGridMemUsageInMB / gpuMemUsedInMB;
         }
 
-        private static void PrintDrawBufferUtilization()
+        public static void PrintDrawBufferUtilization()
         {
             PerfNumAverage<int> lol = new PerfNumAverage<int>(GridDrawBuffers.Count, x => x);
             for (int i = 0; i < GridDrawBuffers.Count; i++)

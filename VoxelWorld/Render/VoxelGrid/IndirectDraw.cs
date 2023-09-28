@@ -89,6 +89,8 @@ namespace VoxelWorld.Render.VoxelGrid
             return false;
         }
 
+        public bool IsTransferringToBuffers() => TransferToBuffers.Count > 0;
+
         public GeometryData[] CopyToGPU()
         {
             if (TransferToBuffers.Count == 0)
