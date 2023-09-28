@@ -90,30 +90,34 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int GetVertexCount()
         {
-            return _bufferedDrawers.Max(x => x.GetVertexCount());
+            return _bufferedDrawers[0].GetVertexCount();
         }
 
         public int GetIndiceCount()
         {
-            return _bufferedDrawers.Max(x => x.GetIndiceCount());
+            return _bufferedDrawers[0].GetIndiceCount();
         }
 
         public int GetCommandCount()
         {
-            return _bufferedDrawers.Max(x => x.GetCommandCount());
+            return _bufferedDrawers[0].GetCommandCount();
         }
 
         public IEnumerable<VoxelGridHierarchy> GetGridsDrawing()
         {
-            return _bufferedDrawers.SelectMany(x => x.GetGridsDrawing()).Distinct();
+            return _bufferedDrawers[0].GetGridsDrawing();
         }
 
         public int TransferDrawCommands(MultiBufferedIndirectDraw multiBufferedDrawer)
         {
             int copyCommands = 0;
-            foreach (var fromBufferToBuffer in _bufferedDrawers.Zip(multiBufferedDrawer._bufferedDrawers))
+            for (int i = 0; i < _bufferedDrawers.Length; i++)
             {
-                copyCommands += fromBufferToBuffer.First.TransferDrawCommands(fromBufferToBuffer.Second);
+                IndirectDraw copyFrom = _bufferedDrawers[i];
+                IndirectDraw copyTo = multiBufferedDrawer._bufferedDrawers[i];
+
+                copyCommands += copyFrom.TransferDrawCommands(copyTo);
+
             }
 
             return copyCommands;
@@ -128,12 +132,12 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int VertexBufferSize()
         {
-            return _bufferedDrawers.Max(x => x.VertexBufferSize());
+            return _bufferedDrawers[0].VertexBufferSize();
         }
 
         public int IndiceBufferSize()
         {
-            return _bufferedDrawers.Max(x => x.IndiceBufferSize());
+            return _bufferedDrawers[0].IndiceBufferSize();
         }
 
         public bool IsEmpty()
