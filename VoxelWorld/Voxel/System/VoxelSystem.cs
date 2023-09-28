@@ -31,9 +31,9 @@ namespace VoxelWorld.Voxel.System
             {
                 vGrid.Repurpose(Center, FirstLevelSystemData);
                 vGrid.Randomize();
-                vGrid.PreCalculateGeometryData();
+                (int _, int triangleCount) = vGrid.PreCalculateGeometryData();
 
-                if (vGrid.IsEmpty())
+                if (triangleCount == 0)
                 {
                     FirstLevelSystemData = FirstLevelSystemData.GetWithDoubleVoxelSize();
                     continue;

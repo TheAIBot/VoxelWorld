@@ -16,7 +16,6 @@ namespace VoxelWorld.Voxel.Grid
         private readonly bool[] GridSign;
         private readonly Vector4[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
-        private int TriangleCount = 0;
 
         public VoxelGrid(Vector3 center, VoxelSystemData voxelSystemData)
         {
@@ -100,11 +99,6 @@ namespace VoxelWorld.Voxel.Grid
             {
                 throw new Exception("I was too lazy so you need AVX in order to run this program.");
             }
-        }
-
-        public bool IsEmpty()
-        {
-            return TriangleCount == 0;
         }
 
         public GridSidePointsUsed EdgePointsUsed()
@@ -268,7 +262,7 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        public unsafe void PreCalculateGeometryData()
+        public unsafe (int VertexCount, int TriangleCount) PreCalculateGeometryData()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -280,13 +274,14 @@ namespace VoxelWorld.Voxel.Grid
                 return z * GenData.GridSize * GenData.GridSize + y * GenData.GridSize + x;
             }
 
+            int triangleCount = 0;
+
             fixed (bool* gridSifsgnPtr = GridSign)
             {
                 sbyte* gridSignPtr = (sbyte*)gridSifsgnPtr;
                 fixed (bool* isUsingVoxelBoolPtr = IsUsingVoxelPoint)
                 {
                     sbyte* isUsingVoxelPtr = (sbyte*)isUsingVoxelBoolPtr;
-                    TriangleCount = 0;
                     for (int z = 1; z < GenData.GridSize - 1; z++)
                     {
                         for (int y = 1; y < GenData.GridSize - 1; y++)
@@ -365,7 +360,7 @@ namespace VoxelWorld.Voxel.Grid
                                     //Use popcnt on the two ulongs to count the bits.
                                     //Each face consists of two triangles.
                                     int faces = (int)(Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(0)) + Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(1)));
-                                    TriangleCount += faces * 2;
+                                    triangleCount += faces * 2;
                                 }
                             }
 
@@ -383,7 +378,7 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x0y0z1 + i] = true;
                                     IsUsingVoxelPoint[x0y1z0 + i] = true;
                                     IsUsingVoxelPoint[x0y1z1 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
                                 if (centerSign && !GridSign[gridIdxyn1 + i])
                                 {
@@ -391,7 +386,7 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x1y0z0 + i] = true;
                                     IsUsingVoxelPoint[x0y0z1 + i] = true;
                                     IsUsingVoxelPoint[x0y0z0 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
                                 if (centerSign && !GridSign[gridIdxzn1 + i])
                                 {
@@ -399,7 +394,7 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x0y1z0 + i] = true;
                                     IsUsingVoxelPoint[x1y0z0 + i] = true;
                                     IsUsingVoxelPoint[x1y1z0 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
 
                                 if (centerSign && !GridSign[gridIdxxp1 + i])
@@ -408,7 +403,7 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x1y0z1 + i] = true;
                                     IsUsingVoxelPoint[x1y1z0 + i] = true;
                                     IsUsingVoxelPoint[x1y1z1 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
                                 if (centerSign && !GridSign[gridIdxyp1 + i])
                                 {
@@ -416,7 +411,7 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x1y1z0 + i] = true;
                                     IsUsingVoxelPoint[x0y1z1 + i] = true;
                                     IsUsingVoxelPoint[x0y1z0 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
                                 if (centerSign && !GridSign[gridIdxzp1 + i])
                                 {
@@ -424,13 +419,15 @@ namespace VoxelWorld.Voxel.Grid
                                     IsUsingVoxelPoint[x0y1z1 + i] = true;
                                     IsUsingVoxelPoint[x1y0z1 + i] = true;
                                     IsUsingVoxelPoint[x1y1z1 + i] = true;
-                                    TriangleCount += 2;
+                                    triangleCount += 2;
                                 }
                             }
                         }
                     }
                 }
             }
+
+            return (CountTruesWithPopCnt(IsUsingVoxelPoint), triangleCount);
         }
 
         public BoundingCircle GetBoundingCircle()
@@ -638,11 +635,10 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        public GeometryData Triangulize()
+        public GeometryData Triangulize(int vertexCount, int triangleCount)
         {
-            int vertexCount = CountTruesWithPopCnt(IsUsingVoxelPoint);
             const int indicesPerTriangle = 3;
-            int triangleIndiceCount = TriangleCount * indicesPerTriangle;
+            int triangleIndiceCount = triangleCount * indicesPerTriangle;
             GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
 
             FillWithFaceIndices(geoData.Indices);
