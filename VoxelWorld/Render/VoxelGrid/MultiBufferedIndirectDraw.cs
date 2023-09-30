@@ -53,7 +53,11 @@ namespace VoxelWorld.Render.VoxelGrid
                 indirectDrawer.TryRemoveGeometry(grid, out geometryData);
             }
 
-            geometryData?.Reuse();
+            if (geometryData != null)
+            {
+                _bufferCountGeometryResidesIn.Remove(geometryData);
+                geometryData.Reuse();
+            }
         }
 
         public void CopyToGPU()
