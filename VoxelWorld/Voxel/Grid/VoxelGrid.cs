@@ -651,78 +651,136 @@ namespace VoxelWorld.Voxel.Grid
             int x1y1z0 = GridToVP(vpSideLength, 2, 2, 1);
             int x1y1z1 = GridToVP(vpSideLength, 2, 2, 2);
 
-            for (int z = 1; z < vpSideLength; z++)
+            fixed (bool* readonlyGridSigns = gridSigns)
             {
-                for (int y = 1; y < vpSideLength; y++)
+                fixed (byte* readonlyNormals = normals)
                 {
-                    int x = 1;
-
-                    int basex0y0z0 = GridToVP(vpSideLength, x + 0, y + 0, z + 0);
-
-                    int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
-                    int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
-                    int gridIdxyn1 = PosToGridIndex(gridSideLength, x, y - 1, z);
-                    int gridIdxzn1 = PosToGridIndex(gridSideLength, x, y, z - 1);
-                    int gridIdxxp1 = PosToGridIndex(gridSideLength, x + 1, y, z);
-                    int gridIdxyp1 = PosToGridIndex(gridSideLength, x, y + 1, z);
-                    int gridIdxzp1 = PosToGridIndex(gridSideLength, x, y, z + 1);
-
-                    for (int i = 0; i < vpSideLength - 1; i++)
+                    bool* gridSignsPtr = readonlyGridSigns;
+                    byte* gridSignsBytePtr = (byte*)readonlyGridSigns;
+                    byte* normalsPtr = readonlyNormals;
+                    for (int z = 1; z < vpSideLength; z++)
                     {
-                        bool centerSign = gridSigns[gridIdxCenter + i];
-                        if (!centerSign)
+                        for (int y = 1; y < vpSideLength; y++)
                         {
-                            continue;
-                        }
+                            int x = 1;
 
-                        if (!gridSigns[gridIdxxn1 + i])
-                        {
-                            //faceXNegVecIndice = MakeFaceVectorIndices(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
-                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_00_10;
-                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_00_10;
-                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_00_10;
-                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_00_10;
-                        }
-                        if (!gridSigns[gridIdxyn1 + i])
-                        {
-                            //faceYNegVecIndice = MakeFaceVectorIndices(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
-                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_10_00;
-                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_10_00;
-                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_10_00;
-                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_10_00;
-                        }
-                        if (!gridSigns[gridIdxzn1 + i])
-                        {
-                            //faceZNegVecIndice = MakeFaceVectorIndices(x0y1z0, x0y0z0, x1y1z0, x1y0z0);
-                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_10_00_00;
-                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_10_00_00;
-                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_10_00_00;
-                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_10_00_00;
-                        }
+                            int basex0y0z0 = GridToVP(vpSideLength, x + 0, y + 0, z + 0);
 
-                        if (!gridSigns[gridIdxxp1 + i])
-                        {
-                            //faceXPosVecIndice = MakeFaceVectorIndices(x1y0z0, x1y0z1, x1y1z0, x1y1z1);
-                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_00_01;
-                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_00_01;
-                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_00_01;
-                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_00_01;
-                        }
-                        if (!gridSigns[gridIdxyp1 + i])
-                        {
-                            //faceYPosVecIndice = MakeFaceVectorIndices(x0y1z1, x0y1z0, x1y1z1, x1y1z0);
-                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_01_00;
-                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_01_00;
-                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_01_00;
-                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_01_00;
-                        }
-                        if (!gridSigns[gridIdxzp1 + i])
-                        {
-                            //faceZPosVecIndice = MakeFaceVectorIndices(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
-                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_01_00_00;
-                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_01_00_00;
-                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_01_00_00;
-                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_01_00_00;
+                            int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
+                            int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
+                            int gridIdxyn1 = PosToGridIndex(gridSideLength, x, y - 1, z);
+                            int gridIdxzn1 = PosToGridIndex(gridSideLength, x, y, z - 1);
+                            int gridIdxxp1 = PosToGridIndex(gridSideLength, x + 1, y, z);
+                            int gridIdxyp1 = PosToGridIndex(gridSideLength, x, y + 1, z);
+                            int gridIdxzp1 = PosToGridIndex(gridSideLength, x, y, z + 1);
+
+                            byte* baseNormalsPtr = normalsPtr + basex0y0z0;
+                            byte* basegridSignsBytePtr = gridSignsBytePtr;
+
+                            int i = 0;
+                            for (; i + Vector128<byte>.Count < vpSideLength - 1; i += (Vector128<byte>.Count - 2))
+                            {
+                                Vector128<byte> centerSigns = Vector128.Load(gridSignsBytePtr + gridIdxCenter + i);
+
+                                Vector128<byte> signIdxxp1 = Vector128.Load(basegridSignsBytePtr + gridIdxxp1);
+                                Vector128<byte> signIdxxn1 = Vector128.Load(basegridSignsBytePtr + gridIdxxn1);
+                                Vector128<byte> signIdxyp1 = Vector128.Load(basegridSignsBytePtr + gridIdxyp1);
+                                Vector128<byte> signIdxyn1 = Vector128.Load(basegridSignsBytePtr + gridIdxyn1);
+                                Vector128<byte> signIdxzp1 = Vector128.Load(basegridSignsBytePtr + gridIdxzp1);
+                                Vector128<byte> signIdxzn1 = Vector128.Load(basegridSignsBytePtr + gridIdxzn1);
+
+                                signIdxxp1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxxp1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_00_00_01));
+                                signIdxxn1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxxn1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_00_00_10));
+                                signIdxyp1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxyp1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_00_01_00));
+                                signIdxyn1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxyn1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_00_10_00));
+                                signIdxzp1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxzp1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_01_00_00));
+                                signIdxzn1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxzn1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_10_00_00));
+
+                                var signIdxxn1xp1 = Vector128.BitwiseOr(signIdxxn1, signIdxxp1);
+                                var signIdxxn1xp1yn1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyn1);
+                                var signIdxxn1xp1yp1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyp1);
+
+                                var signIdxxn1xp1yn1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzn1);
+                                var signIdxxn1xp1yn1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzp1);
+                                var signIdxxn1xp1yp1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzn1);
+                                var signIdxxn1xp1yp1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzp1);
+
+                                Vector128<byte> resultx0y0z0 = Vector128.Load(baseNormalsPtr + x0y0z0);
+                                Vector128<byte> resultx0y0z1 = Vector128.Load(baseNormalsPtr + x0y0z1);
+                                Vector128<byte> resultx0y1z0 = Vector128.Load(baseNormalsPtr + x0y1z0);
+                                Vector128<byte> resultx0y1z1 = Vector128.Load(baseNormalsPtr + x0y1z1);
+                                resultx0y0z0 = Vector128.BitwiseOr(resultx0y0z0, Sse2.ShiftLeftLogical128BitLane(resultx0y0z0, 1));
+                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, Sse2.ShiftLeftLogical128BitLane(resultx0y0z1, 1));
+                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, Sse2.ShiftLeftLogical128BitLane(resultx0y1z0, 1));
+                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, Sse2.ShiftLeftLogical128BitLane(resultx0y1z1, 1));
+
+
+                                resultx0y0z0 = Vector128.BitwiseOr(resultx0y0z0, signIdxxn1xp1yn1zn1);
+                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, signIdxxn1xp1yn1zp1);
+                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, signIdxxn1xp1yp1zn1);
+                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, signIdxxn1xp1yp1zp1);
+
+                                Vector128.Store(resultx0y0z0, baseNormalsPtr + x0y0z0);
+                                Vector128.Store(resultx0y0z1, baseNormalsPtr + x0y0z1);
+                                Vector128.Store(resultx0y1z0, baseNormalsPtr + x0y1z0);
+                                Vector128.Store(resultx0y1z1, baseNormalsPtr + x0y1z1);
+
+                                basegridSignsBytePtr += (Vector128<byte>.Count - 2);
+                                baseNormalsPtr += (Vector128<byte>.Count - 2);
+                            }
+
+                            for (; i < vpSideLength - 1; i++)
+                            {
+                                bool centerSign = gridSignsPtr[gridIdxCenter + i];
+                                if (!centerSign)
+                                {
+                                    continue;
+                                }
+
+                                if (!gridSigns[gridIdxxn1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_00_10;
+                                    normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_00_10;
+                                    normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_00_10;
+                                    normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_00_10;
+                                }
+                                if (!gridSigns[gridIdxyn1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_10_00;
+                                    normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_10_00;
+                                    normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_10_00;
+                                    normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_10_00;
+                                }
+                                if (!gridSigns[gridIdxzn1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x0y1z0] |= 0b00_10_00_00;
+                                    normals[basex0y0z0 + i + x0y0z0] |= 0b00_10_00_00;
+                                    normals[basex0y0z0 + i + x1y1z0] |= 0b00_10_00_00;
+                                    normals[basex0y0z0 + i + x1y0z0] |= 0b00_10_00_00;
+                                }
+
+                                if (!gridSigns[gridIdxxp1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_00_01;
+                                    normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_00_01;
+                                    normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_00_01;
+                                    normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_00_01;
+                                }
+                                if (!gridSigns[gridIdxyp1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_01_00;
+                                    normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_01_00;
+                                    normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_01_00;
+                                    normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_01_00;
+                                }
+                                if (!gridSigns[gridIdxzp1 + i])
+                                {
+                                    normals[basex0y0z0 + i + x0y0z1] |= 0b00_01_00_00;
+                                    normals[basex0y0z0 + i + x0y1z1] |= 0b00_01_00_00;
+                                    normals[basex0y0z0 + i + x1y0z1] |= 0b00_01_00_00;
+                                    normals[basex0y0z0 + i + x1y1z1] |= 0b00_01_00_00;
+                                }
+                            }
                         }
                     }
                 }
