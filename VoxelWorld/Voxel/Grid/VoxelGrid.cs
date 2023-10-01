@@ -611,7 +611,125 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<uint> indices, Span<Vector3> vertices)
+        private unsafe void FillWithNormals(Span<byte> normals)
+        {
+            static int GridToVP(int sideLength, int x, int y, int z)
+            {
+                return (z - 1) * sideLength * sideLength + (y - 1) * sideLength + (x - 1);
+            }
+
+            static int PosToGridIndex(int sideLength, int x, int y, int z)
+            {
+                return z * sideLength * sideLength + y * sideLength + x;
+            }
+
+            int gridSideLength = GenData.GridSize;
+            int vpSideLength = gridSideLength - 1;
+            bool[] gridSigns = GridSign;
+
+            normals.Clear();
+
+            /*
+            Each face consists of 6 indices which creates two triangles that
+            together form a rectangle representing the face. Calculaing the
+            6 different vertex indices for each face is slow. For a given face
+            direction, the face indices are always a constant value different
+            from a given indice. Therefore The 6 indices can be calculated 
+            by only knowing the base vertex indice and the offsets to the
+            other indices.
+            The code below makes these offsets for each of the 6 indices
+            and stores them in a vectors so calculating/storing the indices
+            can be vectorized. The base indice that these offsets are
+            calculated from is x0y0z0.
+            */
+            int x0y0z0 = GridToVP(vpSideLength, 1, 1, 1);
+            int x0y0z1 = GridToVP(vpSideLength, 1, 1, 2);
+            int x0y1z0 = GridToVP(vpSideLength, 1, 2, 1);
+            int x0y1z1 = GridToVP(vpSideLength, 1, 2, 2);
+            int x1y0z0 = GridToVP(vpSideLength, 2, 1, 1);
+            int x1y0z1 = GridToVP(vpSideLength, 2, 1, 2);
+            int x1y1z0 = GridToVP(vpSideLength, 2, 2, 1);
+            int x1y1z1 = GridToVP(vpSideLength, 2, 2, 2);
+
+            for (int z = 1; z < vpSideLength; z++)
+            {
+                for (int y = 1; y < vpSideLength; y++)
+                {
+                    int x = 1;
+
+                    int basex0y0z0 = GridToVP(vpSideLength, x + 0, y + 0, z + 0);
+
+                    int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
+                    int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
+                    int gridIdxyn1 = PosToGridIndex(gridSideLength, x, y - 1, z);
+                    int gridIdxzn1 = PosToGridIndex(gridSideLength, x, y, z - 1);
+                    int gridIdxxp1 = PosToGridIndex(gridSideLength, x + 1, y, z);
+                    int gridIdxyp1 = PosToGridIndex(gridSideLength, x, y + 1, z);
+                    int gridIdxzp1 = PosToGridIndex(gridSideLength, x, y, z + 1);
+
+                    for (int i = 0; i < vpSideLength - 1; i++)
+                    {
+                        bool centerSign = gridSigns[gridIdxCenter + i];
+                        if (!centerSign)
+                        {
+                            continue;
+                        }
+
+                        if (!gridSigns[gridIdxxn1 + i])
+                        {
+                            //faceXNegVecIndice = MakeFaceVectorIndices(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
+                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_00_10;
+                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_00_10;
+                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_00_10;
+                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_00_10;
+                        }
+                        if (!gridSigns[gridIdxyn1 + i])
+                        {
+                            //faceYNegVecIndice = MakeFaceVectorIndices(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
+                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_00_10_00;
+                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_00_10_00;
+                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_10_00;
+                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_10_00;
+                        }
+                        if (!gridSigns[gridIdxzn1 + i])
+                        {
+                            //faceZNegVecIndice = MakeFaceVectorIndices(x0y1z0, x0y0z0, x1y1z0, x1y0z0);
+                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_10_00_00;
+                            normals[basex0y0z0 + i + x0y0z0] |= 0b00_10_00_00;
+                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_10_00_00;
+                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_10_00_00;
+                        }
+
+                        if (!gridSigns[gridIdxxp1 + i])
+                        {
+                            //faceXPosVecIndice = MakeFaceVectorIndices(x1y0z0, x1y0z1, x1y1z0, x1y1z1);
+                            normals[basex0y0z0 + i + x1y0z0] |= 0b00_00_00_01;
+                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_00_00_01;
+                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_00_01;
+                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_00_01;
+                        }
+                        if (!gridSigns[gridIdxyp1 + i])
+                        {
+                            //faceYPosVecIndice = MakeFaceVectorIndices(x0y1z1, x0y1z0, x1y1z1, x1y1z0);
+                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_00_01_00;
+                            normals[basex0y0z0 + i + x0y1z0] |= 0b00_00_01_00;
+                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_00_01_00;
+                            normals[basex0y0z0 + i + x1y1z0] |= 0b00_00_01_00;
+                        }
+                        if (!gridSigns[gridIdxzp1 + i])
+                        {
+                            //faceZPosVecIndice = MakeFaceVectorIndices(x0y0z1, x0y1z1, x1y0z1, x1y1z1);
+                            normals[basex0y0z0 + i + x0y0z1] |= 0b00_01_00_00;
+                            normals[basex0y0z0 + i + x0y1z1] |= 0b00_01_00_00;
+                            normals[basex0y0z0 + i + x1y0z1] |= 0b00_01_00_00;
+                            normals[basex0y0z0 + i + x1y1z1] |= 0b00_01_00_00;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<uint> indices, Span<Vector3> vertices, Span<byte> allNormals, Span<byte> filteredNormals)
         {
             using (var indexConverterArr = new RentedArray<uint>(VoxelPoints.Length))
             {
@@ -628,7 +746,9 @@ namespace VoxelWorld.Voxel.Grid
                         newIndex = (uint)vpIndex;
                         indexConverter[oldIndex] = newIndex;
                         Vector4 voxelPoint = VoxelPoints[oldIndex];
-                        vertices[vpIndex++] = new Vector3(voxelPoint.X, voxelPoint.Y, voxelPoint.Z);
+                        vertices[vpIndex] = new Vector3(voxelPoint.X, voxelPoint.Y, voxelPoint.Z);
+                        filteredNormals[vpIndex] = allNormals[oldIndex];
+                        vpIndex++;
                     }
                     indices[i] = newIndex;
                 }
@@ -642,52 +762,14 @@ namespace VoxelWorld.Voxel.Grid
             GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
 
             FillWithFaceIndices(geoData.Indices);
-            FillWithFaceVerticesAndRemoveDuplicateIndices(geoData.Indices, geoData.Vertices);
-            CalculateNormals(geoData.Vertices, geoData.Indices, geoData.Normals);
+
+            using (var allNormals = new RentedArray<byte>(VoxelPoints.Length))
+            {
+                FillWithNormals(allNormals.AsSpan());
+                FillWithFaceVerticesAndRemoveDuplicateIndices(geoData.Indices, geoData.Vertices, allNormals.AsSpan(), geoData.Normals);
+            }
 
             return geoData;
-        }
-
-        /// <summary>
-        /// Calculate the array of vertex normals based on vertex and face information (assuming triangle polygons)
-        /// and put the normals into the provided array.
-        /// </summary>
-        /// <param name="vertexData">The vertex data to find the normals for.</param>
-        /// <param name="elementData">The element array describing the order in which vertices are drawn.</param>
-        /// <param name="normalData">The array the normals will be put into. Has to be the same length as the vertex array</param>
-        /// <returns></returns>
-        private static void CalculateNormals(ReadOnlySpan<Vector3> vertexData, ReadOnlySpan<uint> elementData, Span<Vector3> normalData)
-        {
-            if ((elementData.Length % 3) != 0)
-            {
-                throw new ArgumentOutOfRangeException($"Expected {nameof(elementData)} to be a multiple of 3 as each triangle consists of 3 points.");
-            }
-            if (vertexData.Length != normalData.Length)
-            {
-                throw new ArgumentOutOfRangeException($"Expected {nameof(vertexData)} and {nameof(normalData)} to have the same length.");
-            }
-
-            for (int i = 0; i < elementData.Length; i += 3)
-            {
-                int cornerAIndex = (int)elementData[i + 0];
-                int cornerBIndex = (int)elementData[i + 1];
-                int cornerCIndex = (int)elementData[i + 2];
-
-                Vector3 cornerA = vertexData[cornerAIndex];
-                Vector3 cornerB = vertexData[cornerBIndex];
-                Vector3 cornerC = vertexData[cornerCIndex];
-
-                Vector3 ab = cornerB - cornerA;
-                Vector3 ac = cornerC - cornerA;
-
-                Vector3 normal = Vector3.Normalize(Vector3.Cross(ab, ac));
-
-                normalData[cornerAIndex] += normal;
-                normalData[cornerBIndex] += normal;
-                normalData[cornerCIndex] += normal;
-            }
-
-            for (int i = 0; i < normalData.Length; i++) normalData[i] = Vector3.Normalize(normalData[i]);
         }
     }
 }

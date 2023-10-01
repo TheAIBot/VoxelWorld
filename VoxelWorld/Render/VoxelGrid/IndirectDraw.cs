@@ -18,7 +18,7 @@ namespace VoxelWorld.Render.VoxelGrid
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
         private readonly SlidingVBO<Vector3> VertexBuffer;
-        private readonly SlidingVBO<Vector3> NormalBuffer;
+        private readonly SlidingVBO<byte> NormalBuffer;
         private readonly SlidingVBO<uint> IndiceBuffer;
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
@@ -29,13 +29,16 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             _openGl = openGl;
             VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
-            NormalBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
+            NormalBuffer = new SlidingVBO<byte>(openGl, new VBO<byte>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                CastToFloat = false
+            });
             IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferStorageTarget.ElementArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
             CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(openGl, new VBO<DrawElementsIndirectCommand>(openGl, commandBufferSize, BufferStorageTarget.DrawIndirectBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
-                new GenericVBO<Vector3>(NormalBuffer.Buffer, "vertex_normal"),
+                new GenericVBO<byte>(NormalBuffer.Buffer, "vertex_normal"),
                 new GenericVBO<uint>(IndiceBuffer.Buffer),
                 new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer.Buffer),
             };

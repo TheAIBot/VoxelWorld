@@ -11,7 +11,7 @@ namespace VoxelWorld.Shaders
 #version 330
 
 attribute vec3 vertex_pos;
-attribute vec3 vertex_normal;
+attribute uint vertex_normal;
 uniform mat4 PVM;
 uniform mat3 M;
 
@@ -20,9 +20,14 @@ out vec3 normal;
 
 void main(void)
 {
+    float normalX = (vertex_normal &  1u) ==  1u ? 1.0f : (vertex_normal &  2u) ==  2u ? -1.0f : 0.0;
+    float normalY = (vertex_normal &  4u) ==  4u ? 1.0f : (vertex_normal &  8u) ==  8u ? -1.0f : 0.0;
+    float normalZ = (vertex_normal & 16u) == 16u ? 1.0f : (vertex_normal & 32u) == 32u ? -1.0f : 0.0;
+    vec3 convertedNormal = -normalize(vec3(normalX, normalY, normalZ));
+
     gl_Position = PVM * vec4(vertex_pos, 1.0);
     position = M * vertex_pos;
-    normal = M * vertex_normal;
+    normal = M * convertedNormal;
 }
 ";
 
