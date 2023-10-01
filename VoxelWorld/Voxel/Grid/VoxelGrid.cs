@@ -696,33 +696,32 @@ namespace VoxelWorld.Voxel.Grid
                                 signIdxzp1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxzp1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_01_00_00));
                                 signIdxzn1 = Vector128.BitwiseAnd(Vector128.LessThan(signIdxzn1.AsSByte(), centerSigns.AsSByte()).AsByte(), Vector128.Create((byte)0b00_10_00_00));
 
-                                var signIdxxn1xp1 = Vector128.BitwiseOr(signIdxxn1, signIdxxp1);
-                                var signIdxxn1xp1yn1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyn1);
-                                var signIdxxn1xp1yp1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyp1);
-
-                                var signIdxxn1xp1yn1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzn1);
-                                var signIdxxn1xp1yn1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzp1);
-                                var signIdxxn1xp1yp1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzn1);
-                                var signIdxxn1xp1yp1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzp1);
+                                Vector128<byte> signIdxxn1xp1 = Vector128.BitwiseOr(signIdxxn1, signIdxxp1);
+                                Vector128<byte> signIdxxn1xp1yn1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyn1);
+                                Vector128<byte> signIdxxn1xp1yp1 = Vector128.BitwiseOr(signIdxxn1xp1, signIdxyp1);
+                                Vector128<byte> signIdxxn1xp1yn1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzn1);
+                                Vector128<byte> signIdxxn1xp1yn1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yn1, signIdxzp1);
+                                Vector128<byte> signIdxxn1xp1yp1zn1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzn1);
+                                Vector128<byte> signIdxxn1xp1yp1zp1 = Vector128.BitwiseOr(signIdxxn1xp1yp1, signIdxzp1);
 
                                 Vector128<byte> resultx0y0z0 = Vector128.Load(baseNormalsPtr + x0y0z0);
-                                Vector128<byte> resultx0y0z1 = Vector128.Load(baseNormalsPtr + x0y0z1);
-                                Vector128<byte> resultx0y1z0 = Vector128.Load(baseNormalsPtr + x0y1z0);
-                                Vector128<byte> resultx0y1z1 = Vector128.Load(baseNormalsPtr + x0y1z1);
                                 resultx0y0z0 = Vector128.BitwiseOr(resultx0y0z0, Sse2.ShiftLeftLogical128BitLane(resultx0y0z0, 1));
-                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, Sse2.ShiftLeftLogical128BitLane(resultx0y0z1, 1));
-                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, Sse2.ShiftLeftLogical128BitLane(resultx0y1z0, 1));
-                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, Sse2.ShiftLeftLogical128BitLane(resultx0y1z1, 1));
-
-
                                 resultx0y0z0 = Vector128.BitwiseOr(resultx0y0z0, signIdxxn1xp1yn1zn1);
-                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, signIdxxn1xp1yn1zp1);
-                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, signIdxxn1xp1yp1zn1);
-                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, signIdxxn1xp1yp1zp1);
-
                                 Vector128.Store(resultx0y0z0, baseNormalsPtr + x0y0z0);
+
+                                Vector128<byte> resultx0y0z1 = Vector128.Load(baseNormalsPtr + x0y0z1);
+                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, Sse2.ShiftLeftLogical128BitLane(resultx0y0z1, 1));
+                                resultx0y0z1 = Vector128.BitwiseOr(resultx0y0z1, signIdxxn1xp1yn1zp1);
                                 Vector128.Store(resultx0y0z1, baseNormalsPtr + x0y0z1);
+
+                                Vector128<byte> resultx0y1z0 = Vector128.Load(baseNormalsPtr + x0y1z0);
+                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, Sse2.ShiftLeftLogical128BitLane(resultx0y1z0, 1));
+                                resultx0y1z0 = Vector128.BitwiseOr(resultx0y1z0, signIdxxn1xp1yp1zn1);
                                 Vector128.Store(resultx0y1z0, baseNormalsPtr + x0y1z0);
+
+                                Vector128<byte> resultx0y1z1 = Vector128.Load(baseNormalsPtr + x0y1z1);
+                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, Sse2.ShiftLeftLogical128BitLane(resultx0y1z1, 1));
+                                resultx0y1z1 = Vector128.BitwiseOr(resultx0y1z1, signIdxxn1xp1yp1zp1);
                                 Vector128.Store(resultx0y1z1, baseNormalsPtr + x0y1z1);
 
                                 basegridSignsBytePtr += (Vector128<byte>.Count - 2);
