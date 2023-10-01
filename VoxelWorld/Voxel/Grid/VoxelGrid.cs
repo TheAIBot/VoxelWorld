@@ -306,62 +306,61 @@ namespace VoxelWorld.Voxel.Grid
                             int gridIdxzp1 = PosToGridIndex(x, y, z + 1);
 
                             int i = 0;
-                            if (Avx.IsSupported && Popcnt.X64.IsSupported)
+                            //Does the same as the non vectorized version but does it 16 points at a time
+                            for (; i + Vector128<sbyte>.Count <= GenData.GridSize - 2; i += Vector128<sbyte>.Count)
                             {
-                                //Does the same as the non vectorized version but does it 16 points at a time
-                                for (; i + Vector128<sbyte>.Count <= GenData.GridSize - 2; i += Vector128<sbyte>.Count)
-                                {
-                                    Vector128<sbyte> centerSigns = Sse2.LoadVector128(gridSignPtr + gridIdxCenter + i);
+                                Vector128<sbyte> centerSigns = Vector128.Load(gridSignPtr + gridIdxCenter + i);
 
-                                    Vector128<sbyte> gsXNeg = Sse2.LoadVector128(gridSignPtr + gridIdxxn1 + i);
-                                    Vector128<sbyte> gsYNeg = Sse2.LoadVector128(gridSignPtr + gridIdxyn1 + i);
-                                    Vector128<sbyte> gsZNeg = Sse2.LoadVector128(gridSignPtr + gridIdxzn1 + i);
-                                    Vector128<sbyte> gsXPos = Sse2.LoadVector128(gridSignPtr + gridIdxxp1 + i);
-                                    Vector128<sbyte> gsYPos = Sse2.LoadVector128(gridSignPtr + gridIdxyp1 + i);
-                                    Vector128<sbyte> gsZPos = Sse2.LoadVector128(gridSignPtr + gridIdxzp1 + i);
+                                Vector128<sbyte> gsXNeg = Vector128.Load(gridSignPtr + gridIdxxn1 + i);
+                                Vector128<sbyte> gsYNeg = Vector128.Load(gridSignPtr + gridIdxyn1 + i);
+                                Vector128<sbyte> gsZNeg = Vector128.Load(gridSignPtr + gridIdxzn1 + i);
+                                Vector128<sbyte> gsXPos = Vector128.Load(gridSignPtr + gridIdxxp1 + i);
+                                Vector128<sbyte> gsYPos = Vector128.Load(gridSignPtr + gridIdxyp1 + i);
+                                Vector128<sbyte> gsZPos = Vector128.Load(gridSignPtr + gridIdxzp1 + i);
 
-                                    Vector128<sbyte> faceXNeg = Sse2.AndNot(gsXNeg, centerSigns);
-                                    Vector128<sbyte> faceYNeg = Sse2.AndNot(gsYNeg, centerSigns);
-                                    Vector128<sbyte> faceZNeg = Sse2.AndNot(gsZNeg, centerSigns);
-                                    Vector128<sbyte> faceXPos = Sse2.AndNot(gsXPos, centerSigns);
-                                    Vector128<sbyte> faceYPos = Sse2.AndNot(gsYPos, centerSigns);
-                                    Vector128<sbyte> faceZPos = Sse2.AndNot(gsZPos, centerSigns);
+                                Vector128<sbyte> faceXNeg = Vector128.AndNot(centerSigns, gsXNeg);
+                                Vector128<sbyte> faceYNeg = Vector128.AndNot(centerSigns, gsYNeg);
+                                Vector128<sbyte> faceZNeg = Vector128.AndNot(centerSigns, gsZNeg);
+                                Vector128<sbyte> faceXPos = Vector128.AndNot(centerSigns, gsXPos);
+                                Vector128<sbyte> faceYPos = Vector128.AndNot(centerSigns, gsYPos);
+                                Vector128<sbyte> faceZPos = Vector128.AndNot(centerSigns, gsZPos);
 
-                                    //From the non vectorized version one can infer what face directions must be true
-                                    //in order for the voxel being used. 
-                                    Vector128<sbyte> orXNegYNeg = Sse2.Or(faceXNeg, faceYNeg);
-                                    Vector128<sbyte> orXNegYPos = Sse2.Or(faceXNeg, faceYPos);
-                                    Vector128<sbyte> orXPosYNeg = Sse2.Or(faceXPos, faceYNeg);
-                                    Vector128<sbyte> orXPosYPos = Sse2.Or(faceXPos, faceYPos);
-                                    //Pseudo: IsUsingVoxel[x] |= faceA | faceB | faceC
-                                    Sse2.Store(isUsingVoxelPtr + x0y0z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y0z0 + i), Sse2.Or(orXNegYNeg, faceZNeg)));
-                                    Sse2.Store(isUsingVoxelPtr + x0y0z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y0z1 + i), Sse2.Or(orXNegYNeg, faceZPos)));
-                                    Sse2.Store(isUsingVoxelPtr + x0y1z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y1z0 + i), Sse2.Or(orXNegYPos, faceZNeg)));
-                                    Sse2.Store(isUsingVoxelPtr + x0y1z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x0y1z1 + i), Sse2.Or(orXNegYPos, faceZPos)));
-                                    Sse2.Store(isUsingVoxelPtr + x1y0z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y0z0 + i), Sse2.Or(orXPosYNeg, faceZNeg)));
-                                    Sse2.Store(isUsingVoxelPtr + x1y0z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y0z1 + i), Sse2.Or(orXPosYNeg, faceZPos)));
-                                    Sse2.Store(isUsingVoxelPtr + x1y1z0 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y1z0 + i), Sse2.Or(orXPosYPos, faceZNeg)));
-                                    Sse2.Store(isUsingVoxelPtr + x1y1z1 + i, Sse2.Or(Sse2.LoadVector128(isUsingVoxelPtr + x1y1z1 + i), Sse2.Or(orXPosYPos, faceZPos)));
+                                //From the non vectorized version one can infer what face directions must be true
+                                //in order for the voxel being used. 
+                                Vector128<sbyte> orXNegYNeg = Vector128.BitwiseOr(faceXNeg, faceYNeg);
+                                Vector128<sbyte> orXNegYPos = Vector128.BitwiseOr(faceXNeg, faceYPos);
+                                Vector128<sbyte> orXPosYNeg = Vector128.BitwiseOr(faceXPos, faceYNeg);
+                                Vector128<sbyte> orXPosYPos = Vector128.BitwiseOr(faceXPos, faceYPos);
+                                //Pseudo: IsUsingVoxel[x] |= faceA | faceB | faceC
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x0y0z0 + i), Vector128.BitwiseOr(orXNegYNeg, faceZNeg)), isUsingVoxelPtr + x0y0z0 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x0y0z1 + i), Vector128.BitwiseOr(orXNegYNeg, faceZPos)), isUsingVoxelPtr + x0y0z1 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x0y1z0 + i), Vector128.BitwiseOr(orXNegYPos, faceZNeg)), isUsingVoxelPtr + x0y1z0 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x0y1z1 + i), Vector128.BitwiseOr(orXNegYPos, faceZPos)), isUsingVoxelPtr + x0y1z1 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x1y0z0 + i), Vector128.BitwiseOr(orXPosYNeg, faceZNeg)), isUsingVoxelPtr + x1y0z0 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x1y0z1 + i), Vector128.BitwiseOr(orXPosYNeg, faceZPos)), isUsingVoxelPtr + x1y0z1 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x1y1z0 + i), Vector128.BitwiseOr(orXPosYPos, faceZNeg)), isUsingVoxelPtr + x1y1z0 + i);
+                                Vector128.Store(Vector128.BitwiseOr(Vector128.Load(isUsingVoxelPtr + x1y1z1 + i), Vector128.BitwiseOr(orXPosYPos, faceZPos)), isUsingVoxelPtr + x1y1z1 + i);
 
-                                    //Need to count the number of faces so the triangle count can be updated.
-                                    //Each face is represented as a bit here. The idea is the shift the bits
-                                    //in the 6 xmm registers so no bits overlap. Or the registers together
-                                    //and use popcnt instruction in order to count the number of bits.
-                                    Vector128<sbyte> faceXNegShift = Sse2.ShiftLeftLogical(faceXNeg.AsInt16(), 0).AsSByte();
-                                    Vector128<sbyte> faceYNegShift = Sse2.ShiftLeftLogical(faceYNeg.AsInt16(), 1).AsSByte();
-                                    Vector128<sbyte> faceZNegShift = Sse2.ShiftLeftLogical(faceZNeg.AsInt16(), 2).AsSByte();
-                                    Vector128<sbyte> faceXPosShift = Sse2.ShiftLeftLogical(faceXPos.AsInt16(), 3).AsSByte();
-                                    Vector128<sbyte> faceYPosShift = Sse2.ShiftLeftLogical(faceYPos.AsInt16(), 4).AsSByte();
-                                    Vector128<sbyte> faceZPosShift = Sse2.ShiftLeftLogical(faceZPos.AsInt16(), 5).AsSByte();
+                                //Need to count the number of faces so the triangle count can be updated.
+                                //Each face is represented as a bit here. The idea is the shift the bits
+                                //in the 6 xmm registers so no bits overlap. Or the registers together
+                                //and use popcnt instruction in order to count the number of bits.
+                                Vector128<sbyte> faceXNegShift = Vector128.ShiftLeft(faceXNeg.AsInt16(), 0).AsSByte();
+                                Vector128<sbyte> faceYNegShift = Vector128.ShiftLeft(faceYNeg.AsInt16(), 1).AsSByte();
+                                Vector128<sbyte> faceZNegShift = Vector128.ShiftLeft(faceZNeg.AsInt16(), 2).AsSByte();
+                                Vector128<sbyte> faceXPosShift = Vector128.ShiftLeft(faceXPos.AsInt16(), 3).AsSByte();
+                                Vector128<sbyte> faceYPosShift = Vector128.ShiftLeft(faceYPos.AsInt16(), 4).AsSByte();
+                                Vector128<sbyte> faceZPosShift = Vector128.ShiftLeft(faceZPos.AsInt16(), 5).AsSByte();
 
-                                    //Or the registers together
-                                    Vector128<sbyte> bitPerFace = Sse2.Or(Sse2.Or(Sse2.Or(faceXNegShift, faceYNegShift), Sse2.Or(faceZNegShift, faceXPosShift)), Sse2.Or(faceYPosShift, faceZPosShift));
+                                //Or the registers together
+                                Vector128<sbyte> bitPerFace = Vector128.BitwiseOr(Vector128.BitwiseOr(Vector128.BitwiseOr(faceXNegShift, faceYNegShift),
+                                                                                                      Vector128.BitwiseOr(faceZNegShift, faceXPosShift)),
+                                                                                  Vector128.BitwiseOr(faceYPosShift, faceZPosShift));
 
-                                    //Use popcnt on the two ulongs to count the bits.
-                                    //Each face consists of two triangles.
-                                    int faces = (int)(Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(0)) + Popcnt.X64.PopCount(bitPerFace.AsUInt64().GetElement(1)));
-                                    triangleCount += faces * 2;
-                                }
+                                //Use popcnt on the two ulongs to count the bits.
+                                //Each face consists of two triangles.
+                                int faces = BitOperations.PopCount(bitPerFace.AsUInt64().GetElement(0)) + BitOperations.PopCount(bitPerFace.AsUInt64().GetElement(1));
+                                triangleCount += faces * 2;
                             }
 
                             for (; i < GenData.GridSize - 2; i++)
@@ -582,28 +581,28 @@ namespace VoxelWorld.Voxel.Grid
 
                             if (!gridSigns[gridIdxxn1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceXNegVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceXNegVecIndice, baseFaceIndex), storeMask);
                             }
                             if (!gridSigns[gridIdxyn1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceYNegVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceYNegVecIndice, baseFaceIndex), storeMask);
                             }
                             if (!gridSigns[gridIdxzn1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceZNegVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceZNegVecIndice, baseFaceIndex), storeMask);
                             }
 
                             if (!gridSigns[gridIdxxp1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceXPosVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceXPosVecIndice, baseFaceIndex), storeMask);
                             }
                             if (!gridSigns[gridIdxyp1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceYPosVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceYPosVecIndice, baseFaceIndex), storeMask);
                             }
                             if (!gridSigns[gridIdxzp1 + i])
                             {
-                                indiceStore = AddFaceIndices(indiceStore, Avx2.Add(faceZPosVecIndice, baseFaceIndex), storeMask);
+                                indiceStore = AddFaceIndices(indiceStore, Vector256.Add(faceZPosVecIndice, baseFaceIndex), storeMask);
                             }
                         }
                     }
