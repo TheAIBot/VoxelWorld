@@ -168,7 +168,7 @@ namespace VoxelWorld.Voxel.Grid
             return false;
         }
 
-        public void Interpolate()
+        public void Interpolate2()
         {
             var topLeft = GetTopLeftCorner();
             Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
@@ -194,6 +194,42 @@ namespace VoxelWorld.Voxel.Grid
                     voxelPos -= yIncrement;
                 }
                 voxelPos -= zIncrement;
+            }
+        }
+
+        public void Interpolate()
+        {
+            var topLeft = GetTopLeftCorner();
+            Vector4 rrr = new Vector4(GenData.VoxelSize);
+            Vector4 topLeftCorner = topLeft - rrr * 0.5f;
+            topLeftCorner.W = 0;
+            Vector4 xIncrement = new Vector4(1, 0, 0, 0) * rrr;
+            Vector4 yIncrement = new Vector4(0, 1, 0, 0) * rrr;
+            Vector4 zIncrement = new Vector4(0, 0, 1, 0) * rrr;
+            Vector4 zChanging = topLeftCorner;
+
+            int vpSideLength = GenData.GridSize - 1;
+            Span<Vector4> voxelPoints = VoxelPoints;
+            int y = 0;
+            Vector4 yChanging = topLeftCorner;
+            for (int i = 0; i < voxelPoints.Length; i += vpSideLength)
+            {
+                Span<Vector4> xChangingRange = voxelPoints.Slice(i, vpSideLength);
+                Vector4 xChanging = yChanging;
+                for (int x = 0; x < xChangingRange.Length; x++)
+                {
+                    xChangingRange[x] = xChanging;
+                    xChanging -= xIncrement;
+                }
+
+                y++;
+                yChanging -= yIncrement;
+                if (y == vpSideLength)
+                {
+                    y = 0;
+                    zChanging -= zIncrement;
+                    yChanging = zChanging;
+                }
             }
         }
 
