@@ -14,7 +14,6 @@ namespace VoxelWorld.Voxel.Grid
         private Vector3 GridCenter;
         VoxelSystemData GenData;
         private readonly bool[] GridSign;
-        private readonly Vector4[] VoxelPoints;
         private readonly bool[] IsUsingVoxelPoint;
 
         public VoxelGrid(Vector3 center, VoxelSystemData voxelSystemData)
@@ -23,8 +22,7 @@ namespace VoxelWorld.Voxel.Grid
             GridCenter = center;
 
             GridSign = new bool[GenData.GridSize * GenData.GridSize * GenData.GridSize];
-            VoxelPoints = new Vector4[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
-            IsUsingVoxelPoint = new bool[VoxelPoints.Length];
+            IsUsingVoxelPoint = new bool[(GenData.GridSize - 1) * (GenData.GridSize - 1) * (GenData.GridSize - 1)];
         }
 
         public void Repurpose(Vector3 newCenter, VoxelSystemData genData)
@@ -166,136 +164,6 @@ namespace VoxelWorld.Voxel.Grid
             }
 
             return false;
-        }
-
-        public void Interpolate2()
-        {
-            var topLeft = GetTopLeftCorner();
-            Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
-
-            Vector4 xIncrement = new Vector4(1, 0, 0, 0) * GenData.VoxelSize;
-            Vector4 yIncrement = new Vector4(0, 1, 0, 0) * GenData.VoxelSize;
-            Vector4 zIncrement = new Vector4(0, 0, 1, 0) * GenData.VoxelSize;
-
-            Vector4 voxelPos = new Vector4(topLeftCorner, 0);
-
-            int index = 0;
-            for (int vpZ = 0; vpZ < GenData.GridSize - 1; vpZ++)
-            {
-                voxelPos.Y = topLeftCorner.Y;
-                for (int vpY = 0; vpY < GenData.GridSize - 1; vpY++)
-                {
-                    voxelPos.X = topLeftCorner.X;
-                    for (int vpX = 0; vpX < GenData.GridSize - 1; vpX++)
-                    {
-                        VoxelPoints[index++] = voxelPos;
-                        voxelPos -= xIncrement;
-                    }
-                    voxelPos -= yIncrement;
-                }
-                voxelPos -= zIncrement;
-            }
-        }
-
-        public void Interpolate()
-        {
-            var topLeft = GetTopLeftCorner();
-            Vector4 rrr = new Vector4(GenData.VoxelSize);
-            Vector4 topLeftCorner = topLeft - rrr * 0.5f;
-            topLeftCorner.W = 0;
-            Vector4 xIncrement = new Vector4(1, 0, 0, 0) * rrr;
-            Vector4 yIncrement = new Vector4(0, 1, 0, 0) * rrr;
-            Vector4 zIncrement = new Vector4(0, 0, 1, 0) * rrr;
-            Vector4 zChanging = topLeftCorner;
-
-            int vpSideLength = GenData.GridSize - 1;
-            Span<Vector4> voxelPoints = VoxelPoints;
-            int y = 0;
-            Vector4 yChanging = topLeftCorner;
-            for (int i = 0; i < voxelPoints.Length; i += vpSideLength)
-            {
-                Span<Vector4> xChangingRange = voxelPoints.Slice(i, vpSideLength);
-                Vector4 xChanging = yChanging;
-                for (int x = 0; x < xChangingRange.Length; x++)
-                {
-                    xChangingRange[x] = xChanging;
-                    xChanging -= xIncrement;
-                }
-
-                y++;
-                yChanging -= yIncrement;
-                if (y == vpSideLength)
-                {
-                    y = 0;
-                    zChanging -= zIncrement;
-                    yChanging = zChanging;
-                }
-            }
-        }
-
-        public void Smooth(int iterations)
-        {
-            int VPToIndex(int x, int y, int z)
-            {
-                return z * (GenData.GridSize - 1) * (GenData.GridSize - 1) + y * (GenData.GridSize - 1) + x;
-            }
-
-            for (int i = 0; i < iterations; i++)
-            {
-                for (int z = 1; z < GenData.GridSize - 2; z++)
-                {
-                    for (int y = 1; y < GenData.GridSize - 2; y++)
-                    {
-                        for (int x = 1; x < GenData.GridSize - 2; x++)
-                        {
-                            if (!IsUsingVoxelPoint[VPToIndex(x, y, z)])
-                            {
-                                continue;
-                            }
-
-                            int points = 0;
-                            Vector4 center = Vector4.Zero;
-
-                            if (IsUsingVoxelPoint[VPToIndex(x - 1, y, z)])
-                            {
-                                center += VoxelPoints[VPToIndex(x - 1, y, z)];
-                                points++;
-                            }
-                            if (IsUsingVoxelPoint[VPToIndex(x + 1, y, z)])
-                            {
-                                center += VoxelPoints[VPToIndex(x + 1, y, z)];
-                                points++;
-                            }
-
-                            if (IsUsingVoxelPoint[VPToIndex(x, y - 1, z)])
-                            {
-                                center += VoxelPoints[VPToIndex(x, y - 1, z)];
-                                points++;
-                            }
-                            if (IsUsingVoxelPoint[VPToIndex(x, y + 1, z)])
-                            {
-                                center += VoxelPoints[VPToIndex(x, y + 1, z)];
-                                points++;
-                            }
-
-                            if (IsUsingVoxelPoint[VPToIndex(x, y, z - 1)])
-                            {
-                                center += VoxelPoints[VPToIndex(x, y, z - 1)];
-                                points++;
-                            }
-                            if (IsUsingVoxelPoint[VPToIndex(x, y, z + 1)])
-                            {
-                                center += VoxelPoints[VPToIndex(x, y, z + 1)];
-                                points++;
-                            }
-
-
-                            VoxelPoints[VPToIndex(x, y, z)] += center / points - VoxelPoints[VPToIndex(x, y, z)];
-                        }
-                    }
-                }
-
-            }
         }
 
         public unsafe (int VertexCount, int TriangleCount) PreCalculateGeometryData()
@@ -463,27 +331,6 @@ namespace VoxelWorld.Voxel.Grid
             }
 
             return (CountTruesWithPopCnt(IsUsingVoxelPoint), triangleCount);
-        }
-
-        public BoundingCircle GetBoundingCircle()
-        {
-            Vector4 min = new Vector4(float.MaxValue);
-            Vector4 max = new Vector4(float.MinValue);
-
-            for (int i = 0; i < VoxelPoints.Length; i++)
-            {
-                if (!IsUsingVoxelPoint[i])
-                {
-                    continue;
-                }
-
-                Vector4 vp = VoxelPoints[i];
-                min = Vector4.Min(min, vp);
-                max = Vector4.Max(max, vp);
-            }
-            Vector4 center = (max + min) * 0.5f;
-            float radius = (max - center).Length();
-            return new BoundingCircle(new Vector3(center.X, center.Y, center.Z), radius);
         }
 
         private static int CountTruesWithPopCnt(bool[] bools)
@@ -821,44 +668,29 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<uint> indices, Span<Vector3> vertices, Span<byte> allNormals, Span<byte> filteredNormals)
+        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<byte> allNormals, Span<byte> filteredNormals)
         {
-            using (var indexConverterArr = new RentedArray<uint>(VoxelPoints.Length))
+            int vpIndex = 0;
+            for (int i = 0; i < allNormals.Length; i++)
             {
-                Span<uint> indexConverter = indexConverterArr.AsSpan();
-                indexConverter.Fill(uint.MaxValue);
-
-                int vpIndex = 0;
-                for (int i = 0; i < indices.Length; i++)
-                {
-                    int oldIndex = (int)indices[i];
-                    uint newIndex = indexConverter[oldIndex];
-                    if (newIndex == uint.MaxValue)
-                    {
-                        newIndex = (uint)vpIndex;
-                        indexConverter[oldIndex] = newIndex;
-                        Vector4 voxelPoint = VoxelPoints[oldIndex];
-                        vertices[vpIndex] = new Vector3(voxelPoint.X, voxelPoint.Y, voxelPoint.Z);
-                        filteredNormals[vpIndex] = allNormals[oldIndex];
-                        vpIndex++;
-                    }
-                    indices[i] = newIndex;
-                }
+                filteredNormals[vpIndex++] = allNormals[i];
             }
         }
 
         public GeometryData Triangulize(int vertexCount, int triangleCount)
         {
+            var topLeft = GetTopLeftCorner();
+            Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
             const int indicesPerTriangle = 3;
             int triangleIndiceCount = triangleCount * indicesPerTriangle;
-            GeometryData geoData = new GeometryData(vertexCount, triangleIndiceCount);
+            GeometryData geoData = new GeometryData(topLeftCorner, GenData.VoxelSize, GenData.GridSize - 1, IsUsingVoxelPoint.Length, triangleIndiceCount);
 
             FillWithFaceIndices(geoData.Indices);
 
-            using (var allNormals = new RentedArray<byte>(VoxelPoints.Length))
+            using (var allNormals = new RentedArray<byte>(IsUsingVoxelPoint.Length))
             {
                 FillWithNormals(allNormals.AsSpan());
-                FillWithFaceVerticesAndRemoveDuplicateIndices(geoData.Indices, geoData.Vertices, allNormals.AsSpan(), geoData.Normals);
+                FillWithFaceVerticesAndRemoveDuplicateIndices(allNormals.AsSpan(), geoData.Normals);
             }
 
             return geoData;

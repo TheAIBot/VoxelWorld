@@ -17,9 +17,12 @@ namespace VoxelWorld.Render.VoxelGrid
         private readonly Dictionary<VoxelGridHierarchy, DrawInformation> DrawInformations = new Dictionary<VoxelGridHierarchy, DrawInformation>();
         private bool CommandsChangeSinceLastPrepareDraw = false;
 
-        private readonly SlidingVBO<Vector3> VertexBuffer;
+        private readonly SlidingVBO<Vector3> GridPositionBuffer;
+        private readonly SlidingVBO<float> GridSizeBuffer;
         private readonly SlidingVBO<byte> NormalBuffer;
         private readonly SlidingVBO<uint> IndiceBuffer;
+        private readonly SlidingVBO<uint> SizeBuffer;
+        private readonly SlidingVBO<uint> BaseVertexIndexBuffer;
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
         private readonly GL _openGl;
@@ -28,18 +31,41 @@ namespace VoxelWorld.Render.VoxelGrid
         public IndirectDraw(GL openGl, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
             _openGl = openGl;
-            VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
+            GridPositionBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                Divisor = 1,
+            });
+            GridSizeBuffer = new SlidingVBO<float>(openGl, new VBO<float>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                Divisor = 1,
+            });
             NormalBuffer = new SlidingVBO<byte>(openGl, new VBO<byte>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                CastToFloat = false,
+            });
+            IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferStorageTarget.ElementArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
             {
                 CastToFloat = false
             });
-            IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferStorageTarget.ElementArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
+            SizeBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                CastToFloat = false,
+                Divisor = 1,
+            });
+            BaseVertexIndexBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            {
+                CastToFloat = false,
+                Divisor = 1,
+            });
             CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(openGl, new VBO<DrawElementsIndirectCommand>(openGl, commandBufferSize, BufferStorageTarget.DrawIndirectBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
-                new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
+                new GenericVBO<Vector3>(GridPositionBuffer.Buffer, "gridPosition"),
+                new GenericVBO<float>(GridSizeBuffer.Buffer, "gridSize"),
                 new GenericVBO<byte>(NormalBuffer.Buffer, "vertex_normal"),
                 new GenericVBO<uint>(IndiceBuffer.Buffer),
+                new GenericVBO<uint>(SizeBuffer.Buffer, "size"),
+                new GenericVBO<uint>(BaseVertexIndexBuffer.Buffer, "baseVertexIndex"),
                 new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer.Buffer),
             };
             Vao = new VAO(openGl, SimpleShader.GetShader(openGl), vbos);
@@ -47,24 +73,27 @@ namespace VoxelWorld.Render.VoxelGrid
             Vao.DisposeElementArray = false;
         }
 
-        private void Add(VoxelGridHierarchy grid, GeometryData geometry, int firstIndice, int firstVertex)
+        private void Add(VoxelGridHierarchy grid, GeometryData geometry, int gridPositionOffset, int firstIndice, int firstVertex)
         {
-            Add(grid, firstIndice, geometry.Indices.Length, firstVertex, geometry.Vertices.Length);
+            Add(grid, gridPositionOffset, firstIndice, geometry.Indices.Length, firstVertex, geometry.Normals.Length);
         }
 
-        private void Add(VoxelGridHierarchy grid, int firstIndice, int indiceCount, int firstVertex, int vertexCount)
+        private void Add(VoxelGridHierarchy grid, int gridPositionOffset, int firstIndice, int indiceCount, int firstVertex, int normalCount)
         {
-            DrawInformations.Add(grid, new DrawInformation(new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, 0u),
-                                                           new DrawCommandInfo(firstIndice, indiceCount, firstVertex, vertexCount)));
+            DrawInformations.Add(grid, new DrawInformation(new DrawElementsIndirectCommand((uint)indiceCount, 1u, (uint)firstIndice, (uint)firstVertex, (uint)gridPositionOffset),
+                                                           new DrawCommandInfo(gridPositionOffset, firstIndice, indiceCount, firstVertex, normalCount)));
         }
 
         public bool TryAddGeometry(VoxelGridHierarchy grid, GeometryData geometry)
         {
-            if (HasSpaceFor(geometry.Vertices.Length, geometry.Indices.Length, 1))
+            if (HasSpaceFor(geometry.Normals.Length, geometry.Indices.Length, 1))
             {
-                VertexBuffer.ReserveSpace(geometry.Vertices.Length);
+                GridPositionBuffer.ReserveSpace(1);
+                GridSizeBuffer.ReserveSpace(1);
                 NormalBuffer.ReserveSpace(geometry.Normals.Length);
                 IndiceBuffer.ReserveSpace(geometry.Indices.Length);
+                SizeBuffer.ReserveSpace(1);
+                BaseVertexIndexBuffer.ReserveSpace(1);
                 CommandBuffer.ReserveSpace(1);
                 TransferToBuffers.Add(new CommandPair(grid, geometry));
                 return true;
@@ -111,9 +140,12 @@ namespace VoxelWorld.Render.VoxelGrid
             }
 
             GeometryData[] geometryTransfered = new GeometryData[TransferToBuffers.Count];
-            using var vertexRange = VertexBuffer.GetReservedRange();
+            using var gridPositionRange = GridPositionBuffer.GetReservedRange();
+            using var gridSizeRange = GridSizeBuffer.GetReservedRange();
             using var normalRange = NormalBuffer.GetReservedRange();
             using var indiceRange = IndiceBuffer.GetReservedRange();
+            using var sizeRange = SizeBuffer.GetReservedRange();
+            using var baseVertexIndexRange = BaseVertexIndexBuffer.GetReservedRange();
             long copiedBytes = 0;
 
             for (int i = 0; i < TransferToBuffers.Count; i++)
@@ -121,11 +153,15 @@ namespace VoxelWorld.Render.VoxelGrid
                 GeometryData geometry = TransferToBuffers[i].Geometry;
                 geometryTransfered[i] = geometry;
 
-                Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
+                int baseVertexIndex = NormalBuffer.FirstAvailableIndex;
+                Add(TransferToBuffers[i].Grid, geometry, GridPositionBuffer.FirstAvailableIndex, IndiceBuffer.FirstAvailableIndex, baseVertexIndex);
 
-                copiedBytes += vertexRange.AddRange(geometry.Vertices);
+                copiedBytes += gridPositionRange.Add(geometry.GridTopLeftPosition);
+                copiedBytes += gridSizeRange.Add(geometry.GridSize);
                 copiedBytes += normalRange.AddRange(geometry.Normals);
                 copiedBytes += indiceRange.AddRange(geometry.Indices);
+                copiedBytes += sizeRange.Add((uint)geometry.Size);
+                copiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
             }
 
             TransferToBuffers.Clear();
@@ -152,12 +188,11 @@ namespace VoxelWorld.Render.VoxelGrid
             }
         }
 
-        public bool HasSpaceFor(int vertexCount, int indiceCount, int cmdCount)
+        public bool HasSpaceFor(int normalCount, int indiceCount, int cmdCount)
         {
-            return VertexBuffer.SpaceAvailable >= vertexCount &&
-                NormalBuffer.SpaceAvailable >= vertexCount &&
-                IndiceBuffer.SpaceAvailable >= indiceCount &&
-                CommandBuffer.SpaceAvailable >= cmdCount;
+            return NormalBuffer.SpaceAvailable >= normalCount &&
+                   IndiceBuffer.SpaceAvailable >= indiceCount &&
+                   CommandBuffer.SpaceAvailable >= cmdCount;
         }
 
         public int GetVertexCount()
@@ -194,20 +229,27 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int TransferDrawCommands(IndirectDraw dstDrawer)
         {
+            dstDrawer.BaseVertexIndexBuffer.ReserveSpace(DrawInformations.Count);
+            using var baseVertexIndexRange = dstDrawer.BaseVertexIndexBuffer.GetReservedRange();
+
             int copyCommands = 0;
             foreach (var gridDrawInfo in DrawInformations)
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
                 DrawCommandInfo drawInfo = gridDrawInfo.Value.Information;
 
-                int dstVertexOffset = dstDrawer.VertexBuffer.FirstAvailableIndex;
+                int dstGridPositionOffset = dstDrawer.GridPositionBuffer.FirstAvailableIndex;
+                int dstNormalOffset = dstDrawer.NormalBuffer.FirstAvailableIndex;
                 int dstIndiceOffset = dstDrawer.IndiceBuffer.FirstAvailableIndex;
 
-                VertexBuffer.CopyTo(dstDrawer.VertexBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
-                NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
+                GridPositionBuffer.CopyTo(dstDrawer.GridPositionBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                GridSizeBuffer.CopyTo(dstDrawer.GridSizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstNormalOffset, drawInfo.VertexCount);
                 IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
+                SizeBuffer.CopyTo(dstDrawer.SizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                baseVertexIndexRange.Add((uint)dstNormalOffset);
                 dstDrawer.CommandBuffer.ReserveSpace(1);
-                dstDrawer.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
+                dstDrawer.Add(grid, dstGridPositionOffset, dstIndiceOffset, drawInfo.IndiceCount, dstNormalOffset, drawInfo.VertexCount);
 
                 copyCommands++;
             }
@@ -232,9 +274,9 @@ namespace VoxelWorld.Render.VoxelGrid
             }
         }
 
-        public int VertexBufferSize()
+        public int NormalBufferSize()
         {
-            return VertexBuffer.Buffer.Count;
+            return NormalBuffer.Buffer.Count;
         }
 
         public int IndiceBufferSize()
@@ -252,25 +294,35 @@ namespace VoxelWorld.Render.VoxelGrid
             TransferToBuffers.Clear();
             DrawInformations.Clear();
 
-            VertexBuffer.Reset();
+            GridPositionBuffer.Reset();
+            GridSizeBuffer.Reset();
+            NormalBuffer.Reset();
             NormalBuffer.Reset();
             IndiceBuffer.Reset();
+            SizeBuffer.Reset();
+            BaseVertexIndexBuffer.Reset();
         }
 
         public long GpuMemSize()
         {
-            return VertexBuffer.GpuMemSize() +
+            return GridPositionBuffer.GpuMemSize() +
+                GridSizeBuffer.GpuMemSize() +
                 NormalBuffer.GpuMemSize() +
                 IndiceBuffer.GpuMemSize() +
+                SizeBuffer.GpuMemSize() +
+                BaseVertexIndexBuffer.GpuMemSize() +
                 CommandBuffer.GpuMemSize();
         }
 
         public void Dispose()
         {
             Vao.Dispose();
-            VertexBuffer.Dispose();
+            GridPositionBuffer.Dispose();
+            GridSizeBuffer.Dispose();
             NormalBuffer.Dispose();
             IndiceBuffer.Dispose();
+            SizeBuffer.Dispose();
+            BaseVertexIndexBuffer.Dispose();
             CommandBuffer.Dispose();
         }
 

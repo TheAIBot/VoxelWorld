@@ -29,7 +29,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool TryAddGeometry(VoxelGridHierarchy grid, GeometryData geometry)
         {
-            if (HasSpaceFor(geometry.Vertices.Length, geometry.Indices.Length, 1))
+            if (HasSpaceFor(geometry.Normals.Length, geometry.Indices.Length, 1))
             {
                 foreach (var indirectDrawer in _bufferedDrawers)
                 {
@@ -139,7 +139,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int VertexBufferSize()
         {
-            return _bufferedDrawers[0].VertexBufferSize();
+            return _bufferedDrawers[0].NormalBufferSize();
         }
 
         public int IndiceBufferSize()

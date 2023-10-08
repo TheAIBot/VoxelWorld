@@ -96,9 +96,8 @@ namespace VoxelWorld.Voxel.Grid
                 }
 
                 //Interlocked.Increment(ref GeneratedNotEmpty);
-                grid.Interpolate();
 
-                BoundingCircleRadius = grid.GetBoundingCircle().Radius;
+                BoundingCircleRadius = default;// grid.GetBoundingCircle().Radius;
                 CompressedGrid = grid.GetCompressed();
 
                 GridSidePointsUsed sidesUsed = grid.EdgePointsUsed();
@@ -114,7 +113,6 @@ namespace VoxelWorld.Voxel.Grid
             else
             {
                 grid.Restore(CompressedGrid);
-                grid.Interpolate();
             }
 
             var meshData = grid.Triangulize(VertexCount, TriangleCount);

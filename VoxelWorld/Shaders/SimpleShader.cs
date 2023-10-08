@@ -10,8 +10,11 @@ namespace VoxelWorld.Shaders
         private static readonly string VertexShader = @"
 #version 330
 
-attribute vec3 vertex_pos;
+attribute vec3 gridPosition;
+attribute float gridSize;
 attribute uint vertex_normal;
+attribute uint size;
+attribute uint baseVertexIndex;
 uniform mat4 PVM;
 uniform mat3 M;
 
@@ -25,6 +28,10 @@ void main(void)
     float normalZ = (vertex_normal & 16u) == 16u ? 1.0f : (vertex_normal & 32u) == 32u ? -1.0f : 0.0;
     vec3 convertedNormal = -normalize(vec3(normalX, normalY, normalZ));
 
+    uint x = (uint(gl_VertexID) - baseVertexIndex) % size;
+    uint y = ((uint(gl_VertexID) - baseVertexIndex) / size) % size;
+    uint z = ((uint(gl_VertexID) - baseVertexIndex) / (size * size));
+    vec3 vertex_pos = gridPosition - vec3(gridSize * float(x), gridSize * float(y), gridSize * float(z));
     gl_Position = PVM * vec4(vertex_pos, 1.0);
     position = M * vertex_pos;
     normal = M * convertedNormal;

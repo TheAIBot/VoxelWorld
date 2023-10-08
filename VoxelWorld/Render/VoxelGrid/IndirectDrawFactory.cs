@@ -25,7 +25,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void AddGeometrySample(GeometryData geometry)
         {
-            AvgVertexCount.AddSample(geometry.Vertices.Length);
+            AvgVertexCount.AddSample(geometry.Normals.Length);
             AvgIndiceCount.AddSample(geometry.Indices.Length);
         }
 

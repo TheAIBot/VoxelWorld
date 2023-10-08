@@ -40,13 +40,7 @@ namespace VoxelBench
         public GridSidePointsUsed EdgePointsUsed() => gridPlanet.EdgePointsUsed();
 
         [Benchmark]
-        public void Interpolate() => gridPlanet.Interpolate();
-
-        [Benchmark]
         public void PreCalculateGeometryData() => gridPlanet.PreCalculateGeometryData();
-
-        [Benchmark]
-        public void GetBoundingCircle() => gridPlanet.GetBoundingCircle();
 
         [Benchmark]
         public GeometryData Triangulize() => gridPlanet.Triangulize(VertexCount, TriangleCount);

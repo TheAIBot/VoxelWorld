@@ -257,6 +257,15 @@ namespace VoxelWorld.Render.VoxelGrid
             _openGl.BindVertexArray(0);
         }
 
+        public unsafe void MultiDrawIndirect(VBO<DrawElementsIndirectCommand> cmdVBO, int cmdCount)
+        {
+            if (ID == 0) return;
+            _openGl.BindVertexArray(ID);
+            _openGl.BindBuffer(cmdVBO.BufferTarget, cmdVBO.ID);
+            _openGl.MultiDrawArraysIndirect(DrawMode, null, (uint)cmdCount, 0);
+            _openGl.BindVertexArray(0);
+        }
+
 
         /// <summary>
         /// Deletes the vertex array from the GPU and will also dispose of any child VBOs if (DisposeChildren == true).
