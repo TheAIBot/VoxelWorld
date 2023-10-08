@@ -23,7 +23,7 @@ namespace VoxelBench
             this.systemDataPlanet = new VoxelSystemData(100, 0.03f, new PlanetGen(3, 1.0f, 3.0f, 1.0f));
             this.gridPlanet = new VoxelGrid(new Vector3(0, 0, 0), systemDataPlanet);
             gridPlanet.Randomize();
-            (VertexCount, TriangleCount) = gridPlanet.PreCalculateGeometryData();
+            TriangleCount = gridPlanet.PreCalculateGeometryData();
             this.compressedGrid = gridPlanet.GetCompressed();
         }
 
@@ -43,7 +43,7 @@ namespace VoxelBench
         public void PreCalculateGeometryData() => gridPlanet.PreCalculateGeometryData();
 
         [Benchmark]
-        public GeometryData Triangulize() => gridPlanet.Triangulize(VertexCount, TriangleCount);
+        public GeometryData Triangulize() => gridPlanet.Triangulize(TriangleCount);
     }
 
     public class Program

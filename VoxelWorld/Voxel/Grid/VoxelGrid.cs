@@ -166,7 +166,7 @@ namespace VoxelWorld.Voxel.Grid
             return false;
         }
 
-        public unsafe (int VertexCount, int TriangleCount) PreCalculateGeometryData()
+        public unsafe int PreCalculateGeometryData()
         {
             int GridToVP(int x, int y, int z)
             {
@@ -330,7 +330,7 @@ namespace VoxelWorld.Voxel.Grid
                 }
             }
 
-            return (CountTruesWithPopCnt(IsUsingVoxelPoint), triangleCount);
+            return triangleCount;
         }
 
         private static int CountTruesWithPopCnt(bool[] bools)
@@ -668,16 +668,7 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private void FillWithFaceVerticesAndRemoveDuplicateIndices(Span<byte> allNormals, Span<byte> filteredNormals)
-        {
-            int vpIndex = 0;
-            for (int i = 0; i < allNormals.Length; i++)
-            {
-                filteredNormals[vpIndex++] = allNormals[i];
-            }
-        }
-
-        public GeometryData Triangulize(int vertexCount, int triangleCount)
+        public GeometryData Triangulize(int triangleCount)
         {
             var topLeft = GetTopLeftCorner();
             Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;

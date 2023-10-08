@@ -25,7 +25,6 @@ namespace VoxelWorld.Voxel.Grid
         private bool Initialized;
         private bool HasBeenDisposed;
         private BitArray CompressedGrid;
-        private int VertexCount;
         private int TriangleCount;
 
         public static int DrawCalls = 0;
@@ -46,7 +45,6 @@ namespace VoxelWorld.Voxel.Grid
             Initialized = false;
             HasBeenDisposed = false;
             CompressedGrid = null;
-            VertexCount = 0;
             TriangleCount = 0;
         }
 
@@ -87,7 +85,7 @@ namespace VoxelWorld.Voxel.Grid
 
                 grid.Randomize();
 
-                (VertexCount, TriangleCount) = grid.PreCalculateGeometryData();
+                TriangleCount = grid.PreCalculateGeometryData();
                 if (TriangleCount == 0)
                 {
                     //Interlocked.Increment(ref GeneratedEmpty);
@@ -115,7 +113,7 @@ namespace VoxelWorld.Voxel.Grid
                 grid.Restore(CompressedGrid);
             }
 
-            var meshData = grid.Triangulize(VertexCount, TriangleCount);
+            var meshData = grid.Triangulize(TriangleCount);
             //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
 
             //no need to make vaos if the grid is already hollow again

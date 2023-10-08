@@ -31,7 +31,7 @@ namespace VoxelWorld.Voxel.System
             {
                 vGrid.Repurpose(Center, FirstLevelSystemData);
                 vGrid.Randomize();
-                (int _, int triangleCount) = vGrid.PreCalculateGeometryData();
+                int triangleCount = vGrid.PreCalculateGeometryData();
 
                 if (triangleCount == 0)
                 {
