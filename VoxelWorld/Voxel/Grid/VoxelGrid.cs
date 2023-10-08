@@ -686,12 +686,7 @@ namespace VoxelWorld.Voxel.Grid
             GeometryData geoData = new GeometryData(topLeftCorner, GenData.VoxelSize, GenData.GridSize - 1, IsUsingVoxelPoint.Length, triangleIndiceCount);
 
             FillWithFaceIndices(geoData.Indices);
-
-            using (var allNormals = new RentedArray<byte>(IsUsingVoxelPoint.Length))
-            {
-                FillWithNormals(allNormals.AsSpan());
-                FillWithFaceVerticesAndRemoveDuplicateIndices(allNormals.AsSpan(), geoData.Normals);
-            }
+            FillWithNormals(geoData.Normals);
 
             return geoData;
         }
