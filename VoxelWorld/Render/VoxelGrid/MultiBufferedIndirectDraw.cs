@@ -60,9 +60,10 @@ namespace VoxelWorld.Render.VoxelGrid
             }
         }
 
-        public void CopyToGPU()
+        public long CopyToGPU()
         {
-            foreach (var geometry in _bufferedDrawers[_updateBufferIndex].CopyToGPU())
+            (GeometryData[] geometriesCopied, long copiedBytes) = _bufferedDrawers[_updateBufferIndex].CopyToGPU();
+            foreach (var geometry in geometriesCopied)
             {
                 ref int buffersResideInCount = ref CollectionsMarshal.GetValueRefOrNullRef(_bufferCountGeometryResidesIn, geometry);
                 buffersResideInCount--;
@@ -72,6 +73,8 @@ namespace VoxelWorld.Render.VoxelGrid
                     _bufferCountGeometryResidesIn.Remove(geometry);
                 }
             }
+
+            return copiedBytes;
         }
 
         public void SendCommandsToGPU()

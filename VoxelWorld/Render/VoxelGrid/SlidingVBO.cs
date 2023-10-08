@@ -136,21 +136,23 @@ namespace VoxelWorld.Render.VoxelGrid
                 StartIndex = Sliding.FirstAvailableIndex;
             }
 
-            public void Add(T value)
+            public int Add(T value)
             {
                 int offset = Sliding.FirstAvailableIndex - StartIndex;
                 MappedRange.Range[offset] = value;
 
                 Sliding.FirstAvailableIndex++;
+                return sizeof(T);
             }
 
-            public void AddRange(Span<T> values)
+            public int AddRange(Span<T> values)
             {
                 int offset = Sliding.FirstAvailableIndex - StartIndex;
                 Span<T> offsetRange = MappedRange.Range.Slice(offset);
                 values.CopyTo(offsetRange);
 
                 Sliding.FirstAvailableIndex += values.Length;
+                return values.Length * sizeof(T);
             }
 
             public void Dispose()

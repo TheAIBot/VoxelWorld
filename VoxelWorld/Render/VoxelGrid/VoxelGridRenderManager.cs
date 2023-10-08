@@ -17,9 +17,10 @@ namespace VoxelWorld.Render.VoxelGrid
         private static readonly List<MultiBufferedIndirectDraw> GridDrawBuffers = new List<MultiBufferedIndirectDraw>();
         private static readonly Dictionary<VoxelGridHierarchy, MultiBufferedIndirectDraw> GridsToBuffer = new Dictionary<VoxelGridHierarchy, MultiBufferedIndirectDraw>();
         private static readonly ConcurrentDictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
-        public static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
-        public static readonly TimeNumberAverage<int> AvgNewGrids = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
-        public static readonly TimeNumberAverage<int> AvgTransferedGridsFromAlmostEmptyBuffers = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5), x => x);
+        public static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
+        public static readonly TimeNumberAverage<int> AvgNewGrids = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
+        public static readonly TimeNumberAverage<int> AvgTransferedGridsFromAlmostEmptyBuffers = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
+        public static readonly TimeNumberAverage<long> AvgTransferedBytes = new TimeNumberAverage<long>(TimeSpan.FromSeconds(5));
 
         private static int DrawCounter = 0;
 
@@ -48,10 +49,12 @@ namespace VoxelWorld.Render.VoxelGrid
             HandleIncommingGridCommands();
 
             //Move new grid data to the GPU
+            long copiedBytes = 0;
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
-                GridDrawBuffers[i].CopyToGPU();
+                copiedBytes += GridDrawBuffers[i].CopyToGPU();
             }
+            AvgTransferedBytes.AddSampleNow(copiedBytes);
 
             //Transfer grids away from drawers that are almost empty
             //so they can be reset and filled with grids again. This

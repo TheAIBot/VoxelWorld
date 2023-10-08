@@ -142,8 +142,14 @@ namespace VoxelWorld
                         Console.WriteLine($"Rendered Triangles: {VoxelGridRenderManager.TrianglesDrawing:N0}");
                         Console.WriteLine($"Rendered Grids: {VoxelGridRenderManager.GridsDrawing:N0}");
                         Console.WriteLine($"Generated Triangles: {VoxelGridRenderManager.AvgNewTriangles.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
-                        Console.WriteLine($"Generated Grids: {VoxelGridRenderManager.AvgNewGrids.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
+                        float newGridsPerSecond = VoxelGridRenderManager.AvgNewGrids.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1));
+                        Console.WriteLine($"Generated Grids: {newGridsPerSecond:N0}/s");
                         Console.WriteLine($"Copy commands: {VoxelGridRenderManager.AvgTransferedGridsFromAlmostEmptyBuffers.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1)):N0}/s");
+                        const long bytesToMBRatio = 1_000_000;
+                        float transferedBytes = VoxelGridRenderManager.AvgTransferedBytes.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1));
+                        Console.WriteLine($"Transfered to GPU: {(transferedBytes / bytesToMBRatio):N0}MB/s");
+                        const long bytesToKBRatio = 1_000;
+                        Console.WriteLine($"Grid Size: {((transferedBytes / bytesToKBRatio) / newGridsPerSecond):N0}KB");
                         //VoxelGridRenderManager.PrintDrawBufferUtilization();
                     }
                 }

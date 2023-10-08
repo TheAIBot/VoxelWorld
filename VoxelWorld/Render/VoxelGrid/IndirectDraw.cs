@@ -94,11 +94,11 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool IsTransferringToBuffers() => TransferToBuffers.Count > 0;
 
-        public GeometryData[] CopyToGPU()
+        public (GeometryData[], long) CopyToGPU()
         {
             if (TransferToBuffers.Count == 0)
             {
-                return Array.Empty<GeometryData>();
+                return (Array.Empty<GeometryData>(), 0);
             }
 
             while (_syncFlag.HasValue)
@@ -114,6 +114,7 @@ namespace VoxelWorld.Render.VoxelGrid
             using var vertexRange = VertexBuffer.GetReservedRange();
             using var normalRange = NormalBuffer.GetReservedRange();
             using var indiceRange = IndiceBuffer.GetReservedRange();
+            long copiedBytes = 0;
 
             for (int i = 0; i < TransferToBuffers.Count; i++)
             {
@@ -122,15 +123,15 @@ namespace VoxelWorld.Render.VoxelGrid
 
                 Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
-                vertexRange.AddRange(geometry.Vertices);
-                normalRange.AddRange(geometry.Normals);
-                indiceRange.AddRange(geometry.Indices);
+                copiedBytes += vertexRange.AddRange(geometry.Vertices);
+                copiedBytes += normalRange.AddRange(geometry.Normals);
+                copiedBytes += indiceRange.AddRange(geometry.Indices);
             }
 
             TransferToBuffers.Clear();
             CommandsChangeSinceLastPrepareDraw = true;
 
-            return geometryTransfered;
+            return (geometryTransfered, copiedBytes);
         }
 
         public void SendCommandsToGPU()
