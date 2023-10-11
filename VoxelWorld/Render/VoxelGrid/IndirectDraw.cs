@@ -164,6 +164,13 @@ namespace VoxelWorld.Render.VoxelGrid
                 copiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
             }
 
+            GridPositionBuffer.UnsetReservedSPace();
+            GridSizeBuffer.UnsetReservedSPace();
+            NormalBuffer.UnsetReservedSPace();
+            IndiceBuffer.UnsetReservedSPace();
+            SizeBuffer.UnsetReservedSPace();
+            BaseVertexIndexBuffer.UnsetReservedSPace();
+
             TransferToBuffers.Clear();
             CommandsChangeSinceLastPrepareDraw = true;
 
@@ -183,6 +190,7 @@ namespace VoxelWorld.Render.VoxelGrid
                     commandRange.Add(drawCmd.Command);
                 }
 
+                CommandBuffer.UnsetReservedSPace();
 
                 CommandsChangeSinceLastPrepareDraw = false;
             }

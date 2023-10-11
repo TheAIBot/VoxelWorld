@@ -38,6 +38,11 @@ namespace VoxelWorld.Render.VoxelGrid
             SpaceAvailable -= sizeToUse;
         }
 
+        public void UnsetReservedSPace()
+        {
+            SpaceAvailable = Buffer.Count - FirstAvailableIndex;
+        }
+
         public SlidingRange MapReservedRange(MapBufferAccessMask mappingMask = MapBufferAccessMask.WriteBit)
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
