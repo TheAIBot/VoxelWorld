@@ -25,6 +25,7 @@ namespace VoxelWorld.Voxel.Grid
         private bool Initialized;
         private bool HasBeenDisposed;
         private BitArray CompressedGrid;
+        private UsedPointsBoxBoundary UsedPointsBox;
         private int TriangleCount;
 
         public static int DrawCalls = 0;
@@ -95,7 +96,8 @@ namespace VoxelWorld.Voxel.Grid
 
                 //Interlocked.Increment(ref GeneratedNotEmpty);
 
-                BoundingCircleRadius = default;// grid.GetBoundingCircle().Radius;
+                UsedPointsBox = grid.GetUsedPointsBox();
+                BoundingCircleRadius = grid.GetBoundingCircle(UsedPointsBox).Radius;
                 CompressedGrid = grid.GetCompressed();
 
                 GridSidePointsUsed sidesUsed = grid.EdgePointsUsed();

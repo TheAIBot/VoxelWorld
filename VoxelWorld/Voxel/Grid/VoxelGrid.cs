@@ -9,6 +9,30 @@ using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Grid
 {
+    internal readonly record struct UsedPointsBoxBoundary(VectorInt3 Min, VectorInt3 Max)
+    {
+        public const int BoxCornerCount = 8;
+
+        public Span<VectorInt3> GetCorners(Span<VectorInt3> corners)
+        {
+            corners[0] = new VectorInt3(Min.X, Min.Y, Min.Z);
+            corners[1] = new VectorInt3(Min.X, Min.Y, Max.Z);
+            corners[2] = new VectorInt3(Min.X, Max.Y, Min.Z);
+            corners[3] = new VectorInt3(Min.X, Max.Y, Max.Z);
+            corners[4] = new VectorInt3(Max.X, Min.Y, Min.Z);
+            corners[5] = new VectorInt3(Max.X, Min.Y, Max.Z);
+            corners[6] = new VectorInt3(Max.X, Max.Y, Min.Z);
+            corners[7] = new VectorInt3(Max.X, Max.Y, Max.Z);
+
+            return corners;
+        }
+    }
+
+    internal readonly record struct VectorInt3(int X, int Y, int Z)
+    {
+        public Vector4 AsVector4() => new Vector4(X, Y, Z, 0);
+    }
+
     internal sealed class VoxelGrid
     {
         private Vector3 GridCenter;
@@ -164,6 +188,64 @@ namespace VoxelWorld.Voxel.Grid
             }
 
             return false;
+        }
+
+        public UsedPointsBoxBoundary GetUsedPointsBox()
+        {
+            int minX = int.MaxValue;
+            int minY = int.MaxValue;
+            int minZ = int.MaxValue;
+            int maxX = int.MinValue;
+            int maxY = int.MinValue;
+            int maxZ = int.MinValue;
+
+            int gridSideLength = GenData.GridSize;
+            int vpSideLength = gridSideLength - 1;
+            bool[] usedVoxelPoints = IsUsingVoxelPoint;
+            int i = 0;
+            for (int Z = 0; Z < vpSideLength; Z++)
+            {
+                for (int Y = 0; Y < vpSideLength; Y++)
+                {
+                    for (int X = 0; X < vpSideLength; X++)
+                    {
+                        if (!usedVoxelPoints[i++])
+                        {
+                            continue;
+                        }
+
+                        minX = Math.Min(minX, X);
+                        minY = Math.Min(minY, Y);
+                        minZ = Math.Min(minZ, Z);
+                        maxX = Math.Max(maxX, X);
+                        maxY = Math.Max(maxY, Y);
+                        maxZ = Math.Max(maxZ, Z);
+                    }
+                }
+            }
+
+            return new UsedPointsBoxBoundary(new VectorInt3(minX, minY, minZ), new VectorInt3(maxX, maxY, maxZ));
+        }
+
+        public BoundingCircle GetBoundingCircle(UsedPointsBoxBoundary usedPoints)
+        {
+            var topLeft = GetTopLeftCorner();
+            Vector4 voxelSize = new Vector4(GenData.VoxelSize);
+            Vector4 topLeftCorner = topLeft - voxelSize * 0.5f;
+            Vector4 min = new Vector4(float.MaxValue);
+            Vector4 max = new Vector4(float.MinValue);
+
+            Span<VectorInt3> boxCorners = stackalloc VectorInt3[UsedPointsBoxBoundary.BoxCornerCount];
+            foreach (VectorInt3 corner in usedPoints.GetCorners(boxCorners))
+            {
+                Vector4 vp = topLeftCorner - corner.AsVector4() * voxelSize;
+                min = Vector4.Min(min, vp);
+                max = Vector4.Max(max, vp);
+            }
+
+            Vector4 center = (max + min) * 0.5f;
+            float radius = (max - center).Length();
+            return new BoundingCircle(new Vector3(center.X, center.Y, center.Z), radius);
         }
 
         public unsafe int PreCalculateGeometryData()
