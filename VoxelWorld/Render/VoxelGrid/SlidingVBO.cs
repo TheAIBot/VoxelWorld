@@ -104,7 +104,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 int offset = Sliding.FirstAvailableIndex - StartIndex;
                 MappedRange.Range[offset] = value;
 
-                Sliding.FirstAvailableIndex++;
+                Sliding.UseSpace(1);
             }
 
             public void AddRange(Span<T> values)
@@ -113,12 +113,11 @@ namespace VoxelWorld.Render.VoxelGrid
                 Span<T> offsetRange = MappedRange.Range.Slice(offset);
                 values.CopyTo(offsetRange);
 
-                Sliding.FirstAvailableIndex += values.Length;
+                Sliding.UseSpace(values.Length);
             }
 
             public void Dispose()
             {
-                Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
                 MappedRange.Dispose();
             }
         }
@@ -141,7 +140,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 int offset = Sliding.FirstAvailableIndex - StartIndex;
                 MappedRange.Range[offset] = value;
 
-                Sliding.FirstAvailableIndex++;
+                Sliding.UseSpace(1);
                 return sizeof(T);
             }
 
@@ -151,13 +150,12 @@ namespace VoxelWorld.Render.VoxelGrid
                 Span<T> offsetRange = MappedRange.Range.Slice(offset);
                 values.CopyTo(offsetRange);
 
-                Sliding.FirstAvailableIndex += values.Length;
+                Sliding.UseSpace(values.Length);
                 return values.Length * sizeof(T);
             }
 
             public void Dispose()
             {
-                Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
                 MappedRange.Dispose();
             }
         }
