@@ -21,7 +21,7 @@ namespace VoxelWorld.Render.VoxelGrid
         private readonly SlidingVBO<float> GridSizeBuffer;
         private readonly SlidingVBO<byte> NormalBuffer;
         private readonly SlidingVBO<uint> IndiceBuffer;
-        private readonly SlidingVBO<uint> SizeBuffer;
+        private readonly SlidingVBO<Vector3> SizeBuffer;
         private readonly SlidingVBO<uint> BaseVertexIndexBuffer;
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
@@ -47,9 +47,8 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 CastToFloat = false
             });
-            SizeBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            SizeBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
             {
-                CastToFloat = false,
                 Divisor = 1,
             });
             BaseVertexIndexBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, commandBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
@@ -64,7 +63,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 new GenericVBO<float>(GridSizeBuffer.Buffer, "gridSize"),
                 new GenericVBO<byte>(NormalBuffer.Buffer, "vertex_normal"),
                 new GenericVBO<uint>(IndiceBuffer.Buffer),
-                new GenericVBO<uint>(SizeBuffer.Buffer, "size"),
+                new GenericVBO<Vector3>(SizeBuffer.Buffer, "size"),
                 new GenericVBO<uint>(BaseVertexIndexBuffer.Buffer, "baseVertexIndex"),
                 new GenericVBO<DrawElementsIndirectCommand>(CommandBuffer.Buffer),
             };
@@ -160,7 +159,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 copiedBytes += gridSizeRange.Add(geometry.GridSize);
                 copiedBytes += normalRange.AddRange(geometry.Normals);
                 copiedBytes += indiceRange.AddRange(geometry.Indices);
-                copiedBytes += sizeRange.Add((uint)geometry.Size);
+                copiedBytes += sizeRange.Add(geometry.Size);
                 copiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
             }
 

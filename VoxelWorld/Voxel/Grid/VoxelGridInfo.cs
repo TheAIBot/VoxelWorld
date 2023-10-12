@@ -115,7 +115,7 @@ namespace VoxelWorld.Voxel.Grid
                 grid.Restore(CompressedGrid);
             }
 
-            var meshData = grid.Triangulize(TriangleCount);
+            var meshData = grid.Triangulize(UsedPointsBox, TriangleCount);
             //var boxData = BoxGeometry.MakeBoxGeometry(BoundingBox.Min, BoundingBox.Max);
 
             //no need to make vaos if the grid is already hollow again

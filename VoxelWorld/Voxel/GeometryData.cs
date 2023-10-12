@@ -12,9 +12,9 @@ namespace VoxelWorld.Voxel
         private readonly int VertexCount;
         private readonly int IndiceCount;
 
-        public Vector3 GridTopLeftPosition { get; }
+        public Vector3 GridTopLeftPosition { get; set; }
         public float GridSize { get; }
-        public int Size { get; }
+        public Vector3 Size { get; set; }
         public Span<byte> Normals { get { return normals.AsSpan(0, VertexCount); } }
         public Span<uint> Indices { get { return indices.AsSpan(0, IndiceCount); } }
 
@@ -22,7 +22,7 @@ namespace VoxelWorld.Voxel
         public Memory<uint> IndicesAsMemSpan { get { return new Memory<uint>(indices, 0, IndiceCount); } }
         public int TriangleCount => Indices.Length / 3;
 
-        public GeometryData(Vector3 gridTopLeftPosition, float gridSize, int size, int vertexCount, int indiceCount)
+        public GeometryData(Vector3 gridTopLeftPosition, float gridSize, Vector3 size, int vertexCount, int indiceCount)
         {
             GridTopLeftPosition = gridTopLeftPosition;
             GridSize = gridSize;

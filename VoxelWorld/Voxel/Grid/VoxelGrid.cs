@@ -13,6 +13,10 @@ namespace VoxelWorld.Voxel.Grid
     {
         public const int BoxCornerCount = 8;
 
+        public int XSideLength => Max.X - Min.X + 1;
+        public int YSideLength => Max.Y - Min.Y + 1;
+        public int ZSideLength => Max.Z - Min.Z + 1;
+
         public Span<VectorInt3> GetCorners(Span<VectorInt3> corners)
         {
             corners[0] = new VectorInt3(Min.X, Min.Y, Min.Z);
@@ -26,10 +30,21 @@ namespace VoxelWorld.Voxel.Grid
 
             return corners;
         }
+
+        public bool WithinBox(int x, int y, int z)
+        {
+            return x >= Min.X &&
+                   y >= Min.Y &&
+                   z >= Min.Z &&
+                   x <= Max.X &&
+                   y <= Max.Y &&
+                   z <= Max.Z;
+        }
     }
 
     internal readonly record struct VectorInt3(int X, int Y, int Z)
     {
+        public Vector3 AsVector3() => new Vector3(X, Y, Z);
         public Vector4 AsVector4() => new Vector4(X, Y, Z, 0);
     }
 
@@ -227,7 +242,7 @@ namespace VoxelWorld.Voxel.Grid
             return new UsedPointsBoxBoundary(new VectorInt3(minX, minY, minZ), new VectorInt3(maxX, maxY, maxZ));
         }
 
-        public BoundingCircle GetBoundingCircle(UsedPointsBoxBoundary usedPoints)
+        public BoundingCircle GetBoundingCircle(UsedPointsBoxBoundary usedBoxPoints)
         {
             var topLeft = GetTopLeftCorner();
             Vector4 voxelSize = new Vector4(GenData.VoxelSize);
@@ -236,7 +251,7 @@ namespace VoxelWorld.Voxel.Grid
             Vector4 max = new Vector4(float.MinValue);
 
             Span<VectorInt3> boxCorners = stackalloc VectorInt3[UsedPointsBoxBoundary.BoxCornerCount];
-            foreach (VectorInt3 corner in usedPoints.GetCorners(boxCorners))
+            foreach (VectorInt3 corner in usedBoxPoints.GetCorners(boxCorners))
             {
                 Vector4 vp = topLeftCorner - corner.AsVector4() * voxelSize;
                 min = Vector4.Min(min, vp);
@@ -750,16 +765,72 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        public GeometryData Triangulize(int triangleCount)
+        private void UpdateIndicesToMatchBox(Span<uint> indices, UsedPointsBoxBoundary usedBoxPoints)
+        {
+            uint xSideLength = (uint)(usedBoxPoints.Max.X - usedBoxPoints.Min.X) + 1;
+            uint ySideLength = (uint)(usedBoxPoints.Max.Y - usedBoxPoints.Min.Y) + 1;
+
+            int gridSideLength = GenData.GridSize;
+            uint vpSideLength = (uint)gridSideLength - 1;
+            for (int i = 0; i < indices.Length; i++)
+            {
+                uint x = indices[i] % vpSideLength;
+                uint y = (indices[i] / vpSideLength) % vpSideLength;
+                uint z = indices[i] / (vpSideLength * vpSideLength);
+
+                indices[i] = (x - (uint)usedBoxPoints.Min.X)
+                           + (y - (uint)usedBoxPoints.Min.Y) * xSideLength
+                           + (z - (uint)usedBoxPoints.Min.Z) * xSideLength * ySideLength;
+            }
+        }
+
+        private void CopyNormalsToBoxSize(Span<byte> allNormals, Span<byte> boxNormals, UsedPointsBoxBoundary usedBoxPoints)
+        {
+            int gridSideLength = GenData.GridSize;
+            int vpSideLength = gridSideLength - 1;
+            int allNormalsIndex = 0;
+            int boxNormalsIndex = 0;
+            for (int z = 0; z < vpSideLength; z++)
+            {
+                for (int y = 0; y < vpSideLength; y++)
+                {
+                    for (int x = 0; x < vpSideLength; x++)
+                    {
+                        if (!usedBoxPoints.WithinBox(x, y, z))
+                        {
+                            allNormalsIndex++;
+                            continue;
+                        }
+
+                        boxNormals[boxNormalsIndex] = allNormals[allNormalsIndex];
+
+                        allNormalsIndex++;
+                        boxNormalsIndex++;
+                    }
+                }
+            }
+        }
+
+        public GeometryData Triangulize(UsedPointsBoxBoundary usedBoxPoints, int triangleCount)
         {
             var topLeft = GetTopLeftCorner();
             Vector3 topLeftCorner = new Vector3(topLeft.X, topLeft.Y, topLeft.Z) - new Vector3(GenData.VoxelSize) * 0.5f;
+
             const int indicesPerTriangle = 3;
             int triangleIndiceCount = triangleCount * indicesPerTriangle;
-            GeometryData geoData = new GeometryData(topLeftCorner, GenData.VoxelSize, GenData.GridSize - 1, IsUsingVoxelPoint.Length, triangleIndiceCount);
+            GeometryData geoData = new GeometryData(topLeftCorner, GenData.VoxelSize, new Vector3(GenData.GridSize - 1), usedBoxPoints.XSideLength * usedBoxPoints.YSideLength * usedBoxPoints.ZSideLength, triangleIndiceCount);
 
             FillWithFaceIndices(geoData.Indices);
-            FillWithNormals(geoData.Normals);
+            UpdateIndicesToMatchBox(geoData.Indices, usedBoxPoints);
+
+            using (var allNormals = new RentedArray<byte>(IsUsingVoxelPoint.Length))
+            {
+                FillWithNormals(allNormals.AsSpan());
+                CopyNormalsToBoxSize(allNormals.AsSpan(), geoData.Normals, usedBoxPoints);
+            }
+
+            geoData.GridTopLeftPosition = topLeftCorner - usedBoxPoints.Min.AsVector3() * new Vector3(GenData.VoxelSize);
+            geoData.Size = usedBoxPoints.Max.AsVector3() - usedBoxPoints.Min.AsVector3() + Vector3.One;
 
             return geoData;
         }
