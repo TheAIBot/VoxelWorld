@@ -17,6 +17,8 @@ namespace VoxelWorld.Voxel.Grid
         public int YSideLength => Max.Y - Min.Y + 1;
         public int ZSideLength => Max.Z - Min.Z + 1;
 
+        public VectorInt3 SideLengths => new VectorInt3(XSideLength, YSideLength, ZSideLength);
+
         public Span<VectorInt3> GetCorners(Span<VectorInt3> corners)
         {
             corners[0] = new VectorInt3(Min.X, Min.Y, Min.Z);
@@ -462,11 +464,16 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private unsafe void FillWithFaceIndices(Span<uint> indices)
+        private unsafe void FillWithFaceIndices(Span<uint> indices, UsedPointsBoxBoundary usedBoxPoints)
         {
             static int GridToVP(int sideLength, int x, int y, int z)
             {
                 return (z - 1) * sideLength * sideLength + (y - 1) * sideLength + (x - 1);
+            }
+
+            static int GridToVPSubBox(VectorInt3 sideLengths, int x, int y, int z)
+            {
+                return (z - 1) * sideLengths.X * sideLengths.Y + (y - 1) * sideLengths.X + (x - 1);
             }
 
             static int PosToGridIndex(int sideLength, int x, int y, int z)
@@ -490,6 +497,7 @@ namespace VoxelWorld.Voxel.Grid
             int gridSideLength = GenData.GridSize;
             int vpSideLength = gridSideLength - 1;
             bool[] gridSigns = GridSign;
+            VectorInt3 subBoxSideLengths = usedBoxPoints.SideLengths;
 
             /*
             Each face consists of 6 indices which creates two triangles that
@@ -512,14 +520,14 @@ namespace VoxelWorld.Voxel.Grid
             Vector256<uint> faceZPosVecIndice;
             Vector256<uint> storeMask = Vector256.Create(int.MinValue, int.MinValue, int.MinValue, int.MinValue, int.MinValue, int.MinValue, 0u, 0u).AsUInt32();
             {
-                uint x0y0z0 = (uint)GridToVP(vpSideLength, 1, 1, 1);
-                uint x0y0z1 = (uint)GridToVP(vpSideLength, 1, 1, 2);
-                uint x0y1z0 = (uint)GridToVP(vpSideLength, 1, 2, 1);
-                uint x0y1z1 = (uint)GridToVP(vpSideLength, 1, 2, 2);
-                uint x1y0z0 = (uint)GridToVP(vpSideLength, 2, 1, 1);
-                uint x1y0z1 = (uint)GridToVP(vpSideLength, 2, 1, 2);
-                uint x1y1z0 = (uint)GridToVP(vpSideLength, 2, 2, 1);
-                uint x1y1z1 = (uint)GridToVP(vpSideLength, 2, 2, 2);
+                uint x0y0z0 = (uint)GridToVPSubBox(subBoxSideLengths, 1, 1, 1);
+                uint x0y0z1 = (uint)GridToVPSubBox(subBoxSideLengths, 1, 1, 2);
+                uint x0y1z0 = (uint)GridToVPSubBox(subBoxSideLengths, 1, 2, 1);
+                uint x0y1z1 = (uint)GridToVPSubBox(subBoxSideLengths, 1, 2, 2);
+                uint x1y0z0 = (uint)GridToVPSubBox(subBoxSideLengths, 2, 1, 1);
+                uint x1y0z1 = (uint)GridToVPSubBox(subBoxSideLengths, 2, 1, 2);
+                uint x1y1z0 = (uint)GridToVPSubBox(subBoxSideLengths, 2, 2, 1);
+                uint x1y1z1 = (uint)GridToVPSubBox(subBoxSideLengths, 2, 2, 2);
 
                 faceXNegVecIndice = MakeFaceVectorIndices(x0y0z1, x0y0z0, x0y1z1, x0y1z0);
                 faceYNegVecIndice = MakeFaceVectorIndices(x0y0z0, x0y0z1, x1y0z0, x1y0z1);
@@ -533,14 +541,13 @@ namespace VoxelWorld.Voxel.Grid
             {
                 uint* indiceStore = indicesPtr;
 
-                for (int z = 1; z < vpSideLength; z++)
+                for (int z = 1 + usedBoxPoints.Min.Z; z <= usedBoxPoints.Max.Z; z++)
                 {
-                    for (int y = 1; y < vpSideLength; y++)
+                    for (int y = 1 + usedBoxPoints.Min.Y; y <= usedBoxPoints.Max.Y; y++)
                     {
-                        int x = 1;
+                        int x = 1 + usedBoxPoints.Min.X;
 
-                        uint x0y0z0 = (uint)GridToVP(vpSideLength, x + 0, y + 0, z + 0);
-
+                        uint x0y0z0 = (uint)GridToVPSubBox(subBoxSideLengths, x - usedBoxPoints.Min.X, y - usedBoxPoints.Min.Y, z - usedBoxPoints.Min.Z);
                         int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
                         int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
                         int gridIdxyn1 = PosToGridIndex(gridSideLength, x, y - 1, z);
@@ -549,7 +556,7 @@ namespace VoxelWorld.Voxel.Grid
                         int gridIdxyp1 = PosToGridIndex(gridSideLength, x, y + 1, z);
                         int gridIdxzp1 = PosToGridIndex(gridSideLength, x, y, z + 1);
 
-                        for (int i = 0; i < vpSideLength - 1; i++)
+                        for (int i = 0; x <= usedBoxPoints.Max.X; i++, x++)
                         {
                             bool centerSign = gridSigns[gridIdxCenter + i];
                             if (!centerSign)
@@ -590,11 +597,11 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private unsafe void FillWithNormals(Span<byte> normals)
+        private unsafe void FillWithNormals(Span<byte> normals, UsedPointsBoxBoundary usedBoxPoints)
         {
-            static int GridToVP(int sideLength, int x, int y, int z)
+            static int GridToVPSubBox(VectorInt3 sideLengths, int x, int y, int z)
             {
-                return (z - 1) * sideLength * sideLength + (y - 1) * sideLength + (x - 1);
+                return (z - 1) * sideLengths.X * sideLengths.Y + (y - 1) * sideLengths.X + (x - 1);
             }
 
             static int PosToGridIndex(int sideLength, int x, int y, int z)
@@ -605,6 +612,7 @@ namespace VoxelWorld.Voxel.Grid
             int gridSideLength = GenData.GridSize;
             int vpSideLength = gridSideLength - 1;
             bool[] gridSigns = GridSign;
+            VectorInt3 subBoxSideLengths = usedBoxPoints.SideLengths;
 
             normals.Clear();
 
@@ -621,14 +629,14 @@ namespace VoxelWorld.Voxel.Grid
             can be vectorized. The base indice that these offsets are
             calculated from is x0y0z0.
             */
-            int x0y0z0 = GridToVP(vpSideLength, 1, 1, 1);
-            int x0y0z1 = GridToVP(vpSideLength, 1, 1, 2);
-            int x0y1z0 = GridToVP(vpSideLength, 1, 2, 1);
-            int x0y1z1 = GridToVP(vpSideLength, 1, 2, 2);
-            int x1y0z0 = GridToVP(vpSideLength, 2, 1, 1);
-            int x1y0z1 = GridToVP(vpSideLength, 2, 1, 2);
-            int x1y1z0 = GridToVP(vpSideLength, 2, 2, 1);
-            int x1y1z1 = GridToVP(vpSideLength, 2, 2, 2);
+            int x0y0z0 = GridToVPSubBox(subBoxSideLengths, 1, 1, 1);
+            int x0y0z1 = GridToVPSubBox(subBoxSideLengths, 1, 1, 2);
+            int x0y1z0 = GridToVPSubBox(subBoxSideLengths, 1, 2, 1);
+            int x0y1z1 = GridToVPSubBox(subBoxSideLengths, 1, 2, 2);
+            int x1y0z0 = GridToVPSubBox(subBoxSideLengths, 2, 1, 1);
+            int x1y0z1 = GridToVPSubBox(subBoxSideLengths, 2, 1, 2);
+            int x1y1z0 = GridToVPSubBox(subBoxSideLengths, 2, 2, 1);
+            int x1y1z1 = GridToVPSubBox(subBoxSideLengths, 2, 2, 2);
 
             fixed (bool* readonlyGridSigns = gridSigns)
             {
@@ -637,13 +645,13 @@ namespace VoxelWorld.Voxel.Grid
                     bool* gridSignsPtr = readonlyGridSigns;
                     byte* gridSignsBytePtr = (byte*)readonlyGridSigns;
                     byte* normalsPtr = readonlyNormals;
-                    for (int z = 1; z < vpSideLength; z++)
+                    for (int z = 1 + usedBoxPoints.Min.Z; z <= usedBoxPoints.Max.Z; z++)
                     {
-                        for (int y = 1; y < vpSideLength; y++)
+                        for (int y = 1 + usedBoxPoints.Min.Y; y <= usedBoxPoints.Max.Y; y++)
                         {
-                            int x = 1;
+                            int x = 1 + usedBoxPoints.Min.X;
 
-                            int basex0y0z0 = GridToVP(vpSideLength, x + 0, y + 0, z + 0);
+                            int basex0y0z0 = GridToVPSubBox(subBoxSideLengths, x - usedBoxPoints.Min.X, y - usedBoxPoints.Min.Y, z - usedBoxPoints.Min.Z);
 
                             int gridIdxCenter = PosToGridIndex(gridSideLength, x, y, z);
                             int gridIdxxn1 = PosToGridIndex(gridSideLength, x - 1, y, z);
@@ -657,7 +665,7 @@ namespace VoxelWorld.Voxel.Grid
                             byte* basegridSignsBytePtr = gridSignsBytePtr;
 
                             int i = 0;
-                            for (; i + Vector128<byte>.Count < vpSideLength - 1; i += (Vector128<byte>.Count - 2))
+                            for (; x + Vector128<byte>.Count <= usedBoxPoints.Max.X; i += (Vector128<byte>.Count - 2), x += (Vector128<byte>.Count - 2))
                             {
                                 Vector128<byte> centerSigns = Vector128.Load(gridSignsBytePtr + gridIdxCenter + i);
 
@@ -707,7 +715,7 @@ namespace VoxelWorld.Voxel.Grid
                                 baseNormalsPtr += (Vector128<byte>.Count - 2);
                             }
 
-                            for (; i < vpSideLength - 1; i++)
+                            for (; x <= usedBoxPoints.Max.X; i++, x++)
                             {
                                 bool centerSign = gridSignsPtr[gridIdxCenter + i];
                                 if (!centerSign)
@@ -765,52 +773,6 @@ namespace VoxelWorld.Voxel.Grid
             }
         }
 
-        private void UpdateIndicesToMatchBox(Span<uint> indices, UsedPointsBoxBoundary usedBoxPoints)
-        {
-            uint xSideLength = (uint)(usedBoxPoints.Max.X - usedBoxPoints.Min.X) + 1;
-            uint ySideLength = (uint)(usedBoxPoints.Max.Y - usedBoxPoints.Min.Y) + 1;
-
-            int gridSideLength = GenData.GridSize;
-            uint vpSideLength = (uint)gridSideLength - 1;
-            for (int i = 0; i < indices.Length; i++)
-            {
-                uint x = indices[i] % vpSideLength;
-                uint y = (indices[i] / vpSideLength) % vpSideLength;
-                uint z = indices[i] / (vpSideLength * vpSideLength);
-
-                indices[i] = (x - (uint)usedBoxPoints.Min.X)
-                           + (y - (uint)usedBoxPoints.Min.Y) * xSideLength
-                           + (z - (uint)usedBoxPoints.Min.Z) * xSideLength * ySideLength;
-            }
-        }
-
-        private void CopyNormalsToBoxSize(Span<byte> allNormals, Span<byte> boxNormals, UsedPointsBoxBoundary usedBoxPoints)
-        {
-            int gridSideLength = GenData.GridSize;
-            int vpSideLength = gridSideLength - 1;
-            int allNormalsIndex = 0;
-            int boxNormalsIndex = 0;
-            for (int z = 0; z < vpSideLength; z++)
-            {
-                for (int y = 0; y < vpSideLength; y++)
-                {
-                    for (int x = 0; x < vpSideLength; x++)
-                    {
-                        if (!usedBoxPoints.WithinBox(x, y, z))
-                        {
-                            allNormalsIndex++;
-                            continue;
-                        }
-
-                        boxNormals[boxNormalsIndex] = allNormals[allNormalsIndex];
-
-                        allNormalsIndex++;
-                        boxNormalsIndex++;
-                    }
-                }
-            }
-        }
-
         public GeometryData Triangulize(UsedPointsBoxBoundary usedBoxPoints, int triangleCount)
         {
             var topLeft = GetTopLeftCorner();
@@ -820,14 +782,8 @@ namespace VoxelWorld.Voxel.Grid
             int triangleIndiceCount = triangleCount * indicesPerTriangle;
             GeometryData geoData = new GeometryData(topLeftCorner, GenData.VoxelSize, new Vector3(GenData.GridSize - 1), usedBoxPoints.XSideLength * usedBoxPoints.YSideLength * usedBoxPoints.ZSideLength, triangleIndiceCount);
 
-            FillWithFaceIndices(geoData.Indices);
-            UpdateIndicesToMatchBox(geoData.Indices, usedBoxPoints);
-
-            using (var allNormals = new RentedArray<byte>(IsUsingVoxelPoint.Length))
-            {
-                FillWithNormals(allNormals.AsSpan());
-                CopyNormalsToBoxSize(allNormals.AsSpan(), geoData.Normals, usedBoxPoints);
-            }
+            FillWithFaceIndices(geoData.Indices, usedBoxPoints);
+            FillWithNormals(geoData.Normals, usedBoxPoints);
 
             geoData.GridTopLeftPosition = topLeftCorner - usedBoxPoints.Min.AsVector3() * new Vector3(GenData.VoxelSize);
             geoData.Size = usedBoxPoints.Max.AsVector3() - usedBoxPoints.Min.AsVector3() + Vector3.One;
