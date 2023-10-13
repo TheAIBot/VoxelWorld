@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace VoxelWorld.Voxel
 {
@@ -37,6 +38,13 @@ namespace VoxelWorld.Voxel
             indices = ArrayPool<uint>.Shared.Rent(indiceCount);
             VertexCount = vertexCount;
             IndiceCount = indiceCount;
+        }
+
+        public int GetSizeInBytes()
+        {
+            return Vertices.Length * Marshal.SizeOf<Vector3>() +
+                   Normals.Length * sizeof(byte) +
+                   Indices.Length * sizeof(uint);
         }
 
         public void Reuse()
