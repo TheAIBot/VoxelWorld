@@ -21,6 +21,7 @@ namespace VoxelWorld.Render.VoxelGrid
         public static readonly TimeNumberAverage<int> AvgNewGrids = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
         public static readonly TimeNumberAverage<int> AvgTransferedGridsFromAlmostEmptyBuffers = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
         public static readonly TimeNumberAverage<long> AvgTransferedBytes = new TimeNumberAverage<long>(TimeSpan.FromSeconds(5));
+        public static readonly PerfNumAverage<int> AvgGridSize = new PerfNumAverage<int>(10_000, x => x);
 
         private static int DrawCounter = 0;
 
@@ -125,6 +126,7 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             GridsDrawing++;
             DrawFactory.AddGeometrySample(cmd.GeoData);
+            AvgGridSize.AddSample(cmd.GeoData.GetSizeInBytes());
 
             while (true)
             {

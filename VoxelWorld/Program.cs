@@ -149,7 +149,7 @@ namespace VoxelWorld
                         float transferedBytes = VoxelGridRenderManager.AvgTransferedBytes.GetAveragePerTimeUnit(TimeSpan.FromSeconds(1));
                         Console.WriteLine($"Transfered to GPU: {(transferedBytes / bytesToMBRatio):N0}MB/s");
                         const long bytesToKBRatio = 1_000;
-                        Console.WriteLine($"Grid Size: {((transferedBytes / bytesToKBRatio) / newGridsPerSecond):N0}KB");
+                        Console.WriteLine($"Grid Size: {(VoxelGridRenderManager.AvgGridSize.GetAverage() / bytesToKBRatio):N0}KB");
                         //VoxelGridRenderManager.PrintDrawBufferUtilization();
                     }
                 }
