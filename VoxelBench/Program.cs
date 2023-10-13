@@ -15,7 +15,7 @@ namespace VoxelBench
         private readonly VoxelSystemData systemDataPlanet;
         private readonly VoxelGrid gridPlanet;
         private readonly BitArray compressedGrid;
-        private readonly int VertexCount;
+        private readonly UsedPointsBoxBoundary UsedBoxPoints;
         private readonly int TriangleCount;
 
         public VoxelBencher()
@@ -24,26 +24,27 @@ namespace VoxelBench
             this.gridPlanet = new VoxelGrid(new Vector3(0, 0, 0), systemDataPlanet);
             gridPlanet.Randomize();
             TriangleCount = gridPlanet.PreCalculateGeometryData();
+            UsedBoxPoints = gridPlanet.GetUsedPointsBox();
             this.compressedGrid = gridPlanet.GetCompressed();
         }
 
-        [Benchmark]
-        public void Randomize() => gridPlanet.Randomize();
+        //[Benchmark]
+        //public void Randomize() => gridPlanet.Randomize();
+
+        //[Benchmark]
+        //public BitArray GetCompressed() => gridPlanet.GetCompressed();
+
+        //[Benchmark]
+        //public void Restore() => gridPlanet.Restore(compressedGrid);
+
+        //[Benchmark]
+        //public GridSidePointsUsed EdgePointsUsed() => gridPlanet.EdgePointsUsed();
+
+        //[Benchmark]
+        //public void PreCalculateGeometryData() => gridPlanet.PreCalculateGeometryData();
 
         [Benchmark]
-        public BitArray GetCompressed() => gridPlanet.GetCompressed();
-
-        [Benchmark]
-        public void Restore() => gridPlanet.Restore(compressedGrid);
-
-        [Benchmark]
-        public GridSidePointsUsed EdgePointsUsed() => gridPlanet.EdgePointsUsed();
-
-        [Benchmark]
-        public void PreCalculateGeometryData() => gridPlanet.PreCalculateGeometryData();
-
-        [Benchmark]
-        public GeometryData Triangulize() => gridPlanet.Triangulize(TriangleCount);
+        public GeometryData Triangulize() => gridPlanet.Triangulize(UsedBoxPoints, TriangleCount);
     }
 
     public class Program

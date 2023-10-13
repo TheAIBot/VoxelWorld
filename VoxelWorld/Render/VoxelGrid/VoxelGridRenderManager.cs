@@ -70,7 +70,6 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public static void DrawGrids()
         {
-
             //Send updated draw commands to the GPU
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {

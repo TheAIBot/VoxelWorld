@@ -35,9 +35,11 @@ namespace VoxelWorld.Voxel
 
         public int GetSizeInBytes()
         {
-            return vertices.Length * Marshal.SizeOf<Vector3>() +
-                   normals.Length * sizeof(byte) +
-                   indices.Length * sizeof(uint);
+            return Normals.Length * sizeof(byte) +
+                   Indices.Length * sizeof(uint) +
+                   Marshal.SizeOf<Vector3>() +
+                   sizeof(float) +
+                   Marshal.SizeOf<Vector3>();
         }
 
         public void Reuse()

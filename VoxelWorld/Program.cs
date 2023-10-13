@@ -150,6 +150,8 @@ namespace VoxelWorld
                         Console.WriteLine($"Transfered to GPU: {(transferedBytes / bytesToMBRatio):N0}MB/s");
                         const long bytesToKBRatio = 1_000;
                         Console.WriteLine($"Grid Size: {(VoxelGridRenderManager.AvgGridSize.GetAverage() / bytesToKBRatio):N0}KB");
+                        Console.WriteLine($"Indices: {IndirectDrawFactory.AvgIndiceCount.GetAverage():N0}");
+                        Console.WriteLine($"Normals: {IndirectDrawFactory.AvgVertexCount.GetAverage():N0}");
                         //VoxelGridRenderManager.PrintDrawBufferUtilization();
                     }
                 }

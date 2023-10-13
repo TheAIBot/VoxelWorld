@@ -8,8 +8,8 @@ namespace VoxelWorld.Render.VoxelGrid
 {
     internal sealed class IndirectDrawFactory
     {
-        private readonly PerfNumAverage<int> AvgVertexCount;
-        private readonly PerfNumAverage<int> AvgIndiceCount;
+        internal static PerfNumAverage<int> AvgVertexCount;
+        internal static PerfNumAverage<int> AvgIndiceCount;
         private readonly GL _openGl;
         private readonly int GeometryPerBuffer;
 
