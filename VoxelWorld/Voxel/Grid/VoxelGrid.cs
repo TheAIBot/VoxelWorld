@@ -9,7 +9,7 @@ using VoxelWorld.Voxel.System;
 
 namespace VoxelWorld.Voxel.Grid
 {
-    internal readonly record struct UsedPointsBoxBoundary(VectorInt3 Min, VectorInt3 Max)
+    public readonly record struct UsedPointsBoxBoundary(VectorInt3 Min, VectorInt3 Max)
     {
         public const int BoxCornerCount = 8;
 
@@ -44,7 +44,7 @@ namespace VoxelWorld.Voxel.Grid
         }
     }
 
-    internal readonly record struct VectorInt3(int X, int Y, int Z)
+    public readonly record struct VectorInt3(int X, int Y, int Z)
     {
         public Vector3 AsVector3() => new Vector3(X, Y, Z);
         public Vector4 AsVector4() => new Vector4(X, Y, Z, 0);

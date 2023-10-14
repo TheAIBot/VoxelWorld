@@ -3,7 +3,6 @@ using BenchmarkDotNet.Running;
 using System.Collections;
 using System.Numerics;
 using VoxelWorld.ShapeGenerators;
-using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;
 
@@ -40,11 +39,14 @@ namespace VoxelBench
         //[Benchmark]
         //public GridSidePointsUsed EdgePointsUsed() => gridPlanet.EdgePointsUsed();
 
+        [Benchmark]
+        public UsedPointsBoxBoundary GetUsedPointsBox() => gridPlanet.GetUsedPointsBox();
+
         //[Benchmark]
         //public void PreCalculateGeometryData() => gridPlanet.PreCalculateGeometryData();
 
-        [Benchmark]
-        public GeometryData Triangulize() => gridPlanet.Triangulize(UsedBoxPoints, TriangleCount);
+        //[Benchmark]
+        //public GeometryData Triangulize() => gridPlanet.Triangulize(UsedBoxPoints, TriangleCount);
     }
 
     public class Program
