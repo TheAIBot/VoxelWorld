@@ -207,7 +207,122 @@ namespace VoxelWorld.Voxel.Grid
             return false;
         }
 
-        public UsedPointsBoxBoundary GetUsedPointsBox()
+        public unsafe UsedPointsBoxBoundary GetUsedPointsBox()
+        {
+            if (!Avx2.IsSupported)
+            {
+                return GetUsedPointsBoxScalar();
+            }
+
+            Vector256<int> minX = Vector256.Create(int.MaxValue);
+            Vector256<int> minY = minX;
+            Vector256<int> minZ = minX;
+            Vector256<int> maxX = Vector256.Create(int.MinValue);
+            Vector256<int> maxY = maxX;
+            Vector256<int> maxZ = maxX;
+
+            Vector256<int> offset = Vector256.Create(0, 1, 2, 3, 4, 5, 6, 7);
+            Vector256<int> xIncrements = Vector256.Create(Vector256<int>.Count);
+
+            Vector256<byte> byteToIntMask = Vector256.Create(0, 128, 128, 128,
+                                                             1, 128, 128, 128,
+                                                             2, 128, 128, 128,
+                                                             3, 128, 128, 128,
+                                                             4, 128, 128, 128,
+                                                             5, 128, 128, 128,
+                                                             6, 128, 128, 128,
+                                                             7, 128, 128, 128);
+
+            int gridSideLength = GenData.GridSize;
+            int vpSideLength = gridSideLength - 1;
+            if (vpSideLength < Vector256<int>.Count)
+            {
+                throw new Exception("This implementation requires the side length is at least the length of the vector width for integers.");
+            }
+
+            fixed (bool* usedVoxelPoints = IsUsingVoxelPoint)
+            {
+                bool* usedVoxelPointsPtr = usedVoxelPoints;
+
+                Vector256<int> maskZ = Vector256<int>.Zero;
+                for (int z = 0; z < vpSideLength; z++)
+                {
+                    Vector256<int> maskY = Vector256<int>.Zero;
+
+                    for (int y = 0; y < vpSideLength; y++)
+                    {
+                        Vector256<int> xValues = offset;
+                        for (int x = 0; x + Vector256<int>.Count < vpSideLength; x += Vector256<int>.Count)
+                        {
+                            Vector256<int> maskX = Vector256.Create(*(long*)(usedVoxelPointsPtr + x)).AsInt32();
+                            maskX = Avx2.Shuffle(maskX.AsByte(), byteToIntMask).AsInt32();
+                            maskX = Vector256.Equals(maskX, Vector256<int>.One);
+
+                            maskY = Vector256.BitwiseOr(maskY, maskX);
+
+                            minX = Avx2.BlendVariable(minX, Avx2.Min(minX, xValues), maskX);
+                            maxX = Avx2.BlendVariable(maxX, Avx2.Max(maxX, xValues), maskX);
+                            xValues = Vector256.Add(xValues, xIncrements);
+                        }
+                        usedVoxelPointsPtr += vpSideLength - Vector256<int>.Count;
+                        xValues = Vector256.Create(vpSideLength - Vector256<int>.Count) + offset;
+                        {
+                            Vector256<int> maskX = Vector256.Create(*(long*)usedVoxelPointsPtr).AsInt32();
+                            maskX = Avx2.Shuffle(maskX.AsByte(), byteToIntMask).AsInt32();
+                            maskX = Vector256.Equals(maskX, Vector256<int>.One);
+
+                            maskY = Vector256.BitwiseOr(maskY, maskX);
+
+                            minX = Avx2.BlendVariable(minX, Vector256.Min(minX, xValues), maskX);
+                            maxX = Avx2.BlendVariable(maxX, Vector256.Max(maxX, xValues), maskX);
+                        }
+                        usedVoxelPointsPtr += Vector256<int>.Count;
+
+                        Vector256<int> yValue = Vector256.Create(y);
+                        minY = Avx2.BlendVariable(minY, Vector256.Min(minY, yValue), maskY);
+                        maxY = Avx2.BlendVariable(maxY, Vector256.Max(maxY, yValue), maskY);
+                        maskZ = Vector256.BitwiseOr(maskZ, maskY);
+                    }
+
+                    Vector256<int> zValue = Vector256.Create(z);
+                    minZ = Avx2.BlendVariable(minZ, Vector256.Min(minZ, zValue), maskZ);
+                    maxZ = Avx2.BlendVariable(maxZ, Vector256.Max(maxZ, zValue), maskZ);
+                }
+            }
+
+            int finalMinX = MinValue(minX);
+            int finalMinY = MinValue(minY);
+            int finalMinZ = MinValue(minZ);
+            int finalMaxX = MaxValue(maxX);
+            int finalMaxY = MaxValue(maxY);
+            int finalMaxZ = MaxValue(maxZ);
+
+            return new UsedPointsBoxBoundary(new VectorInt3(finalMinX, finalMinY, finalMinZ), new VectorInt3(finalMaxX, finalMaxY, finalMaxZ));
+        }
+
+        private static int MinValue(Vector256<int> values)
+        {
+            int minValue = int.MaxValue;
+            for (int i = 0; i < Vector256<int>.Count; i++)
+            {
+                minValue = Math.Min(minValue, values[i]);
+            }
+
+            return minValue;
+        }
+
+        private static int MaxValue(Vector256<int> values)
+        {
+            int maxValue = int.MinValue;
+            for (int i = 0; i < Vector256<int>.Count; i++)
+            {
+                maxValue = Math.Max(maxValue, values[i]);
+            }
+
+            return maxValue;
+        }
+
+        public UsedPointsBoxBoundary GetUsedPointsBoxScalar()
         {
             int minX = int.MaxValue;
             int minY = int.MaxValue;
