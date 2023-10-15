@@ -111,10 +111,18 @@ namespace VoxelWorld.Render.VoxelGrid
                 }
                 geometryData = TransferToBuffers[gridIndex].Geometry;
                 TransferToBuffers.RemoveAt(gridIndex);
+
+                GridPositionBuffer.ReserveSpace(-1);
+                GridSizeBuffer.ReserveSpace(-1);
+                NormalBuffer.ReserveSpace(-geometryData.Normals.Length);
+                IndiceBuffer.ReserveSpace(-geometryData.Indices.Length);
+                SizeBuffer.ReserveSpace(-1);
+                BaseVertexIndexBuffer.ReserveSpace(-1);
+                CommandBuffer.ReserveSpace(-1);
                 return true;
             }
 
-            CommandBuffer.ReserveSpace(-1);
+
             CommandsChangeSinceLastPrepareDraw = true;
             geometryData = null;
             return false;
