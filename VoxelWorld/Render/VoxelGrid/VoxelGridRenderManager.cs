@@ -227,6 +227,11 @@ namespace VoxelWorld.Render.VoxelGrid
                     }
                     else if (DrawFactory.HasAcceptableBufferSizes(GridDrawBuffers[i]))
                     {
+                        if (!GridDrawBuffers[i].IsReadyToReset())
+                        {
+                            continue;
+                        }
+
                         GridDrawBuffers[i].Reset();
                     }
                     else

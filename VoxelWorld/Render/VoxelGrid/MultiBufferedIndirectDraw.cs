@@ -158,6 +158,17 @@ namespace VoxelWorld.Render.VoxelGrid
             return isEmpty;
         }
 
+        public bool IsReadyToReset()
+        {
+            bool isEmpty = true;
+            foreach (var indirectDrawer in _bufferedDrawers)
+            {
+                isEmpty &= indirectDrawer.IsReadyToReset();
+            }
+
+            return isEmpty;
+        }
+
         public void Reset()
         {
             foreach (var indirectDrawer in _bufferedDrawers)
