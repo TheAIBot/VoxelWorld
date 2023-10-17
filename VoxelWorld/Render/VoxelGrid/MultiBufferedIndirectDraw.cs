@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
+using static VoxelWorld.Render.VoxelGrid.IndirectDraw;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
@@ -62,8 +63,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public long CopyToGPU()
         {
-            (GeometryData[] geometriesCopied, long copiedBytes) = _bufferedDrawers[_updateBufferIndex].CopyToGPU();
-            foreach (var geometry in geometriesCopied)
+            using CopyInformation copyInformation = _bufferedDrawers[_updateBufferIndex].CopyToGPU();
+            foreach (var geometry in copyInformation.CopiedGeometry.AsSpan())
             {
                 ref int buffersResideInCount = ref CollectionsMarshal.GetValueRefOrNullRef(_bufferCountGeometryResidesIn, geometry);
                 buffersResideInCount--;
@@ -74,7 +75,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 }
             }
 
-            return copiedBytes;
+            return copyInformation.CopiedBytes;
         }
 
         public void SendCommandsToGPU()

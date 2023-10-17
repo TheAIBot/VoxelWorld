@@ -130,15 +130,13 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool IsTransferringToBuffers() => TransferToBuffers.Count > 0;
 
-        public (GeometryData[], long) CopyToGPU()
+        public CopyInformation CopyToGPU()
         {
+            var copyInformation = new CopyInformation(TransferToBuffers.Count);
             if (TransferToBuffers.Count == 0)
             {
-                return (Array.Empty<GeometryData>(), 0);
+                return copyInformation;
             }
-
-            GeometryData[] geometryTransfered = new GeometryData[TransferToBuffers.Count];
-            long copiedBytes = 0;
 
             _gpuCommandSync.Wait();
             using (var gridPositionRange = GridPositionBuffer.GetReservedRange())
@@ -151,17 +149,17 @@ namespace VoxelWorld.Render.VoxelGrid
                 for (int i = 0; i < TransferToBuffers.Count; i++)
                 {
                     GeometryData geometry = TransferToBuffers[i].Geometry;
-                    geometryTransfered[i] = geometry;
+                    copyInformation.CopiedGeometry.AsSpan()[i] = geometry;
 
                     int baseVertexIndex = normalRange.BufferFirstAvailableIndex;
                     Add(TransferToBuffers[i].Grid, geometry, gridPositionRange.BufferFirstAvailableIndex, indiceRange.BufferFirstAvailableIndex, baseVertexIndex);
 
-                    copiedBytes += gridPositionRange.Add(geometry.GridTopLeftPosition);
-                    copiedBytes += gridSizeRange.Add(geometry.GridSize);
-                    copiedBytes += normalRange.AddRange(geometry.Normals);
-                    copiedBytes += indiceRange.AddRange(geometry.Indices);
-                    copiedBytes += sizeRange.Add(geometry.Size);
-                    copiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
+                    copyInformation.CopiedBytes += gridPositionRange.Add(geometry.GridTopLeftPosition);
+                    copyInformation.CopiedBytes += gridSizeRange.Add(geometry.GridSize);
+                    copyInformation.CopiedBytes += normalRange.AddRange(geometry.Normals);
+                    copyInformation.CopiedBytes += indiceRange.AddRange(geometry.Indices);
+                    copyInformation.CopiedBytes += sizeRange.Add(geometry.Size);
+                    copyInformation.CopiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
                 }
             }
             _gpuCommandSync.CreateFence();
@@ -169,7 +167,7 @@ namespace VoxelWorld.Render.VoxelGrid
             TransferToBuffers.Clear();
             CommandsChangeSinceLastPrepareDraw = true;
 
-            return (geometryTransfered, copiedBytes);
+            return copyInformation;
         }
 
         public void SendCommandsToGPU()
@@ -336,5 +334,21 @@ namespace VoxelWorld.Render.VoxelGrid
         }
 
         private sealed record DrawInformation(DrawElementsIndirectCommand Command, DrawCommandInfo Information);
+
+        public ref struct CopyInformation
+        {
+            public RentedArray<GeometryData> CopiedGeometry { get; }
+            public long CopiedBytes { get; set; } = 0;
+
+            public CopyInformation(int copiedGeometryCount)
+            {
+                CopiedGeometry = new RentedArray<GeometryData>(copiedGeometryCount);
+            }
+
+            public void Dispose()
+            {
+                CopiedGeometry.Dispose();
+            }
+        }
     }
 }
