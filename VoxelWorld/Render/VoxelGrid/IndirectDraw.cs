@@ -153,8 +153,8 @@ namespace VoxelWorld.Render.VoxelGrid
                     GeometryData geometry = TransferToBuffers[i].Geometry;
                     geometryTransfered[i] = geometry;
 
-                    int baseVertexIndex = NormalBuffer.FirstAvailableIndex;
-                    Add(TransferToBuffers[i].Grid, geometry, GridPositionBuffer.FirstAvailableIndex, IndiceBuffer.FirstAvailableIndex, baseVertexIndex);
+                    int baseVertexIndex = normalRange.BufferFirstAvailableIndex;
+                    Add(TransferToBuffers[i].Grid, geometry, gridPositionRange.BufferFirstAvailableIndex, indiceRange.BufferFirstAvailableIndex, baseVertexIndex);
 
                     copiedBytes += gridPositionRange.Add(geometry.GridTopLeftPosition);
                     copiedBytes += gridSizeRange.Add(geometry.GridSize);
@@ -163,13 +163,6 @@ namespace VoxelWorld.Render.VoxelGrid
                     copiedBytes += sizeRange.Add(geometry.Size);
                     copiedBytes += baseVertexIndexRange.Add((uint)baseVertexIndex);
                 }
-
-                GridPositionBuffer.UnsetReservedSPace();
-                GridSizeBuffer.UnsetReservedSPace();
-                NormalBuffer.UnsetReservedSPace();
-                IndiceBuffer.UnsetReservedSPace();
-                SizeBuffer.UnsetReservedSPace();
-                BaseVertexIndexBuffer.UnsetReservedSPace();
             }
             _gpuCommandSync.CreateFence();
 
@@ -183,20 +176,16 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             if (DrawInformations.Count > 0 && CommandsChangeSinceLastPrepareDraw)
             {
-
                 CommandBuffer.Reset();
-                CommandBuffer.ReserveSpace(DrawInformations.Count);
 
                 _gpuCommandSync.Wait();
-                using (var commandRange = CommandBuffer.GetReservedRange())
+                using (var commandRange = CommandBuffer.GetReservedRange(DrawInformations.Count))
                 {
 
                     foreach (var drawCmd in DrawInformations.Values)
                     {
                         commandRange.Add(drawCmd.Command);
                     }
-
-                    CommandBuffer.UnsetReservedSPace();
                 }
                 _gpuCommandSync.CreateFence();
 
@@ -206,7 +195,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool HasSpaceFor(int normalCount, int indiceCount, int cmdCount)
         {
-            return NormalBuffer.SpaceAvailable >= normalCount &&
+            return GridPositionBuffer.SpaceAvailable >= cmdCount &&
+                   NormalBuffer.SpaceAvailable >= normalCount &&
                    IndiceBuffer.SpaceAvailable >= indiceCount &&
                    CommandBuffer.SpaceAvailable >= cmdCount;
         }
@@ -245,29 +235,29 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int TransferDrawCommands(IndirectDraw dstDrawer)
         {
-            dstDrawer.BaseVertexIndexBuffer.ReserveSpace(DrawInformations.Count);
-            using var baseVertexIndexRange = dstDrawer.BaseVertexIndexBuffer.GetReservedRange();
-
             int copyCommands = 0;
-            foreach (var gridDrawInfo in DrawInformations)
+            using (var baseVertexIndexRange = dstDrawer.BaseVertexIndexBuffer.GetReservedRange(DrawInformations.Count))
             {
-                VoxelGridHierarchy grid = gridDrawInfo.Key;
-                DrawCommandInfo drawInfo = gridDrawInfo.Value.Information;
+                foreach (var gridDrawInfo in DrawInformations)
+                {
+                    VoxelGridHierarchy grid = gridDrawInfo.Key;
+                    DrawCommandInfo drawInfo = gridDrawInfo.Value.Information;
 
-                int dstGridPositionOffset = dstDrawer.GridPositionBuffer.FirstAvailableIndex;
-                int dstNormalOffset = dstDrawer.NormalBuffer.FirstAvailableIndex;
-                int dstIndiceOffset = dstDrawer.IndiceBuffer.FirstAvailableIndex;
+                    int dstGridPositionOffset = dstDrawer.GridPositionBuffer.FirstAvailableIndex;
+                    int dstNormalOffset = dstDrawer.NormalBuffer.FirstAvailableIndex;
+                    int dstIndiceOffset = dstDrawer.IndiceBuffer.FirstAvailableIndex;
 
-                GridPositionBuffer.CopyTo(dstDrawer.GridPositionBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
-                GridSizeBuffer.CopyTo(dstDrawer.GridSizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
-                NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstNormalOffset, drawInfo.VertexCount);
-                IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
-                SizeBuffer.CopyTo(dstDrawer.SizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
-                baseVertexIndexRange.Add((uint)dstNormalOffset);
-                dstDrawer.CommandBuffer.ReserveSpace(1);
-                dstDrawer.Add(grid, dstGridPositionOffset, dstIndiceOffset, drawInfo.IndiceCount, dstNormalOffset, drawInfo.VertexCount);
+                    GridPositionBuffer.CopyTo(dstDrawer.GridPositionBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                    GridSizeBuffer.CopyTo(dstDrawer.GridSizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                    NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstNormalOffset, drawInfo.VertexCount);
+                    IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
+                    SizeBuffer.CopyTo(dstDrawer.SizeBuffer, drawInfo.GridPositionOffset, dstGridPositionOffset, 1);
+                    baseVertexIndexRange.Add((uint)dstNormalOffset);
+                    dstDrawer.CommandBuffer.ReserveSpace(1);
+                    dstDrawer.Add(grid, dstGridPositionOffset, dstIndiceOffset, drawInfo.IndiceCount, dstNormalOffset, drawInfo.VertexCount);
 
-                copyCommands++;
+                    copyCommands++;
+                }
             }
 
             _gpuCommandSync.ReCreateFence();

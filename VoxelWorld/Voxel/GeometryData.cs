@@ -17,9 +17,6 @@ namespace VoxelWorld.Voxel
         public Vector3 Size { get; set; }
         public Span<byte> Normals { get { return normals.AsSpan(0, VertexCount); } }
         public Span<uint> Indices { get { return indices.AsSpan(0, IndiceCount); } }
-
-        public Memory<byte> NormalsAsMemSpan { get { return new Memory<byte>(normals, 0, VertexCount); } }
-        public Memory<uint> IndicesAsMemSpan { get { return new Memory<uint>(indices, 0, IndiceCount); } }
         public int TriangleCount => Indices.Length / 3;
 
         public GeometryData(Vector3 gridTopLeftPosition, float gridSize, Vector3 size, int vertexCount, int indiceCount)

@@ -1,5 +1,6 @@
 ﻿using Silk.NET.OpenGL;
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace VoxelWorld.Render.VoxelGrid
@@ -7,8 +8,9 @@ namespace VoxelWorld.Render.VoxelGrid
     internal sealed unsafe class SlidingVBO<T> : IDisposable where T : unmanaged
     {
         private readonly GL _openGl;
-        public int SpaceAvailable { get; private set; }
-        public int FirstAvailableIndex { get; private set; }
+        public int SpaceAvailable => Buffer.Count - FirstAvailableIndex - _reservedSpace;
+        public int FirstAvailableIndex { get; private set; } = 0;
+        private int _reservedSpace = 0;
         public readonly VBO<T> Buffer;
         private readonly void* BufferPointer;
 
@@ -17,8 +19,6 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             _openGl = openGl;
             Buffer = buffer;
-            SpaceAvailable = Buffer.Count;
-            FirstAvailableIndex = 0;
 
             int byteLength = SpaceAvailable * Marshal.SizeOf<T>();
             BufferPointer = _openGl.MapBufferRange(Buffer, 0, byteLength, MapBufferAccessMask.WriteBit |
@@ -29,30 +29,39 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void ReserveSpace(int sizeToReserve)
         {
-            SpaceAvailable -= sizeToReserve;
+            _reservedSpace += sizeToReserve;
+            if (FirstAvailableIndex + _reservedSpace > Buffer.Count)
+            {
+                throw new Exception();
+            }
         }
 
         public void UseSpace(int sizeToUse)
         {
             FirstAvailableIndex += sizeToUse;
-            SpaceAvailable -= sizeToUse;
-        }
-
-        public void UnsetReservedSPace()
-        {
-            SpaceAvailable = Buffer.Count - FirstAvailableIndex;
+            if (FirstAvailableIndex + _reservedSpace > Buffer.Count)
+            {
+                throw new Exception();
+            }
         }
 
         public SlidingRange MapReservedRange(MapBufferAccessMask mappingMask = MapBufferAccessMask.WriteBit)
         {
-            int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
-            return new SlidingRange(this, Buffer.MapBufferRange(_openGl, FirstAvailableIndex, reserved, mappingMask));
+            return new SlidingRange(this, Buffer.MapBufferRange(_openGl, FirstAvailableIndex, _reservedSpace, mappingMask));
         }
 
         public PermanentFlushSlidingRange GetReservedRange()
         {
-            int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
-            return new PermanentFlushSlidingRange(this, new FlushPermanentMappedRange<T>(_openGl, Buffer, FirstAvailableIndex, reserved, BufferPointer));
+            int reserved = _reservedSpace;
+            _reservedSpace = 0;
+            return GetReservedRange(reserved);
+        }
+
+        public PermanentFlushSlidingRange GetReservedRange(int length)
+        {
+            int firstAvailableIndex = FirstAvailableIndex;
+            UseSpace(length);
+            return new PermanentFlushSlidingRange(_openGl, Buffer, firstAvailableIndex, length, BufferPointer);
         }
 
         public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
@@ -61,13 +70,13 @@ namespace VoxelWorld.Render.VoxelGrid
             int dstOffsetInbytes = dstOffset * Marshal.SizeOf<T>();
             int lengthInBytes = length * Marshal.SizeOf<T>();
 
-            _openGl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, (IntPtr)srcOffsetInBytes, (IntPtr)dstOffsetInbytes, (nuint)lengthInBytes);
+            _openGl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, srcOffsetInBytes, dstOffsetInbytes, (nuint)lengthInBytes);
             dstBuffer.UseSpace(length);
         }
 
         public void Reset()
         {
-            SpaceAvailable = Buffer.Count;
+            _reservedSpace = 0;
             FirstAvailableIndex = 0;
         }
 
@@ -127,41 +136,55 @@ namespace VoxelWorld.Render.VoxelGrid
             }
         }
 
-        internal readonly ref struct PermanentFlushSlidingRange
+        internal ref struct PermanentFlushSlidingRange
         {
-            private readonly SlidingVBO<T> Sliding;
-            private readonly FlushPermanentMappedRange<T> MappedRange;
-            private readonly int StartIndex;
+            private readonly GL _openGl;
+            private readonly VBO<T> _buffer;
+            private readonly int _offset;
+            private readonly Span<T> _range;
+            private int _firstAvailableIndex;
 
-            internal PermanentFlushSlidingRange(SlidingVBO<T> sliding, FlushPermanentMappedRange<T> mapped)
+            public int BufferFirstAvailableIndex => _offset + _firstAvailableIndex;
+
+            internal PermanentFlushSlidingRange(GL openGl, VBO<T> buffer, int offset, int length, void* bufferRange)
             {
-                Sliding = sliding;
-                MappedRange = mapped;
-                StartIndex = Sliding.FirstAvailableIndex;
+                _openGl = openGl;
+                _buffer = buffer;
+                _offset = offset;
+                _range = new Span<T>(Unsafe.Add<T>(bufferRange, offset), length);
             }
 
             public int Add(T value)
             {
-                int offset = Sliding.FirstAvailableIndex - StartIndex;
-                MappedRange.Range[offset] = value;
+                _range[_firstAvailableIndex] = value;
+                _firstAvailableIndex++;
 
-                Sliding.UseSpace(1);
                 return sizeof(T);
             }
 
             public int AddRange(Span<T> values)
             {
-                int offset = Sliding.FirstAvailableIndex - StartIndex;
-                Span<T> offsetRange = MappedRange.Range.Slice(offset);
-                values.CopyTo(offsetRange);
+                if (_range.Length < values.Length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(values));
+                }
+                values.CopyTo(_range.Slice(_firstAvailableIndex));
+                _firstAvailableIndex += values.Length;
 
-                Sliding.UseSpace(values.Length);
                 return values.Length * sizeof(T);
             }
 
             public void Dispose()
             {
-                MappedRange.Dispose();
+                if (_openGl.IsExtensionDirectStateAccessEnabled())
+                {
+                    _openGl.FlushMappedNamedBufferRange(_buffer.ID, _offset * Marshal.SizeOf<T>(), (nuint)(_range.Length * Marshal.SizeOf<T>()));
+                }
+                else
+                {
+                    _openGl.BindBuffer(_buffer.BufferTarget, _buffer.ID);
+                    _openGl.FlushMappedBufferRange(_buffer.BufferTarget, _offset * Marshal.SizeOf<T>(), (nuint)(_range.Length * Marshal.SizeOf<T>()));
+                }
             }
         }
     }
