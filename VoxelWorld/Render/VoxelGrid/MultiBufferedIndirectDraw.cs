@@ -1,7 +1,9 @@
 ﻿using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VoxelWorld.Voxel;
 using VoxelWorld.Voxel.Hierarchy;
@@ -48,15 +50,19 @@ namespace VoxelWorld.Render.VoxelGrid
         public void RemoveGeometry(VoxelGridHierarchy grid)
         {
             GeometryData geometryData = null;
+            int removedGeometryCount = 0;
             foreach (var indirectDrawer in _bufferedDrawers)
             {
-                indirectDrawer.TryRemoveGeometry(grid, out geometryData);
+                if (indirectDrawer.TryRemoveGeometry(grid, out GeometryData drawerGeometryData))
+                {
+                    geometryData = drawerGeometryData;
+                    removedGeometryCount++;
+                }
             }
 
             if (geometryData != null)
             {
-                _bufferCountGeometryResidesIn.Remove(geometryData);
-                geometryData.Reuse();
+                DecrementBufferCounter(geometryData, removedGeometryCount);
             }
         }
 
@@ -65,13 +71,7 @@ namespace VoxelWorld.Render.VoxelGrid
             (GeometryData[] geometriesCopied, long copiedBytes) = _bufferedDrawers[_updateBufferIndex].CopyToGPU();
             foreach (var geometry in geometriesCopied)
             {
-                ref int buffersResideInCount = ref CollectionsMarshal.GetValueRefOrNullRef(_bufferCountGeometryResidesIn, geometry);
-                buffersResideInCount--;
-                if (buffersResideInCount == 0)
-                {
-                    geometry.Reuse();
-                    _bufferCountGeometryResidesIn.Remove(geometry);
-                }
+                DecrementBufferCounter(geometry, 1);
             }
 
             return copiedBytes;
@@ -183,6 +183,24 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             _updateBufferIndex = (_updateBufferIndex + 1) % _bufferedDrawers.Length;
             _drawBufferIndex = (_drawBufferIndex + 1) % _bufferedDrawers.Length;
+        }
+
+        private void DecrementBufferCounter(GeometryData geometryData, int decrementCount)
+        {
+            ref int buffersResideInCount = ref CollectionsMarshal.GetValueRefOrNullRef(_bufferCountGeometryResidesIn, geometryData);
+            if (Unsafe.IsNullRef(ref buffersResideInCount))
+            {
+                throw new InvalidOperationException("Expected geometry to be in buffer counter dictionary but it was not.");
+            }
+
+            Debug.Assert(buffersResideInCount > 0);
+
+            buffersResideInCount -= decrementCount;
+            if (buffersResideInCount == 0)
+            {
+                geometryData.Reuse();
+                _bufferCountGeometryResidesIn.Remove(geometryData);
+            }
         }
     }
 }

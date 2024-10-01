@@ -1,6 +1,7 @@
 ﻿using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using VoxelWorld.Shaders;
@@ -193,6 +194,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int TransferDrawCommands(IndirectDraw dstDrawer)
         {
+            Debug.Assert(TransferToBuffers.Count == 0);
+
             int copyCommands = 0;
             foreach (var gridDrawInfo in DrawInformations)
             {
