@@ -16,6 +16,7 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             _openGl = openGl;
             _buffer = buffer;
+            _offset = offset;
             Range = new Span<T>(Unsafe.Add<T>(bufferRange, offset), length);
         }
 
