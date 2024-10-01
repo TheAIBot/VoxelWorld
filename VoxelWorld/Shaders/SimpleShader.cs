@@ -8,10 +8,12 @@ namespace VoxelWorld.Shaders
     internal static class SimpleShader
     {
         private static readonly string VertexShader = @"
-#version 330
-
-attribute vec3 vertex_pos;
-attribute uint vertex_normal;
+in vec3 vertex_pos;
+in vec3 gridPosition;
+in float gridSize;
+in uint vertex_normal;
+in vec3 size;
+in uint baseVertexIndex;
 uniform mat4 PVM;
 uniform mat3 M;
 
@@ -32,8 +34,6 @@ void main(void)
 ";
 
         private static readonly string FragmentShader = @"
-#version 330
-
 in vec3 position;
 in vec3 normal;
 
@@ -48,23 +48,25 @@ uniform float mat_spec_exp;
 
 uniform vec3 viewPos;
 
+layout(location = 0) out vec4 fragColor;
+
 void main(void)
 {
     vec3 norm = normalize(normal);
 
     // ambient part
-    gl_FragColor = mat_diff * light_amb;
+    fragColor = mat_diff * light_amb;
 
     // diffuse part
     vec3 light_dir = normalize(light_pos.xyz - position);
     float cos_theta = max(dot(norm, light_dir), 0.0);
-    gl_FragColor += mat_diff * cos_theta * light_diff;
+    fragColor += mat_diff * cos_theta * light_diff;
     
     // specular part
     vec3 viewDir = normalize(viewPos - position);
     vec3 refl_dir = reflect(-light_dir, norm);
     float r_dot_l = max(dot(viewDir, refl_dir), 0.0);
-    gl_FragColor += mat_spec * pow(r_dot_l, mat_spec_exp) * light_spec;
+    fragColor += mat_spec * pow(r_dot_l, mat_spec_exp) * light_spec;
 }
 ";
 
