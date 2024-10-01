@@ -97,22 +97,23 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int GetVertexCount()
         {
-            return _bufferedDrawers[0].GetVertexCount();
+            return _bufferedDrawers.Max(x => x.GetVertexCount());
         }
 
         public int GetIndiceCount()
         {
-            return _bufferedDrawers[0].GetIndiceCount();
+            return _bufferedDrawers.Max(x => x.GetIndiceCount());
         }
 
         public int GetCommandCount()
         {
-            return _bufferedDrawers[0].GetCommandCount();
+            return _bufferedDrawers.Max(x => x.GetCommandCount());
         }
 
         public IEnumerable<VoxelGridHierarchy> GetGridsDrawing()
         {
-            return _bufferedDrawers[0].GetGridsDrawing();
+            return _bufferedDrawers.SelectMany(x => x.GetGridsDrawing())
+                                   .Distinct();
         }
 
         public int TransferDrawCommands(MultiBufferedIndirectDraw multiBufferedDrawer)

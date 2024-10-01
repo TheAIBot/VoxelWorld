@@ -210,6 +210,7 @@ namespace VoxelWorld.Render.VoxelGrid
                         }
 
                         AvgTransferedGridsFromAlmostEmptyBuffers.AddSampleNow(draw.TransferDrawCommands(copyTo));
+                        break;
                     }
                 }
             }
