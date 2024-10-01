@@ -86,7 +86,6 @@ namespace VoxelWorld.Render.VoxelGrid
                 return true;
             }
 
-            CommandBuffer.ReserveSpace(-1);
             CommandsChangeSinceLastPrepareDraw = true;
             geometryData = null;
             return false;
