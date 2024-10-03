@@ -37,6 +37,7 @@ namespace VoxelWorld
         private static bool IsRunning;
         private static float angle;
         private static PerfNumAverage<int> avgFrameTime = new PerfNumAverage<int>(200, x => x);
+        private static TimeCounter AvgFramesPerSecond = new TimeCounter(TimeSpan.FromSeconds(1), 5);
         private static GpuTimer gpuFrameTime;
         private static Thread cake;
         private static Frustum renderCheck = new Frustum();
@@ -150,6 +151,8 @@ namespace VoxelWorld
                         Console.WriteLine($"Transfered to GPU: {(transferedBytes / bytesToMBRatio):N0}MB/s");
                         const long bytesToKBRatio = 1_000;
                         Console.WriteLine($"Grid Size: {(VoxelGridRenderManager.AvgGridSize.GetAverage() / bytesToKBRatio):N0}KB");
+                        Console.WriteLine($"Frame Time: {avgFrameTime.GetAverage():N0}ms");
+                        Console.WriteLine($"FPS: {AvgFramesPerSecond.GetAverage():N1}");
                         //VoxelGridRenderManager.PrintDrawBufferUtilization();
                     }
                 }
@@ -224,7 +227,8 @@ namespace VoxelWorld
             gpuFrameTime.StopTimer();
 
             avgFrameTime.AddSample((int)gpuFrameTime.GetTimeInMS());
-            //Console.WriteLine(avgFrameTime.GetAverage());
+            AvgFramesPerSecond.IncrementCounter();
+            //Console.WriteLine($"Frame Time: {avgFrameTime.GetAverage():N0}ms");
             //Console.WriteLine($"Empty: {VoxelGridInfo.GeneratedEmpty:N0}");
             //Console.WriteLine($"Not Empty: {VoxelGridInfo.GeneratedNotEmpty:N0}");
             //int totalGenerated = VoxelGridInfo.GeneratedEmpty + VoxelGridInfo.GeneratedNotEmpty;
