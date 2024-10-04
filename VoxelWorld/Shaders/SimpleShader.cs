@@ -8,6 +8,8 @@ namespace VoxelWorld.Shaders
     internal static class SimpleShader
     {
         private static readonly string VertexShader = @"
+#version 460 core
+
 in vec3 vertex_pos;
 in vec3 gridPosition;
 in float gridSize;
@@ -34,6 +36,8 @@ void main(void)
 ";
 
         private static readonly string FragmentShader = @"
+#version 460 core
+
 in vec3 position;
 in vec3 normal;
 

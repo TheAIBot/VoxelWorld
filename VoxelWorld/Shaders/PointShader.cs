@@ -6,6 +6,8 @@ namespace VoxelWorld.Shaders
     internal static class PointShader
     {
         private static readonly string VertexShader = @"
+#version 460 core
+
 in vec3 vertex_pos;
 uniform mat4 P;
 uniform mat4 V;
@@ -18,6 +20,8 @@ void main(void)
 ";
 
         private static readonly string FragmentShader = @"
+#version 460 core
+
 layout(location = 0) out vec4 fragColor;
 
 void main(void)
