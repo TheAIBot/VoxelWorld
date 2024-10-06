@@ -26,7 +26,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
 
         private static readonly Dictionary<VoxelGridHierarchy, GridBufferLocation> GridsToBuffer = new Dictionary<VoxelGridHierarchy, GridBufferLocation>();
-        private static readonly ConcurrentDictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
+        private static readonly Dictionary<VoxelGridHierarchy, int> GridsToTriangleCount = new();
         public static readonly TimeNumberAverage<int> AvgNewTriangles = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
         public static readonly TimeNumberAverage<int> AvgNewGrids = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
         public static readonly TimeNumberAverage<int> AvgTransferedGridsFromAlmostEmptyBuffers = new TimeNumberAverage<int>(TimeSpan.FromSeconds(5));
@@ -36,7 +36,7 @@ namespace VoxelWorld.Render.VoxelGrid
         private static int DrawCounter = 0;
 
         public static int DrawBuffers => BuffersWithSpace.Count + FullBuffers.Count + CopyingBuffers.Count * 2;
-        public static int TrianglesDrawing => GridsToTriangleCount.Values.Sum();
+        public static int TrianglesDrawing { get; private set; }
         public static int GridsDrawing { get; private set; } = 0;
 
         public static void SetOpenGl(GL openGl)
@@ -141,13 +141,15 @@ namespace VoxelWorld.Render.VoxelGrid
                 {
                     case GridRenderCommandType.Add:
                         AddGrid(cmd);
-                        GridsToTriangleCount.TryAdd(cmd.Grid, cmd.GeoData.TriangleCount);
+                        GridsToTriangleCount.Add(cmd.Grid, cmd.GeoData.TriangleCount);
+                        TrianglesDrawing += cmd.GeoData.TriangleCount;
                         newTrianglesForFrame += cmd.GeoData.TriangleCount;
                         newGridsForFrame++;
                         break;
                     case GridRenderCommandType.Remove:
                         RemoveGrid(cmd);
-                        GridsToTriangleCount.TryRemove(cmd.Grid, out var _);
+                        GridsToTriangleCount.Remove(cmd.Grid, out int triangleCount);
+                        TrianglesDrawing -= triangleCount;
                         break;
                     default:
                         throw new Exception($"Unknown enum value: {cmd.CType}");
