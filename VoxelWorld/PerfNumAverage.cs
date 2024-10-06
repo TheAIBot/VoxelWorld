@@ -7,11 +7,11 @@ namespace VoxelWorld
     internal sealed class PerfNumAverage<T>
     {
         private readonly Queue<T> Samples;
-        private int SamplesSum;
-        private Func<T, int> HowToGetValue;
+        private long SamplesSum;
+        private Func<T, long> HowToGetValue;
         private readonly int SamplesNeeded;
 
-        public PerfNumAverage(int samplesNeeded, Func<T, int> sumOfWhat)
+        public PerfNumAverage(int samplesNeeded, Func<T, long> sumOfWhat)
         {
             this.Samples = new Queue<T>();
             this.SamplesSum = 0;
@@ -48,13 +48,13 @@ namespace VoxelWorld
         {
             int xValues = 30;
             int yValues = 60;
-            int xDiv = (Samples.Select(HowToGetValue).Max() + xValues - 1) / xValues;
-            int[] histSums = new int[xValues];
+            long xDiv = (Samples.Select(HowToGetValue).Max() + xValues - 1) / xValues;
+            long[] histSums = new long[xValues];
             foreach (int sample in Samples.Select(HowToGetValue))
             {
                 histSums[sample / xDiv]++;
             }
-            int maxValue = histSums.Max();
+            long maxValue = histSums.Max();
             for (int i = 0; i < histSums.Length; i++)
             {
                 int padding = maxValue == 0 ? 0 : (int)((histSums[i] / (float)maxValue) * yValues);
