@@ -22,7 +22,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         private readonly record struct CopyPair(MultiBufferedIndirectDraw From, MultiBufferedIndirectDraw To, List<VoxelGridHierarchy> CopiedGrids);
 
-        // Due to copying it is possible for the grid to be in to places at once.
+        // Due to copying it is possible for the grid to be in two places at once.
         private readonly record struct GridBufferLocation(MultiBufferedIndirectDraw Primary, MultiBufferedIndirectDraw? Secondary);
 
 
@@ -334,6 +334,13 @@ namespace VoxelWorld.Render.VoxelGrid
             return TotalGpuBufferSizeInBytes / bytesToMBRatio;
         }
 
+        /// <summary>
+        /// It is possible to get more than 100% utilization because
+        /// used memory is approximated from the average grid size and
+        /// the number of grids being drawn. >100% utilization should
+        /// be temporary as the average grid size is updated to align
+        /// with actual average grid size.
+        /// </summary>
         public static float GetBufferUtilization()
         {
             const int bytesToMBRatio = 1_000_000;
