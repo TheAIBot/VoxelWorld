@@ -14,6 +14,9 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public unsafe FlushPermanentMappedRange(GL openGl, VBO<T> buffer, int offset, int length, void* bufferRange)
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)offset * Marshal.SizeOf<T>(), int.MaxValue);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)length * Marshal.SizeOf<T>(), int.MaxValue);
+
             _openGl = openGl;
             _buffer = buffer;
             _offset = offset;
