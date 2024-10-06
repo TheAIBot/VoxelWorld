@@ -138,6 +138,7 @@ namespace VoxelWorld
 
             });
 
+            Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
             cake.Priority = ThreadPriority.AboveNormal;
             cake.Start();
 

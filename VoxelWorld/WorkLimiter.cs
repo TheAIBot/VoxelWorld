@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
-using System.Threading.Tasks.Dataflow;
 using VoxelWorld.Voxel.Grid;
 using VoxelWorld.Voxel.System;
 
@@ -27,6 +26,7 @@ namespace VoxelWorld
             {
                 Workers.Add(new Thread(() =>
                 {
+                    Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
                     VoxelGrid grid = new VoxelGrid(new Vector3(0, 0, 0), voxelgenData);
                     try
                     {
