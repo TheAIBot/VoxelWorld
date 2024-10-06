@@ -7,14 +7,49 @@ namespace VoxelWorld.Render.VoxelGrid
     internal sealed unsafe class SlidingVBO<T> : IDisposable where T : unmanaged
     {
         private readonly GL _openGl;
-        public int SpaceAvailable { get; private set; }
-        public int FirstAvailableIndex { get; private set; }
+        private int _firstAvailableIndex;
+        private int _spaceAvailable;
+
+        public int SpaceAvailable
+        {
+            get
+            {
+                return _spaceAvailable;
+            }
+            private set
+            {
+                if (value < 0)
+                {
+                    throw new InvalidOperationException($"Attempted to set {nameof(SpaceAvailable)} to {value:N0} which is less than 0.");
+                }
+
+                _spaceAvailable = value;
+            }
+        }
+        public int FirstAvailableIndex
+        {
+            get
+            {
+                return _firstAvailableIndex;
+            }
+            private set
+            {
+                if (value > Buffer.Count)
+                {
+                    throw new InvalidOperationException($"Attempted to set {nameof(FirstAvailableIndex)} to {value:N0} which is more than buffer size: {Buffer.Count:N0}");
+                }
+
+                _firstAvailableIndex = value;
+            }
+        }
         public readonly VBO<T> Buffer;
         private readonly void* BufferPointer;
 
 
         public SlidingVBO(GL openGl, VBO<T> buffer)
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)buffer.Count * Marshal.SizeOf<T>(), int.MaxValue);
+
             _openGl = openGl;
             Buffer = buffer;
             SpaceAvailable = Buffer.Count;
@@ -47,11 +82,19 @@ namespace VoxelWorld.Render.VoxelGrid
         public PermanentFlushSlidingRange GetReservedRange()
         {
             int reserved = Buffer.Count - FirstAvailableIndex - SpaceAvailable;
+            if (FirstAvailableIndex + reserved > Buffer.Count)
+            {
+                throw new InvalidOperationException("Attempted to reserve range extended beyond the allocated range.");
+            }
+
             return new PermanentFlushSlidingRange(this, new FlushPermanentMappedRange<T>(_openGl, Buffer, FirstAvailableIndex, reserved, BufferPointer));
         }
 
         public void CopyTo(SlidingVBO<T> dstBuffer, int srcOffset, int dstOffset, int length)
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)srcOffset * Marshal.SizeOf<T>(), int.MaxValue);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)dstOffset * Marshal.SizeOf<T>(), int.MaxValue);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)length * Marshal.SizeOf<T>(), int.MaxValue);
             int srcOffsetInBytes = srcOffset * Marshal.SizeOf<T>();
             int dstOffsetInbytes = dstOffset * Marshal.SizeOf<T>();
             int lengthInBytes = length * Marshal.SizeOf<T>();
