@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using VoxelWorld.Shaders;
 using VoxelWorld.Voxel;
@@ -27,13 +26,13 @@ namespace VoxelWorld.Render.VoxelGrid
         public IndirectDraw(GL openGl, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
             _gpuSync = new GpuCommandSync(openGl);
-            VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
-            NormalBuffer = new SlidingVBO<byte>(openGl, new VBO<byte>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
+            VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit));
+            NormalBuffer = new SlidingVBO<byte>(openGl, new VBO<byte>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit)
             {
                 CastToFloat = false
             });
-            IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferStorageTarget.ElementArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
-            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(openGl, new VBO<DrawElementsIndirectCommand>(openGl, commandBufferSize, BufferStorageTarget.DrawIndirectBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
+            IndiceBuffer = new SlidingVBO<uint>(openGl, new VBO<uint>(openGl, indiceBufferSize, BufferStorageTarget.ElementArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit));
+            CommandBuffer = new SlidingVBO<DrawElementsIndirectCommand>(openGl, new VBO<DrawElementsIndirectCommand>(openGl, commandBufferSize, BufferStorageTarget.DrawIndirectBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit));
             IGenericVBO[] vbos = new IGenericVBO[]
             {
                 new GenericVBO<Vector3>(VertexBuffer.Buffer, "vertex_pos"),
@@ -71,14 +70,15 @@ namespace VoxelWorld.Render.VoxelGrid
             return false;
         }
 
-        public bool TryRemoveGeometry(VoxelGridHierarchy grid, [NotNullWhen(true)] out GeometryData geometryData)
+        public bool TryRemoveGeometry(VoxelGridHierarchy grid, out GeometryData geometryData)
         {
             if (!DrawInformations.Remove(grid))
             {
                 int gridIndex = TransferToBuffers.FindIndex(x => x.Grid == grid);
                 if (gridIndex == -1)
                 {
-                    throw new Exception("Failed to find grid and remove it.");
+                    geometryData = null;
+                    return false;
                 }
                 geometryData = TransferToBuffers[gridIndex].Geometry;
                 TransferToBuffers.RemoveAt(gridIndex);
@@ -87,7 +87,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
             CommandsChangeSinceLastPrepareDraw = true;
             geometryData = null;
-            return false;
+            return true;
         }
 
         public bool IsTransferringToBuffers() => TransferToBuffers.Count > 0;
@@ -102,9 +102,6 @@ namespace VoxelWorld.Render.VoxelGrid
             _gpuSync.Wait();
 
             GeometryData[] geometryTransfered = new GeometryData[TransferToBuffers.Count];
-            using var vertexRange = VertexBuffer.GetReservedRange();
-            using var normalRange = NormalBuffer.GetReservedRange();
-            using var indiceRange = IndiceBuffer.GetReservedRange();
             long copiedBytes = 0;
 
             using (var vertexRange = VertexBuffer.GetReservedRange())
@@ -112,17 +109,17 @@ namespace VoxelWorld.Render.VoxelGrid
             using (var indiceRange = IndiceBuffer.GetReservedRange())
             {
 
-            for (int i = 0; i < TransferToBuffers.Count; i++)
-            {
-                GeometryData geometry = TransferToBuffers[i].Geometry;
-                geometryTransfered[i] = geometry;
+                for (int i = 0; i < TransferToBuffers.Count; i++)
+                {
+                    GeometryData geometry = TransferToBuffers[i].Geometry;
+                    geometryTransfered[i] = geometry;
 
-                Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
+                    Add(TransferToBuffers[i].Grid, geometry, IndiceBuffer.FirstAvailableIndex, VertexBuffer.FirstAvailableIndex);
 
-                copiedBytes += vertexRange.AddRange(geometry.Vertices);
-                copiedBytes += normalRange.AddRange(geometry.Normals);
-                copiedBytes += indiceRange.AddRange(geometry.Indices);
-            }
+                    copiedBytes += vertexRange.AddRange(geometry.Vertices);
+                    copiedBytes += normalRange.AddRange(geometry.Normals);
+                    copiedBytes += indiceRange.AddRange(geometry.Indices);
+                }
             }
 
             TransferToBuffers.Clear();
@@ -143,10 +140,10 @@ namespace VoxelWorld.Render.VoxelGrid
 
                 using (var commandRange = CommandBuffer.GetReservedRange())
                 {
-                foreach (var drawCmd in DrawInformations.Values)
-                {
-                    commandRange.Add(drawCmd.Command);
-                }
+                    foreach (var drawCmd in DrawInformations.Values)
+                    {
+                        commandRange.Add(drawCmd.Command);
+                    }
                 }
 
                 _gpuSync.CreateFence();
@@ -217,13 +214,15 @@ namespace VoxelWorld.Render.VoxelGrid
                 dstDrawer.CommandBuffer.ReserveSpace(1);
                 dstDrawer.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
 
+            }
+
             _gpuSync.CreateFence();
             dstDrawer._gpuSync.CreateFence();
 
             DrawInformations.Clear();
             dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
 
-            return copyCommands;
+            return 0;
         }
 
         public void Draw()

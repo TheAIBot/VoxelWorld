@@ -89,6 +89,7 @@ namespace VoxelWorld
                 Console.WriteLine("OpenGL debug context enabled.");
             }
             Console.WriteLine($"OpenGL Version: {_openGl.GetStringS(GLEnum.Version)}");
+
             dummyCamera = new PlayerCamera(window.Size.X, window.Size.Y, new Vector3(15, 15, 15));
             player = new PlayerCamera(window.Size.X, window.Size.Y, new Vector3(-8, -8, -8));
             renderFrom = player;
@@ -198,6 +199,7 @@ namespace VoxelWorld
             {
                 openGLDebugging = new OpenGLDebugging(_openGl);
             }
+
             _openGl.Enable(EnableCap.DepthTest);
             _openGl.Enable(EnableCap.CullFace);
             //Gl.Enable(EnableCap.Blend);

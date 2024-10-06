@@ -47,7 +47,7 @@ namespace VoxelWorld.Render.VoxelGrid
             return false;
         }
 
-        public void RemoveGeometry(VoxelGridHierarchy grid)
+        public bool TryRemoveGeometry(VoxelGridHierarchy grid)
         {
             GeometryData geometryData = null;
             int removedGeometryCount = 0;
@@ -55,8 +55,12 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 if (indirectDrawer.TryRemoveGeometry(grid, out GeometryData drawerGeometryData))
                 {
-                    geometryData = drawerGeometryData;
                     removedGeometryCount++;
+                }
+
+                if (drawerGeometryData != null)
+                {
+                    geometryData = drawerGeometryData;
                 }
             }
 
@@ -64,6 +68,8 @@ namespace VoxelWorld.Render.VoxelGrid
             {
                 DecrementBufferCounter(geometryData, removedGeometryCount);
             }
+
+            return removedGeometryCount != 0;
         }
 
         public long CopyToGPU()
@@ -84,6 +90,12 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public bool HasSpaceFor(int vertexCount, int indiceCount, int cmdCount)
         {
+            // Copying is done over multiple steps to ensure copying
+            // is not done to a buffer that is drawing. Removing grids
+            // is still done between steps which means the same number 
+            // of grids are not necessarily being copied for each buffer.
+            // Each buffer will therefore not contain the same grids
+            // which is why all of them must be queried.
             bool canAdd = true;
             foreach (var indirectDrawer in _bufferedDrawers)
             {
@@ -97,36 +109,56 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public int GetVertexCount()
         {
+            // Copying is done over multiple steps to ensure copying
+            // is not done to a buffer that is drawing. Removing grids
+            // is still done between steps which means the same number 
+            // of grids are not necessarily being copied for each buffer.
+            // Meaning the buffers size will no longer be in sync which
+            // is why the max needs to be taken.
             return _bufferedDrawers.Max(x => x.GetVertexCount());
         }
 
         public int GetIndiceCount()
         {
+            // Copying is done over multiple steps to ensure copying
+            // is not done to a buffer that is drawing. Removing grids
+            // is still done between steps which means the same number 
+            // of grids are not necessarily being copied for each buffer.
+            // Meaning the buffers size will no longer be in sync which
+            // is why the max needs to be taken.
             return _bufferedDrawers.Max(x => x.GetIndiceCount());
         }
 
         public int GetCommandCount()
         {
+            // Copying is done over multiple steps to ensure copying
+            // is not done to a buffer that is drawing. Removing grids
+            // is still done between steps which means the same number 
+            // of grids are not necessarily being copied for each buffer.
+            // Meaning the buffers size will no longer be in sync which
+            // is why the max needs to be taken.
             return _bufferedDrawers.Max(x => x.GetCommandCount());
         }
 
         public IEnumerable<VoxelGridHierarchy> GetGridsDrawing()
         {
+            // Copying is done over multiple steps to ensure copying
+            // is not done to a buffer that is drawing. Removing grids
+            // is still done between steps which means the same number 
+            // of grids are not necessarily being copied for each buffer.
+            // Each buffer will therefore not contain the same grids
+            // which is why all of them must be queried.
             return _bufferedDrawers.SelectMany(x => x.GetGridsDrawing())
                                    .Distinct();
         }
 
-        public int TransferDrawCommands(MultiBufferedIndirectDraw multiBufferedDrawer)
+        public int TransferDrawCommandsFromSingleBuffer(MultiBufferedIndirectDraw multiBufferedDrawer)
         {
             int copyCommands = 0;
-            for (int i = 0; i < _bufferedDrawers.Length; i++)
-            {
-                IndirectDraw copyFrom = _bufferedDrawers[i];
-                IndirectDraw copyTo = multiBufferedDrawer._bufferedDrawers[i];
+            IndirectDraw copyFrom = _bufferedDrawers[_updateBufferIndex];
+            IndirectDraw copyTo = multiBufferedDrawer._bufferedDrawers[multiBufferedDrawer._updateBufferIndex];
 
-                copyCommands += copyFrom.TransferDrawCommands(copyTo);
-
-            }
+            copyCommands += copyFrom.TransferDrawCommands(copyTo);
 
             return copyCommands;
         }

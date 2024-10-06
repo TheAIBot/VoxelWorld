@@ -55,11 +55,11 @@ namespace VoxelWorld.Render.VoxelGrid
             SpaceAvailable = Buffer.Count;
             FirstAvailableIndex = 0;
 
-            int byteLength = SpaceAvailable * Marshal.SizeOf<T>();
+            int byteLength = Buffer.Count * Marshal.SizeOf<T>();
             BufferPointer = _openGl.MapBufferRange(Buffer, 0, byteLength, MapBufferAccessMask.WriteBit |
-                                                                          MapBufferAccessMask.PersistentBit |
-                                                                          MapBufferAccessMask.CoherentBit |
-                                                                          MapBufferAccessMask.FlushExplicitBit);
+                                                              MapBufferAccessMask.PersistentBit |
+                                                              MapBufferAccessMask.UnsynchronizedBit |
+                                                              MapBufferAccessMask.FlushExplicitBit);
         }
 
         public void ReserveSpace(int sizeToReserve)
@@ -95,11 +95,12 @@ namespace VoxelWorld.Render.VoxelGrid
             ArgumentOutOfRangeException.ThrowIfGreaterThan((long)srcOffset * Marshal.SizeOf<T>(), int.MaxValue);
             ArgumentOutOfRangeException.ThrowIfGreaterThan((long)dstOffset * Marshal.SizeOf<T>(), int.MaxValue);
             ArgumentOutOfRangeException.ThrowIfGreaterThan((long)length * Marshal.SizeOf<T>(), int.MaxValue);
+
             int srcOffsetInBytes = srcOffset * Marshal.SizeOf<T>();
             int dstOffsetInbytes = dstOffset * Marshal.SizeOf<T>();
             int lengthInBytes = length * Marshal.SizeOf<T>();
 
-            _openGl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, (IntPtr)srcOffsetInBytes, (IntPtr)dstOffsetInbytes, (nuint)lengthInBytes);
+            _openGl.CopyNamedBufferSubData(Buffer.ID, dstBuffer.Buffer.ID, srcOffsetInBytes, dstOffsetInbytes, (nuint)lengthInBytes);
             dstBuffer.UseSpace(length);
         }
 
@@ -116,15 +117,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Dispose()
         {
-            if (_openGl.IsExtensionDirectStateAccessEnabled())
-            {
-                _openGl.UnmapNamedBuffer(Buffer.ID);
-            }
-            else
-            {
-                _openGl.BindBuffer(Buffer.BufferTarget, Buffer.ID);
-                _openGl.UnmapBuffer(Buffer.BufferTarget);
-            }
+            _openGl.UnmapBuffer(Buffer);
 
             Buffer.Dispose();
         }
@@ -188,7 +181,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 return sizeof(T);
             }
 
-            public int AddRange(Span<T> values)
+            public int AddRange(ReadOnlySpan<T> values)
             {
                 int offset = Sliding.FirstAvailableIndex - StartIndex;
                 Span<T> offsetRange = MappedRange.Range.Slice(offset);
@@ -200,7 +193,6 @@ namespace VoxelWorld.Render.VoxelGrid
 
             public void Dispose()
             {
-                Sliding.SpaceAvailable = Sliding.Buffer.Count - Sliding.FirstAvailableIndex;
                 MappedRange.Dispose();
             }
         }
