@@ -44,6 +44,7 @@ namespace VoxelWorld
         private static GL _openGl;
         private static VoxelSystem system;
         private static IKeyboard primaryKeyboard;
+        private static OpenGLDebugging openGLDebugging;
 
 
         static void Main(string[] args)
@@ -54,6 +55,7 @@ namespace VoxelWorld
             var options = WindowOptions.Default;
             options.Size = new Vector2D<int>(windowWidth, windowHeight);
             options.Title = "Voxel World";
+            options.API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.Debug, new APIVersion(4, 6));
 
             window = Window.Create(options);
 
@@ -77,6 +79,16 @@ namespace VoxelWorld
             VoxelGridRenderManager.SetOpenGl(_openGl);
             BoxRenderManager.SetOpenGl(_openGl);
 
+            var flags = _openGl.GetInteger(GLEnum.ContextFlags);
+            if ((flags & (int)GLEnum.ContextFlagDebugBit) == 0)
+            {
+                Console.WriteLine("OpenGL context was not created with a debug flag.");
+            }
+            else
+            {
+                Console.WriteLine("OpenGL debug context enabled.");
+            }
+            Console.WriteLine($"OpenGL Version: {_openGl.GetStringS(GLEnum.Version)}");
             dummyCamera = new PlayerCamera(window.Size.X, window.Size.Y, new Vector3(15, 15, 15));
             player = new PlayerCamera(window.Size.X, window.Size.Y, new Vector3(-8, -8, -8));
             renderFrom = player;
@@ -182,6 +194,10 @@ namespace VoxelWorld
 
         private static void OnRender(double obj)
         {
+            if (openGLDebugging == null)
+            {
+                openGLDebugging = new OpenGLDebugging(_openGl);
+            }
             _openGl.Enable(EnableCap.DepthTest);
             _openGl.Enable(EnableCap.CullFace);
             //Gl.Enable(EnableCap.Blend);
