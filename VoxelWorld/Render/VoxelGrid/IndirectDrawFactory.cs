@@ -29,18 +29,19 @@ namespace VoxelWorld.Render.VoxelGrid
             AvgIndiceCount.AddSample(geometry.Indices.Length);
         }
 
+        public int GetBufferCountPerIndirectDraw() => 3;
+
         public MultiBufferedIndirectDraw CreateIndirectDraw()
         {
-            const int bufferCount = 3;
             if (AvgVertexCount.IsEmpty())
             {
-                return new MultiBufferedIndirectDraw(_openGl, bufferCount, 20_000, 100_000, GeometryPerBuffer);
+                return new MultiBufferedIndirectDraw(_openGl, GetBufferCountPerIndirectDraw(), 20_000, 100_000, GeometryPerBuffer);
             }
             else
             {
                 int vertexCount = (int)(AvgVertexCount.GetAverage() * GeometryPerBuffer);
                 int indiceCount = (int)(AvgIndiceCount.GetAverage() * GeometryPerBuffer);
-                return new MultiBufferedIndirectDraw(_openGl, bufferCount, vertexCount, indiceCount, GeometryPerBuffer);
+                return new MultiBufferedIndirectDraw(_openGl, GetBufferCountPerIndirectDraw(), vertexCount, indiceCount, GeometryPerBuffer);
             }
         }
 

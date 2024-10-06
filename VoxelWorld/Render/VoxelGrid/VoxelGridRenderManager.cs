@@ -14,6 +14,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         private const int MinTransferCount = 500;
         private static IndirectDrawFactory DrawFactory;
+        private static long TotalGpuBufferSizeInBytes = 0;
 
         private static readonly List<MultiBufferedIndirectDraw> BuffersWithSpace = new List<MultiBufferedIndirectDraw>();
         private static readonly List<MultiBufferedIndirectDraw> FullBuffers = new List<MultiBufferedIndirectDraw>();
@@ -41,7 +42,7 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public static void SetOpenGl(GL openGl)
         {
-            DrawFactory = new IndirectDrawFactory(openGl, 5_000);
+            DrawFactory = new IndirectDrawFactory(openGl, 1_000);
         }
 
         public static void MakeGridDrawable(VoxelGridHierarchy grid, GeometryData geometry)
@@ -185,7 +186,9 @@ namespace VoxelWorld.Render.VoxelGrid
 
                 //No space in any buffer for the geometry so make a
                 //new one and try again
-                BuffersWithSpace.Add(DrawFactory.CreateIndirectDraw());
+                var newBuffer = DrawFactory.CreateIndirectDraw();
+                TotalGpuBufferSizeInBytes += newBuffer.GpuMemSize();
+                BuffersWithSpace.Add(newBuffer);
             }
         }
 
@@ -303,6 +306,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 {
                     if (drawers.Count(x => x.IsEmpty()) > 1)
                     {
+                        TotalGpuBufferSizeInBytes -= drawers[i].GpuMemSize();
                         drawers[i].Dispose();
                         drawers.RemoveAt(i);
                     }
@@ -316,6 +320,7 @@ namespace VoxelWorld.Render.VoxelGrid
                     }
                     else
                     {
+                        TotalGpuBufferSizeInBytes -= drawers[i].GpuMemSize();
                         drawers[i].Dispose();
                         drawers.RemoveAt(i);
                     }
@@ -325,19 +330,15 @@ namespace VoxelWorld.Render.VoxelGrid
 
         private static long GetGPUBufferSizeInMB()
         {
-            long bufferSizeInBytes = BuffersWithSpace.Sum(x => x.GpuMemSize());
-            bufferSizeInBytes += FullBuffers.Count > 0 ? FullBuffers.Sum(x => x.GpuMemSize()) : 0;
-            bufferSizeInBytes += CopyingBuffers.Count > 0 ? CopyingBuffers.Sum(x => x.From.GpuMemSize() + x.To.GpuMemSize()) : 0;
-
             const int bytesToMBRatio = 1_000_000;
-            return bufferSizeInBytes / bytesToMBRatio;
+            return TotalGpuBufferSizeInBytes / bytesToMBRatio;
         }
 
         public static float GetBufferUtilization()
         {
             const int bytesToMBRatio = 1_000_000;
             long averageGridSize = DrawFactory.GetAverageGridMemUsage();
-            long avgTotalGridMemUsage = averageGridSize * GridsDrawing;
+            long avgTotalGridMemUsage = averageGridSize * GridsDrawing * DrawFactory.GetBufferCountPerIndirectDraw();
             long avgTotalGridMemUsageInMB = avgTotalGridMemUsage / bytesToMBRatio;
             long gpuMemUsedInMB = GetGPUBufferSizeInMB();
 
