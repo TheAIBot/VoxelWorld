@@ -24,6 +24,8 @@ namespace VoxelWorld.Voxel
 
         public GeometryData(Vector3[] vertices, byte[] normals, uint[] indices)
         {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(vertices.Length, normals.Length);
+
             this.vertices = vertices;
             this.normals = normals;
             this.indices = indices;
@@ -40,11 +42,11 @@ namespace VoxelWorld.Voxel
             IndiceCount = indiceCount;
         }
 
-        public int GetSizeInBytes()
+        public long GetSizeInBytes()
         {
-            return Vertices.Length * Marshal.SizeOf<Vector3>() +
-                   Normals.Length * sizeof(byte) +
-                   Indices.Length * sizeof(uint);
+            return (long)Vertices.Length * Marshal.SizeOf<Vector3>() +
+                   (long)Normals.Length * sizeof(byte) +
+                   (long)Indices.Length * sizeof(uint);
         }
 
         public void Reuse()
