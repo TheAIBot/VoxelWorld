@@ -31,11 +31,12 @@ namespace VoxelWorld.Render.VoxelGrid
         /// <param name="target">The VBO BufferTarget (usually ArrayBuffer or ElementArrayBuffer).</param>
         /// <param name="data">The data to store in the VBO.</param>
         /// <param name="hint">The buffer usage hint (usually StaticDraw).</param>
-        /// <param name="length">The length of the VBO (will take the first 'length' elements from data).</param>
         /// <returns>The buffer ID of the VBO on success, 0 on failure.</returns>
-        public static uint CreateVBO<T>(this GL openGl, BufferTargetARB target, ReadOnlySpan<T> data, BufferUsageARB hint, int length)
+        public static uint CreateVBO<T>(this GL openGl, BufferTargetARB target, ReadOnlySpan<T> data, BufferUsageARB hint)
             where T : unmanaged
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)data.Length * Marshal.SizeOf<T>(), int.MaxValue);
+
             uint vboHandle = openGl.CreateBuffer();
             if (vboHandle == 0) return 0;
 
@@ -48,6 +49,8 @@ namespace VoxelWorld.Render.VoxelGrid
         public static uint CreateVBO<T>(this GL openGl, BufferTargetARB target, BufferUsageARB hint, int length)
     where T : unmanaged
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)length * Marshal.SizeOf<T>(), int.MaxValue);
+
             uint vboHandle = openGl.CreateBuffer();
             if (vboHandle == 0) return 0;
 
@@ -60,17 +63,27 @@ namespace VoxelWorld.Render.VoxelGrid
         public static uint CreateVBO<T>(this GL openGl, BufferStorageTarget target, BufferStorageMask hint, int length)
 where T : unmanaged
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)length * Marshal.SizeOf<T>(), int.MaxValue);
+
             uint vboHandle = openGl.CreateBuffer();
             if (vboHandle == 0) return 0;
 
-            openGl.BindBuffer((GLEnum)target, vboHandle);
-            openGl.BufferStorage<T>(target, (nuint)(length * Marshal.SizeOf<T>()), null, hint);
-            openGl.BindBuffer((GLEnum)target, 0);
+            if (openGl.IsExtensionDirectStateAccessEnabled())
+            {
+                openGl.NamedBufferStorage<T>(vboHandle, (nuint)(length * Marshal.SizeOf<T>()), null, hint);
+            }
+            else
+            {
+                openGl.BindBuffer((GLEnum)target, vboHandle);
+                openGl.BufferStorage<T>(target, (nuint)(length * Marshal.SizeOf<T>()), null, hint);
+                openGl.BindBuffer((GLEnum)target, 0);
+            }
+
             return vboHandle;
         }
 
         /// <summary>
-        /// Maps a range of the buffer object's data store to a Span<typeparamref name="T"/>>.
+        /// Maps a range of the buffer object's data store to a void*.
         /// </summary>
         /// <typeparam name="T">The type of data in the VBO.</typeparam>
         /// <param name="buffer">The VBO whose buffer will be mapped.</param>
@@ -89,6 +102,20 @@ where T : unmanaged
             {
                 openGl.BindBuffer(buffer.BufferTarget, buffer.ID);
                 return openGl.MapBufferRange(buffer.BufferTarget, offset, (nuint)length, mask);
+            }
+        }
+
+        public static void UnmapBuffer<T>(this GL openGl, VBO<T> buffer)
+            where T : unmanaged
+        {
+            if (openGl.IsExtensionDirectStateAccessEnabled())
+            {
+                openGl.UnmapNamedBuffer(buffer.ID);
+            }
+            else
+            {
+                openGl.BindBuffer(buffer.BufferTarget, buffer.ID);
+                openGl.UnmapBuffer(buffer.BufferTarget);
             }
         }
     }
