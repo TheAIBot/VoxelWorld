@@ -173,6 +173,8 @@ namespace VoxelWorld.Render.VoxelGrid
         /// </summary>
         private static void TransferFromAlmostEmptyDrawers()
         {
+            HashSet<MultiBufferedIndirectDraw> nowEmptyDrawers = null;
+
             for (int i = 0; i < GridDrawBuffers.Count; i++)
             {
                 MultiBufferedIndirectDraw draw = GridDrawBuffers[i];
@@ -209,7 +211,18 @@ namespace VoxelWorld.Render.VoxelGrid
                             GridsToBuffer.Add(grid, copyTo);
                         }
 
+                        // Don't transfer to just emptied drawers. They have to
+                        // be made ready again which another method takes care of.
+                        if (nowEmptyDrawers != null &&
+                            nowEmptyDrawers.Contains(GridDrawBuffers[y]))
+                        {
+                            Console.WriteLine("Yep this was maybe a thing");
+                            continue;
+                        }
+
                         AvgTransferedGridsFromAlmostEmptyBuffers.AddSampleNow(draw.TransferDrawCommands(copyTo));
+                        nowEmptyDrawers ??= new HashSet<MultiBufferedIndirectDraw>();
+                        nowEmptyDrawers.Add(draw);
                         break;
                     }
                 }
