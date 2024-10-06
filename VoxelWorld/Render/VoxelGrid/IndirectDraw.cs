@@ -11,7 +11,6 @@ using static VoxelWorld.Render.VoxelGrid.VAO;
 
 namespace VoxelWorld.Render.VoxelGrid
 {
-
     internal sealed class IndirectDraw : IDisposable
     {
         private readonly List<CommandPair> TransferToBuffers = new List<CommandPair>();
@@ -23,12 +22,11 @@ namespace VoxelWorld.Render.VoxelGrid
         private readonly SlidingVBO<uint> IndiceBuffer;
         private readonly SlidingVBO<DrawElementsIndirectCommand> CommandBuffer;
         private readonly VAO Vao;
-        private readonly GL _openGl;
-        private nint? _syncFlag;
+        private GpuCommandSync _gpuSync;
 
         public IndirectDraw(GL openGl, int vertexBufferSize, int indiceBufferSize, int commandBufferSize)
         {
-            _openGl = openGl;
+            _gpuSync = new GpuCommandSync(openGl);
             VertexBuffer = new SlidingVBO<Vector3>(openGl, new VBO<Vector3>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit));
             NormalBuffer = new SlidingVBO<byte>(openGl, new VBO<byte>(openGl, vertexBufferSize, BufferStorageTarget.ArrayBuffer, BufferStorageMask.MapPersistentBit | BufferStorageMask.MapWriteBit | BufferStorageMask.MapCoherentBit)
             {
@@ -101,20 +99,18 @@ namespace VoxelWorld.Render.VoxelGrid
                 return (Array.Empty<GeometryData>(), 0);
             }
 
-            while (_syncFlag.HasValue)
-            {
-                GLEnum lol = _openGl.ClientWaitSync(_syncFlag.Value, SyncObjectMask.Bit, 1);
-                if (lol == GLEnum.AlreadySignaled || lol == GLEnum.ConditionSatisfied)
-                {
-                    break;
-                }
-            }
+            _gpuSync.Wait();
 
             GeometryData[] geometryTransfered = new GeometryData[TransferToBuffers.Count];
             using var vertexRange = VertexBuffer.GetReservedRange();
             using var normalRange = NormalBuffer.GetReservedRange();
             using var indiceRange = IndiceBuffer.GetReservedRange();
             long copiedBytes = 0;
+
+            using (var vertexRange = VertexBuffer.GetReservedRange())
+            using (var normalRange = NormalBuffer.GetReservedRange())
+            using (var indiceRange = IndiceBuffer.GetReservedRange())
+            {
 
             for (int i = 0; i < TransferToBuffers.Count; i++)
             {
@@ -127,10 +123,12 @@ namespace VoxelWorld.Render.VoxelGrid
                 copiedBytes += normalRange.AddRange(geometry.Normals);
                 copiedBytes += indiceRange.AddRange(geometry.Indices);
             }
+            }
 
             TransferToBuffers.Clear();
             CommandsChangeSinceLastPrepareDraw = true;
 
+            _gpuSync.CreateFence();
             return (geometryTransfered, copiedBytes);
         }
 
@@ -141,11 +139,17 @@ namespace VoxelWorld.Render.VoxelGrid
                 CommandBuffer.Reset();
                 CommandBuffer.ReserveSpace(DrawInformations.Count);
 
-                using var commandRange = CommandBuffer.GetReservedRange();
+                _gpuSync.Wait(); // Should be different sync from others
+
+                using (var commandRange = CommandBuffer.GetReservedRange())
+                {
                 foreach (var drawCmd in DrawInformations.Values)
                 {
                     commandRange.Add(drawCmd.Command);
                 }
+                }
+
+                _gpuSync.CreateFence();
 
 
                 CommandsChangeSinceLastPrepareDraw = false;
@@ -196,7 +200,9 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             Debug.Assert(TransferToBuffers.Count == 0);
 
-            int copyCommands = 0;
+            _gpuSync.Wait();
+            dstDrawer._gpuSync.Wait();
+
             foreach (var gridDrawInfo in DrawInformations)
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
@@ -211,8 +217,8 @@ namespace VoxelWorld.Render.VoxelGrid
                 dstDrawer.CommandBuffer.ReserveSpace(1);
                 dstDrawer.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
 
-                copyCommands++;
-            }
+            _gpuSync.CreateFence();
+            dstDrawer._gpuSync.CreateFence();
 
             DrawInformations.Clear();
             dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
@@ -224,13 +230,11 @@ namespace VoxelWorld.Render.VoxelGrid
         {
             if (DrawInformations.Count > 0)
             {
+                _gpuSync.Wait();
+
                 Vao.MultiDrawElementsIndirect(CommandBuffer.Buffer, DrawInformations.Count);
 
-                if (_syncFlag.HasValue)
-                {
-                    _openGl.DeleteSync(_syncFlag.Value);
-                }
-                _syncFlag = _openGl.FenceSync(SyncCondition.SyncGpuCommandsComplete, SyncBehaviorFlags.None);
+                _gpuSync.CreateFence();
             }
         }
 
@@ -269,6 +273,8 @@ namespace VoxelWorld.Render.VoxelGrid
 
         public void Dispose()
         {
+            _gpuSync.Wait();
+
             Vao.Dispose();
             VertexBuffer.Dispose();
             NormalBuffer.Dispose();
