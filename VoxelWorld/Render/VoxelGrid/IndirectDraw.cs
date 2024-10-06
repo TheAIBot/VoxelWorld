@@ -200,6 +200,7 @@ namespace VoxelWorld.Render.VoxelGrid
             _gpuSync.Wait();
             dstDrawer._gpuSync.Wait();
 
+            int copyCommandCount = 0;
             foreach (var gridDrawInfo in DrawInformations)
             {
                 VoxelGridHierarchy grid = gridDrawInfo.Key;
@@ -211,6 +212,7 @@ namespace VoxelWorld.Render.VoxelGrid
                 VertexBuffer.CopyTo(dstDrawer.VertexBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
                 NormalBuffer.CopyTo(dstDrawer.NormalBuffer, drawInfo.VertexOffset, dstVertexOffset, drawInfo.VertexCount);
                 IndiceBuffer.CopyTo(dstDrawer.IndiceBuffer, drawInfo.IndiceOffset, dstIndiceOffset, drawInfo.IndiceCount);
+                copyCommandCount += 3;
                 dstDrawer.CommandBuffer.ReserveSpace(1);
                 dstDrawer.Add(grid, dstIndiceOffset, drawInfo.IndiceCount, dstVertexOffset, drawInfo.VertexCount);
 
@@ -222,7 +224,7 @@ namespace VoxelWorld.Render.VoxelGrid
             DrawInformations.Clear();
             dstDrawer.CommandsChangeSinceLastPrepareDraw = true;
 
-            return 0;
+            return copyCommandCount;
         }
 
         public void Draw()

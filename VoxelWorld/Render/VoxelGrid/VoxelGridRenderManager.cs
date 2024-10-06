@@ -255,7 +255,7 @@ namespace VoxelWorld.Render.VoxelGrid
             for (int i = CopyingBuffers.Count - 1; i >= 0; i--)
             {
                 CopyPair copyPair = CopyingBuffers[i];
-                copyPair.From.TransferDrawCommandsFromSingleBuffer(copyPair.To);
+                AvgTransferedGridsFromAlmostEmptyBuffers.AddSampleNow(copyPair.From.TransferDrawCommandsFromSingleBuffer(copyPair.To));
 
                 if (!copyPair.From.IsEmpty())
                 {
