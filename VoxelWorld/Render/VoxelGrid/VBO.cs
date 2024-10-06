@@ -127,7 +127,7 @@ namespace VoxelWorld.Render.VoxelGrid
         public VBO(GL openGl, T[] Data, BufferTargetARB Target = BufferTargetARB.ArrayBuffer, BufferUsageARB Hint = BufferUsageARB.StaticDraw)
         {
             _openGl = openGl;
-            ID = _openGl.CreateVBO<T>(Target, Data, Hint, Data.Length);
+            ID = _openGl.CreateVBO<T>(Target, Data, Hint);
 
             BufferTarget = Target;
             this.Size = GetTypeComponentSize();
@@ -227,6 +227,8 @@ namespace VoxelWorld.Render.VoxelGrid
                 BufferTarget != BufferTargetARB.PixelPackBuffer && BufferTarget != BufferTargetARB.PixelUnpackBuffer &&
                 BufferTarget != BufferTargetARB.DrawIndirectBuffer)
                 throw new InvalidOperationException(string.Format("BufferSubData cannot be called with a BufferTarget of type {0}", BufferTarget.ToString()));
+
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((long)data.Length * Marshal.SizeOf<T>(), int.MaxValue);
 
             fixed (void* dataPointer = data)
             {
